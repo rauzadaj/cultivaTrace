@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cultivatrace_app
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://cultiva:password@db:5432/cultivatrace?serverVersion=13&charset=utf8
+    ports:
+      - "8000:8000"
+
+  db:
+    image: postgres:13
+    container_name: cultivatrace_db
+    environment:
+      POSTGRES_DB: cultivatrace
+      POSTGRES_USER: cultiva
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
