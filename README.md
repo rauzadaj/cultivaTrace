@@ -34,7 +34,7 @@ docker exec -it cultivatrace_app php bin/console doctrine:migrations:migrate
 ## Roadmap
 
 - Authentification JWT
-- Entités Parcelle et ActivitéCulturale
+- Entities Plot and CropActivity
 - CRUD API Platform
 - Frontend Vue.js dashboard
 - Génération PDF registre
