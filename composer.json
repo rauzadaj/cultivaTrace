@@ -1,4 +1,6 @@
 {
+    "name": "jonathan/cultivatrace",
+    "description": "Application Symfony de gestion et de tracabilite culturale",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
