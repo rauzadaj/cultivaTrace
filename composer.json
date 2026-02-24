@@ -12,7 +12,7 @@
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.6",
-        "lexik/jwt-authentication-bundle": "3.0",
+        "lexik/jwt-authentication-bundle": "^3.0",
         "symfony/asset": "6.4.*",
         "symfony/clock": "6.4.*",
         "symfony/console": "6.4.*",
