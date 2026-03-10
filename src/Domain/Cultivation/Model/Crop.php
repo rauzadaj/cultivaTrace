@@ -8,7 +8,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Domain\Cultivation\Enum\CropStage;
-use App\Domain\Cultivation\Exception\InvalidCropStageTransition;
+use App\Domain\Cultivation\Enum\JournalEntryType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -55,9 +55,9 @@ class Crop
     #[Groups(['crop:read', 'crop:write', 'journal:read'])]
     private ?string $displayName = null;
 
-    #[ORM\Column(name: 'current_stage', length: 32, enumType: CropStage::class)]
+    #[ORM\Column(name: 'current_stage', length: 32)]
     #[Groups(['crop:read', 'journal:read'])]
-    private CropStage $currentStage = CropStage::Seedling;
+    private string $currentStage = CropStage::Seedling->value;
 
     #[ORM\Column(name: 'seeded_at')]
     #[Assert\NotNull]
@@ -122,7 +122,19 @@ class Crop
 
     public function getCurrentStage(): CropStage
     {
+        return CropStage::from($this->currentStage);
+    }
+
+    public function getCurrentStageValue(): string
+    {
         return $this->currentStage;
+    }
+
+    public function setCurrentStageValue(string $currentStage): self
+    {
+        $this->currentStage = CropStage::from($currentStage)->value;
+
+        return $this;
     }
 
     public function getSeededAt(): ?\DateTimeImmutable
@@ -177,44 +189,41 @@ class Crop
 
     public function moveToVegetativeStage(): self
     {
-        return $this->transitionTo(CropStage::Veg);
+        return $this->setCurrentStageValue(CropStage::Veg->value);
     }
 
     public function moveToFloweringStage(): self
     {
-        return $this->transitionTo(CropStage::Flower);
+        return $this->setCurrentStageValue(CropStage::Flower->value);
     }
 
-    public function harvest(int $finalYieldGrams, ?\DateTimeImmutable $harvestedAt = null): self
+    public function markHarvested(int $finalYieldGrams, ?\DateTimeImmutable $harvestedAt = null): self
     {
-        $this->transitionTo(CropStage::Harvest);
+        $this->setCurrentStageValue(CropStage::Harvest->value);
         $this->finalYieldGrams = $finalYieldGrams;
         $this->harvestedAt = $harvestedAt ?? new \DateTimeImmutable();
 
         return $this;
     }
 
-    public function transitionTo(CropStage $targetStage): self
+    public function harvest(int $finalYieldGrams, ?\DateTimeImmutable $harvestedAt = null): self
     {
-        $allowedTransitions = [
-            CropStage::Seedling->value => CropStage::Veg,
-            CropStage::Veg->value => CropStage::Flower,
-            CropStage::Flower->value => CropStage::Harvest,
-            CropStage::Harvest->value => CropStage::Harvest,
-        ];
+        return $this->markHarvested($finalYieldGrams, $harvestedAt);
+    }
 
-        $expectedTarget = $allowedTransitions[$this->currentStage->value];
+    public function recordStageTransition(CropStage $from, CropStage $to, ?\DateTimeImmutable $occurredAt = null): self
+    {
+        $journalEntry = (new JournalEntry())
+            ->setType(JournalEntryType::StageTransition)
+            ->setOccurredAt($occurredAt ?? new \DateTimeImmutable())
+            ->setNotes(sprintf('Workflow transition from %s to %s.', $from->value, $to->value))
+            ->setMetadata([
+                'from' => $from->value,
+                'to' => $to->value,
+                'source' => 'workflow',
+            ]);
 
-        if ($targetStage !== $expectedTarget) {
-            throw InvalidCropStageTransition::between($this->currentStage, $targetStage);
-        }
-
-        $this->currentStage = $targetStage;
-
-        if (CropStage::Harvest !== $targetStage) {
-            $this->harvestedAt = null;
-            $this->finalYieldGrams = null;
-        }
+        $this->addJournalEntry($journalEntry);
 
         return $this;
     }
