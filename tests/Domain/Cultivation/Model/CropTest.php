@@ -4,7 +4,6 @@ namespace App\Tests\Domain\Cultivation\Model;
 
 use App\Domain\Cultivation\Enum\CropStage;
 use App\Domain\Cultivation\Enum\JournalEntryType;
-use App\Domain\Cultivation\Exception\InvalidCropStageTransition;
 use App\Domain\Cultivation\Model\Crop;
 use App\Domain\Cultivation\Model\Genetic;
 use App\Domain\Cultivation\Model\JournalEntry;
@@ -34,20 +33,21 @@ final class CropTest extends TestCase
         self::assertNotNull($crop->getHarvestedAt());
     }
 
-    public function testCropRejectsInvalidTransitionOrder(): void
+    public function testCropRecordsWorkflowStageTransitionIntoJournal(): void
     {
         $crop = (new Crop())
             ->setBatchCode('LOT-2026-002')
-            ->setDisplayName('Forbidden Transition')
+            ->setDisplayName('Workflow Transition')
             ->setGenetic(
                 (new Genetic())
                     ->setCode('RNTZ-01')
                     ->setName('Runtz'),
             );
 
-        $this->expectException(InvalidCropStageTransition::class);
+        $crop->recordStageTransition(CropStage::Seedling, CropStage::Veg);
 
-        $crop->moveToFloweringStage();
+        self::assertCount(1, $crop->getJournalEntries());
+        self::assertSame(JournalEntryType::StageTransition, $crop->getJournalEntries()->first()->getType());
     }
 
     public function testJournalEntryAttachmentIsAppendOnlyFromCropAggregate(): void
