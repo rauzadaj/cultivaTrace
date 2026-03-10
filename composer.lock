@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "95adb23d3b52df45da306d4c8e727514",
+    "content-hash": "c5cd5f328bd96fff7824c3400f18d46e",
     "packages": [
         {
             "name": "api-platform/doctrine-common",
@@ -6731,16 +6731,16 @@
         },
         {
             "name": "symfony/workflow",
-            "version": "v6.4.0",
+            "version": "v6.4.34",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/workflow.git",
-                "reference": "ba50c4efff43256711a4dc865b83122c3b4ef8a2"
+                "reference": "fc0448972caa536b6cfc0fec0235161076642d1c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/workflow/zipball/ba50c4efff43256711a4dc865b83122c3b4ef8a2",
-                "reference": "ba50c4efff43256711a4dc865b83122c3b4ef8a2",
+                "url": "https://api.github.com/repos/symfony/workflow/zipball/fc0448972caa536b6cfc0fec0235161076642d1c",
+                "reference": "fc0448972caa536b6cfc0fec0235161076642d1c",
                 "shasum": ""
             },
             "require": {
@@ -6758,6 +6758,7 @@
                 "symfony/expression-language": "^5.4|^6.0|^7.0",
                 "symfony/http-kernel": "^6.4|^7.0",
                 "symfony/security-core": "^5.4|^6.0|^7.0",
+                "symfony/stopwatch": "^5.4|^6.0|^7.0",
                 "symfony/validator": "^5.4|^6.0|^7.0"
             },
             "type": "library",
@@ -6798,7 +6799,7 @@
                 "workflow"
             ],
             "support": {
-                "source": "https://github.com/symfony/workflow/tree/v6.4.0"
+                "source": "https://github.com/symfony/workflow/tree/v6.4.34"
             },
             "funding": [
                 {
@@ -6810,11 +6811,15 @@
                     "type": "github"
                 },
                 {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
                     "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
                     "type": "tidelift"
                 }
             ],
-            "time": "2023-10-27T10:31:04+00:00"
+            "time": "2026-02-22T21:40:04+00:00"
         },
         {
             "name": "symfony/yaml",
