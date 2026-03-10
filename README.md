@@ -22,6 +22,7 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 
 - `Crop` : lot cultural avec batch code unique, stade courant, dates de semis/récolte, rendement final
 - `JournalEntry` : journal append-only exposé en lecture/écriture de création uniquement
+- Les mutations `UPDATE` et `DELETE` du journal sont bloquées par Doctrine et par trigger PostgreSQL
 - `Genetic` : variété génétique avec métadonnées flexibles stockées en JSON/JSONB
 - `PhLevel` et `NutrientConcentration` : value objects métier pour les mesures critiques
 - `GET /api/analytics/cycle-average` : agrégation de durée moyenne de cycle par variété
@@ -87,6 +88,12 @@ composer validate --strict
 vendor/bin/phpunit
 ```
 
+### Backend / migrations
+
+```bash
+php bin/console doctrine:migrations:migrate
+```
+
 ### Frontend (build)
 
 ```bash
@@ -113,6 +120,7 @@ npm run build
 - Le backend Docker utilise PHP 8.3 (aligné avec les dépendances verrouillées).
 - Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
+- Le journal cultural est protégé en append-only au niveau ORM et base PostgreSQL.
 - L’intégration Symfony Workflow est prévue au niveau du cycle de culture, mais le package `symfony/workflow` n’a pas pu être installé automatiquement dans cet environnement faute d’accès réseau au registre Composer.
 
 ## Roadmap (prochaine tranche)
