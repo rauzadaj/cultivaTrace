@@ -61,6 +61,16 @@ final readonly class CropLifecycleTransitionController
             throw new InvalidArgumentException('Harvest transition requires "finalYieldGrams".');
         }
 
-        return (int) $payload['finalYieldGrams'];
+        $finalYield = filter_var(
+            $payload['finalYieldGrams'],
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 0]],
+        );
+
+        if (false === $finalYield) {
+            throw new InvalidArgumentException('Harvest transition requires a non-negative integer "finalYieldGrams".');
+        }
+
+        return $finalYield;
     }
 }

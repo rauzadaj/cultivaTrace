@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -29,6 +30,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
 
         $exception = $event->getThrowable();
         $status = match (true) {
+            $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
             $exception instanceof InvalidArgumentException => Response::HTTP_BAD_REQUEST,
             $exception instanceof DomainException => Response::HTTP_UNPROCESSABLE_ENTITY,
             default => Response::HTTP_INTERNAL_SERVER_ERROR,
