@@ -19,6 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'journal_entry')]
 #[ORM\Index(name: 'idx_journal_entry_occurred_at', columns: ['occurred_at'])]
 #[ORM\Index(name: 'idx_journal_entry_crop_occurred_at', columns: ['crop_id', 'occurred_at'])]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new GetCollection(),
@@ -31,6 +32,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 class JournalEntry
 {
+    private bool $sealed = false;
+
     #[ORM\Id]
     #[ORM\Column(length: 26, unique: true)]
     #[Groups(['journal:read'])]
@@ -90,6 +93,7 @@ class JournalEntry
 
     public function setCrop(Crop $crop): self
     {
+        $this->assertMutable();
         $this->crop = $crop;
 
         return $this;
@@ -102,6 +106,7 @@ class JournalEntry
 
     public function setType(JournalEntryType $type): self
     {
+        $this->assertMutable();
         $this->type = $type;
 
         return $this;
@@ -114,6 +119,7 @@ class JournalEntry
 
     public function setOccurredAt(\DateTimeImmutable $occurredAt): self
     {
+        $this->assertMutable();
         $this->occurredAt = $occurredAt;
 
         return $this;
@@ -126,6 +132,7 @@ class JournalEntry
 
     public function setNotes(?string $notes): self
     {
+        $this->assertMutable();
         $this->notes = null === $notes ? null : trim($notes);
 
         return $this;
@@ -140,6 +147,7 @@ class JournalEntry
     /** @param array<string, mixed> $metadata */
     public function setMetadata(array $metadata): self
     {
+        $this->assertMutable();
         $this->metadata = $metadata;
 
         return $this;
@@ -152,6 +160,7 @@ class JournalEntry
 
     public function setPhLevel(?PhLevel $phLevel): self
     {
+        $this->assertMutable();
         $this->phLevel = $phLevel;
 
         return $this;
@@ -164,8 +173,30 @@ class JournalEntry
 
     public function setNutrientConcentration(?NutrientConcentration $nutrientConcentration): self
     {
+        $this->assertMutable();
         $this->nutrientConcentration = $nutrientConcentration;
 
         return $this;
+    }
+
+    public function isSealed(): bool
+    {
+        return $this->sealed;
+    }
+
+    #[ORM\PostPersist]
+    #[ORM\PostLoad]
+    public function seal(): self
+    {
+        $this->sealed = true;
+
+        return $this;
+    }
+
+    private function assertMutable(): void
+    {
+        if ($this->sealed) {
+            throw \App\Domain\Cultivation\Exception\JournalEntryAppendOnlyViolation::update();
+        }
     }
 }
