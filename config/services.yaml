@@ -24,3 +24,17 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        test.workflow.registry:
+            alias: workflow.registry
+            public: true
+
+        test.state_machine.crop_lifecycle:
+            alias: state_machine.crop_lifecycle
+            public: true
+
+        test.App\Application\Cultivation\Workflow\CropLifecycleManager:
+            alias: App\Application\Cultivation\Workflow\CropLifecycleManager
+            public: true
