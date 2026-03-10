@@ -1,5 +1,5 @@
-import 'vuetify/styles'
 import '@mdi/font/css/materialdesignicons.css'
+import 'vuetify/styles'
 
 import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
@@ -9,15 +9,18 @@ export default createVuetify({
   components,
   directives,
   theme: {
-    defaultTheme: 'light',
+    defaultTheme: 'cultivaTrace',
     themes: {
-      light: {
+      cultivaTrace: {
         colors: {
-          primary: '#2e7d32',
-          secondary: '#8d6e63',
-          accent: '#ffb300',
-          background: '#f4f7f2',
-          surface: '#ffffff',
+          primary: '#195b39',
+          secondary: '#8b5e34',
+          accent: '#d97706',
+          background: '#f3efe4',
+          surface: '#fffdf7',
+          success: '#2f855a',
+          warning: '#c05621',
+          error: '#9b2c2c',
         },
       },
     },
