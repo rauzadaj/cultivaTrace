@@ -26,6 +26,7 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 - `Genetic` : variété génétique avec métadonnées flexibles stockées en JSON/JSONB
 - `PhLevel` et `NutrientConcentration` : value objects métier pour les mesures critiques
 - `GET /api/analytics/cycle-average` : agrégation de durée moyenne de cycle par variété
+- `POST /api/crops/{id}/transitions/{transition}` : transitions de cycle pilotées par Symfony Workflow
 
 ## Prérequis
 
@@ -57,6 +58,9 @@ docker exec -it cultivatrace_app php bin/console doctrine:migrations:migrate
 
 - `http://localhost:8000/api`
 - `http://localhost:8000/api/analytics/cycle-average`
+- `http://localhost:8000/api/crops/{id}/transitions/start_vegetative`
+- `http://localhost:8000/api/crops/{id}/transitions/start_flowering`
+- `http://localhost:8000/api/crops/{id}/transitions/harvest`
 
 Note :
 - Un `401 JWT Token not found` sur `/api` est normal si vous n’êtes pas authentifié.
@@ -94,6 +98,12 @@ vendor/bin/phpunit
 php bin/console doctrine:migrations:migrate
 ```
 
+### Backend / workflow
+
+```bash
+php bin/console debug:config framework workflows
+```
+
 ### Frontend (build)
 
 ```bash
@@ -121,11 +131,11 @@ npm run build
 - Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
 - Le journal cultural est protégé en append-only au niveau ORM et base PostgreSQL.
-- L’intégration Symfony Workflow est prévue au niveau du cycle de culture, mais le package `symfony/workflow` n’a pas pu être installé automatiquement dans cet environnement faute d’accès réseau au registre Composer.
+- Le composant `symfony/workflow` orchestre désormais les transitions `seedling -> veg -> flower -> harvest`.
+- Chaque transition de cycle ajoute une entrée append-only de type `stage_transition` dans le journal du lot.
 
 ## Roadmap (prochaine tranche)
 
-- Wiring complet du composant Symfony Workflow pour les transitions `seedling -> veg -> flower -> harvest`
 - Opérations métier dédiées pour les transitions de cycle et la récolte
 - Corrélation avancée entre mesures environnementales et rendement
 - Authentification frontend enrichie et vues opérateur
