@@ -1,22 +1,43 @@
 # Frontend CultivaTrace
 
+Frontend Vue 3 + TypeScript pour le dashboard de suivi cultural en temps réel.
+
 ## Installation
 
-1. Se placer dans le dossier frontend :
-```
+1. Se placer dans le dossier `frontend`
+
+```bash
 cd frontend
 ```
 
-2. Installer les dépendances :
-```
+2. Installer les dépendances
+
+```bash
 npm install
 ```
 
-3. Lancer le serveur de développement :
-```
+3. Lancer le serveur de développement
+
+```bash
 npm run dev
 ```
 
-## Détails
+4. Générer le bundle de production
 
-Projet Vue.js 3 + Pinia basique pour futur dashboard CultivaTrace.
+```bash
+npm run build
+```
+
+## Structure
+
+- `src/stores/useUserStore.ts` : contexte opérateur, token, base URL API
+- `src/stores/useCropStore.ts` : chargement dashboard, polling, quick actions
+- `src/components/dashboard/CropDashboard.vue` : vue principale temps réel
+- `src/components/dashboard/QuickActionButtons.vue` : saisie terrain rapide
+- `src/components/AppErrorBoundary.vue` : fallback UI global
+
+## Contrat frontend
+
+- Consommation Hydra sur `/api/crops` et `/api/journal_entries`
+- Consommation JSON sur `/api/analytics/cycle-average`
+- Typage strict dans `src/types/api.ts`
