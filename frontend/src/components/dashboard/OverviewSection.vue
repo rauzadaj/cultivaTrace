@@ -170,7 +170,7 @@ import { useCropStore } from '../../stores/useCropStore'
 import { useUserStore } from '../../stores/useUserStore'
 import type { JournalEntryDto } from '../../types/api'
 
-defineProps<{
+const props = defineProps<{
   search: string
 }>()
 
