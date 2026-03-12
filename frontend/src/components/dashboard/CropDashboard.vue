@@ -4,14 +4,14 @@
       v-model="drawer"
       :permanent="mdAndUp"
       :temporary="!mdAndUp"
-      width="250"
+      width="272"
       class="dashboard-drawer"
     >
       <div class="drawer-brand">
         <div class="drawer-brand__mark">CT</div>
         <div>
           <strong>CultivaTrace</strong>
-          <span>Operations Console</span>
+          <span>Field operations suite</span>
         </div>
       </div>
 
@@ -22,61 +22,79 @@
           :prepend-icon="item.icon"
           :title="item.title"
           :subtitle="item.subtitle"
+          active
           active-color="white"
+          rounded="lg"
         />
       </v-list>
 
-      <div class="drawer-section">
-        <p class="drawer-section__title">Lifecycle</p>
-        <div v-for="node in stageNodes" :key="node.key" class="drawer-filter">
-          <span>{{ node.label }}</span>
+      <div class="drawer-panel">
+        <p class="drawer-panel__title">Lifecycle</p>
+        <div v-for="node in stageNodes" :key="node.key" class="filter-row">
+          <div class="filter-row__label">
+            <span class="filter-dot" :class="`filter-dot--${node.key}`" />
+            <span>{{ node.label }}</span>
+          </div>
           <strong>{{ node.count }}</strong>
         </div>
       </div>
 
-      <div class="drawer-section">
-        <p class="drawer-section__title">Signals</p>
-        <div class="drawer-filter">
+      <div class="drawer-panel">
+        <p class="drawer-panel__title">Signals</p>
+        <div class="filter-row">
           <span>Journal entries</span>
           <strong>{{ cropStore.journalEntries.length }}</strong>
         </div>
-        <div class="drawer-filter">
+        <div class="filter-row">
           <span>Average pH</span>
           <strong>{{ averagePhLabel }}</strong>
         </div>
-        <div class="drawer-filter">
+        <div class="filter-row">
           <span>Avg nutrients</span>
           <strong>{{ averagePpmLabel }}</strong>
         </div>
       </div>
+
+      <div class="drawer-panel">
+        <p class="drawer-panel__title">Workspace</p>
+        <div class="workspace-summary">
+          <span>{{ userStore.userEmail || userStore.operatorLabel }}</span>
+          <small>{{ syncLabel }}</small>
+        </div>
+      </div>
     </v-navigation-drawer>
 
-    <v-app-bar flat color="#2c343a" density="comfortable" class="dashboard-appbar">
+    <v-app-bar flat color="#2b3237" density="comfortable" class="dashboard-appbar">
       <v-app-bar-nav-icon v-if="!mdAndUp" color="white" @click="drawer = !drawer" />
-      <div class="appbar-title">
-        <span class="appbar-title__eyebrow">Realtime cultivation</span>
-        <strong>Control dashboard</strong>
+
+      <div class="appbar-search">
+        <v-icon icon="mdi-magnify" size="18" />
+        <input
+          v-model.trim="search"
+          type="text"
+          placeholder="Find lot, batch or genetic"
+          aria-label="Search lots"
+        >
       </div>
+
       <v-spacer />
-      <v-chip size="small" variant="outlined" color="white" class="mr-2">
-        {{ userStore.userEmail || userStore.operatorLabel }}
-      </v-chip>
-      <v-chip size="small" color="primary" variant="flat" class="mr-2">Fleet active</v-chip>
-      <v-chip size="small" variant="outlined" color="white">{{ syncLabel }}</v-chip>
+      <v-chip size="small" variant="flat" color="primary" class="mr-2">Overview</v-chip>
+      <v-chip size="small" variant="outlined" color="white" class="mr-2">{{ userStore.operatorLabel }}</v-chip>
+      <v-btn size="small" variant="text" color="white" @click="logout">Logout</v-btn>
     </v-app-bar>
 
     <v-main class="dashboard-main">
       <v-container fluid class="pa-4">
         <v-row dense>
-          <v-col cols="12" md="8">
-            <v-card flat class="surface-card overview-card">
+          <v-col cols="12" lg="8">
+            <v-card flat class="surface-card updates-card">
               <div class="section-header">
                 <div>
                   <p class="section-header__eyebrow">Updates</p>
-                  <h1>Lot activity</h1>
+                  <h1>Lot operations</h1>
                 </div>
                 <v-btn color="primary" variant="flat" rounded="lg" :loading="cropStore.loading" @click="cropStore.loadDashboard">
-                  Synchroniser
+                  Refresh
                 </v-btn>
               </div>
 
@@ -87,31 +105,48 @@
                 </div>
               </div>
 
-              <div v-if="!visibleCrops.length" class="empty-state">Aucun lot disponible.</div>
-              <div v-else class="lot-list">
-                <article v-for="crop in visibleCrops" :key="crop.id" class="lot-row">
-                  <div class="lot-row__primary">
-                    <div class="lot-row__state" :class="`lot-row__state--${crop.currentStage}`" />
+              <div class="updates-table">
+                <header class="updates-table__head">
+                  <span>Lot</span>
+                  <span>Stage</span>
+                  <span>Batch</span>
+                  <span>Seeded</span>
+                  <span>Action</span>
+                </header>
+
+                <div v-if="!visibleCrops.length" class="empty-state">Aucun lot disponible pour ce filtre.</div>
+
+                <article v-for="crop in visibleCrops" :key="crop.id" class="updates-row">
+                  <div class="updates-row__lot">
+                    <span class="lot-indicator" :class="`lot-indicator--${crop.currentStage}`" />
                     <div>
                       <strong>{{ crop.displayName }}</strong>
                       <p>{{ crop.genetic.code }} · {{ crop.genetic.name }}</p>
                     </div>
                   </div>
 
-                  <div class="lot-row__meta">
+                  <div class="updates-row__stage">
                     <span class="lot-chip" :class="`lot-chip--${crop.currentStage}`">{{ stageLabel(crop.currentStage) }}</span>
-                    <small>Batch {{ crop.batchCode }}</small>
-                    <small>Semis {{ formatDate(crop.seededAt) }}</small>
                   </div>
 
-                  <div class="lot-row__actions">
+                  <div class="updates-row__batch">
+                    <strong>{{ crop.batchCode }}</strong>
+                    <small>{{ crop.currentStage === 'harvest' ? 'closed cycle' : 'active cycle' }}</small>
+                  </div>
+
+                  <div class="updates-row__seeded">
+                    <strong>{{ formatDate(crop.seededAt) }}</strong>
+                    <small>{{ crop.harvestedAt ? `Harvest ${formatDate(crop.harvestedAt)}` : 'In progress' }}</small>
+                  </div>
+
+                  <div class="updates-row__action">
                     <template v-if="crop.currentStage !== 'harvest'">
                       <QuickActionButtons :crop-iri="crop['@id']" :disabled="cropStore.loading" />
                     </template>
                     <template v-else>
                       <div class="harvest-pill">
                         <v-icon icon="mdi-check-decagram" size="18" />
-                        <span>{{ crop.finalYieldGrams ?? '—' }} g recoltes</span>
+                        <span>{{ crop.finalYieldGrams ?? '—' }} g</span>
                       </div>
                     </template>
                   </div>
@@ -120,14 +155,13 @@
             </v-card>
           </v-col>
 
-          <v-col cols="12" md="4">
+          <v-col cols="12" lg="4">
             <v-card flat class="surface-card session-card mb-4">
               <div class="section-header section-header--compact">
                 <div>
-                  <p class="section-header__eyebrow">Session</p>
+                  <p class="section-header__eyebrow">Console</p>
                   <h2>Workspace access</h2>
                 </div>
-                <v-btn color="secondary" variant="tonal" size="small" @click="logout">Se deconnecter</v-btn>
               </div>
 
               <form class="session-form" @submit.prevent>
@@ -158,7 +192,7 @@
               </form>
             </v-card>
 
-            <v-card flat class="surface-card service-card mb-4">
+            <v-card flat class="surface-card services-card mb-4">
               <div class="section-header section-header--compact">
                 <div>
                   <p class="section-header__eyebrow">Services</p>
@@ -167,31 +201,19 @@
               </div>
 
               <div class="service-list">
-                <article class="service-item">
-                  <v-icon icon="mdi-leaf" color="primary" />
-                  <div>
-                    <strong>Genetics</strong>
-                    <p>{{ analyticsLeaderLabel }}</p>
+                <article v-for="service in serviceItems" :key="service.title" class="service-item">
+                  <div class="service-item__icon" :class="`service-item__icon--${service.tone}`">
+                    <v-icon :icon="service.icon" size="20" />
                   </div>
-                </article>
-                <article class="service-item">
-                  <v-icon icon="mdi-flask-outline" color="secondary" />
                   <div>
-                    <strong>Chemistry</strong>
-                    <p>{{ averagePhLabel }} · {{ averagePpmLabel }}</p>
-                  </div>
-                </article>
-                <article class="service-item">
-                  <v-icon icon="mdi-book-lock-outline" color="success" />
-                  <div>
-                    <strong>Journal</strong>
-                    <p>{{ cropStore.latestEntries.length }} append-only events visibles</p>
+                    <strong>{{ service.title }}</strong>
+                    <p>{{ service.description }}</p>
                   </div>
                 </article>
               </div>
             </v-card>
 
-            <v-card flat class="surface-card stream-card">
+            <v-card flat class="surface-card comments-card">
               <div class="section-header section-header--compact">
                 <div>
                   <p class="section-header__eyebrow">Comments</p>
@@ -219,7 +241,7 @@
         </v-row>
 
         <v-row dense class="mt-1">
-          <v-col cols="12" md="8">
+          <v-col cols="12" lg="8">
             <v-card flat class="surface-card analytics-card">
               <div class="section-header section-header--compact">
                 <div>
@@ -248,12 +270,12 @@
             </v-card>
           </v-col>
 
-          <v-col cols="12" md="4">
+          <v-col cols="12" lg="4">
             <v-card flat class="surface-card telemetry-card">
               <div class="section-header section-header--compact">
                 <div>
                   <p class="section-header__eyebrow">Telemetry</p>
-                  <h2>Live metrics</h2>
+                  <h2>Realtime metrics</h2>
                 </div>
               </div>
 
@@ -272,7 +294,7 @@
                 </div>
                 <div class="telemetry-card__item">
                   <strong>{{ activeRatioLabel }}</strong>
-                  <span>lots actifs</span>
+                  <span>active lots</span>
                 </div>
               </div>
             </v-card>
@@ -301,18 +323,38 @@ const userStore = useUserStore()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 const drawer = ref(true)
+const search = ref('')
 
 const orderedStages: CropDto['currentStage'][] = ['seedling', 'veg', 'flower', 'harvest']
 const navigationItems = [
   { title: 'Overview', subtitle: 'Live fleet status', icon: 'mdi-view-dashboard-outline' },
   { title: 'Lots', subtitle: 'Cycle tracking', icon: 'mdi-sprout-outline' },
-  { title: 'Signals', subtitle: 'Journal & chemistry', icon: 'mdi-waveform' },
+  { title: 'Services', subtitle: 'Health checks', icon: 'mdi-shield-check-outline' },
   { title: 'Analytics', subtitle: 'Yield correlations', icon: 'mdi-chart-box-outline' },
 ]
 
 const totalLots = computed(() => cropStore.crops.length)
-const visibleCrops = computed(() => [...cropStore.activeCrops, ...cropStore.harvestedCrops].slice(0, 8))
 const totalCompletedCycles = computed(() => cropStore.cycleAverages.reduce((sum, item) => sum + item.completedCycles, 0))
+const filteredCrops = computed(() => {
+  const needle = search.value.trim().toLowerCase()
+
+  if (!needle) {
+    return cropStore.crops
+  }
+
+  return cropStore.crops.filter((crop) => {
+    const haystack = [
+      crop.displayName,
+      crop.batchCode,
+      crop.genetic.code,
+      crop.genetic.name,
+      crop.currentStage,
+    ].join(' ').toLowerCase()
+
+    return haystack.includes(needle)
+  })
+})
+const visibleCrops = computed(() => filteredCrops.value.slice(0, 8))
 
 const averagePh = computed(() => {
   const values = cropStore.latestEntries
@@ -366,10 +408,31 @@ const analyticsLeaderLabel = computed(() => analyticsLeader.value ? analyticsLea
 const activeRatioLabel = computed(() => totalLots.value ? `${Math.round((cropStore.activeCrops.length / totalLots.value) * 100)}%` : '0%')
 
 const summaryItems = computed(() => [
-  { label: 'Lots actifs', value: cropStore.activeCrops.length },
-  { label: 'Events terrain', value: cropStore.journalEntries.length },
-  { label: 'Cycles completes', value: totalCompletedCycles.value },
-  { label: 'Rendement moyen', value: cropStore.averageYield ?? '—' },
+  { label: 'Active lots', value: cropStore.activeCrops.length },
+  { label: 'Harvested', value: cropStore.harvestedCrops.length },
+  { label: 'Events', value: cropStore.journalEntries.length },
+  { label: 'Avg yield', value: cropStore.averageYield ?? '—' },
+])
+
+const serviceItems = computed(() => [
+  {
+    title: 'Genetics',
+    description: analyticsLeaderLabel.value,
+    icon: 'mdi-leaf',
+    tone: 'primary',
+  },
+  {
+    title: 'Chemistry',
+    description: `${averagePhLabel.value} · ${averagePpmLabel.value}`,
+    icon: 'mdi-flask-outline',
+    tone: 'warning',
+  },
+  {
+    title: 'Journal',
+    description: `${cropStore.latestEntries.length} append-only events visibles`,
+    icon: 'mdi-book-lock-outline',
+    tone: 'success',
+  },
 ])
 
 const syncLabel = computed(() => {
@@ -445,17 +508,17 @@ async function logout() {
 :global(body) {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  background: #edf1f4;
+  background: #e9eef2;
   color: #37474f;
 }
 
 .material-shell {
-  background: #edf1f4;
+  background: #e9eef2;
 }
 
 .dashboard-drawer {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, #31424b 0%, #2c3a43 100%);
+  background: linear-gradient(180deg, #304149 0%, #26343b 100%);
   color: #ecf2f5;
 }
 
@@ -481,59 +544,135 @@ async function logout() {
   display: block;
 }
 
-.drawer-brand span,
-.drawer-section__title,
-.drawer-filter span {
+.drawer-brand span {
   color: rgba(236, 242, 245, 0.72);
 }
 
 .nav-list {
-  padding: 0 12px;
+  padding: 0 12px 8px;
 }
 
-.drawer-section {
-  padding: 18px 20px 0;
+.drawer-panel {
+  margin: 12px 16px 0;
+  padding: 14px 14px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.drawer-section__title {
+.drawer-panel__title {
   margin: 0 0 12px;
+  color: rgba(236, 242, 245, 0.72);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.drawer-filter {
+.filter-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 8px 0;
+}
+
+.filter-row span {
+  color: rgba(236, 242, 245, 0.9);
+}
+
+.filter-row strong {
+  color: white;
+}
+
+.filter-row__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.filter-dot--seedling {
+  background: #8bc34a;
+}
+
+.filter-dot--veg {
+  background: #26c6da;
+}
+
+.filter-dot--flower {
+  background: #ffb300;
+}
+
+.filter-dot--harvest {
+  background: #7cb342;
+}
+
+.workspace-summary {
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-summary span {
+  color: white;
+  font-weight: 500;
+}
+
+.workspace-summary small {
+  color: rgba(236, 242, 245, 0.72);
 }
 
 .dashboard-appbar {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.appbar-title {
-  display: grid;
-  color: white;
+.appbar-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 100%);
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.74);
 }
 
-.appbar-title__eyebrow {
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+.appbar-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: white;
+  font: inherit;
+}
+
+.appbar-search input::placeholder {
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .dashboard-main {
-  background: #edf1f4;
+  background: #e9eef2;
 }
 
 .surface-card {
-  border: 1px solid #d8e0e6;
+  border: 1px solid #dbe4ea;
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 1px 2px rgba(23, 35, 45, 0.06);
+}
+
+.updates-card,
+.session-card,
+.services-card,
+.comments-card,
+.analytics-card,
+.telemetry-card {
+  padding: 18px;
 }
 
 .section-header {
@@ -568,23 +707,14 @@ async function logout() {
   font-size: 1.2rem;
 }
 
-.overview-card,
-.session-card,
-.service-card,
-.stream-card,
-.analytics-card,
-.telemetry-card {
-  padding: 18px;
-}
-
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   border: 1px solid #e3e8ed;
   border-radius: 10px;
   overflow: hidden;
-  background: #f7f9fb;
+  background: #f6f8fa;
 }
 
 .summary-strip__item {
@@ -609,34 +739,54 @@ async function logout() {
   font-size: 0.92rem;
 }
 
-.lot-list {
+.updates-table {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
-.lot-row {
+.updates-table__head {
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  grid-template-columns: minmax(180px, 1.5fr) 110px 110px 140px minmax(220px, 1.4fr);
+  gap: 12px;
+  padding: 0 14px 8px;
+  color: #90a4ae;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.updates-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) 110px 110px 140px minmax(220px, 1.4fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
   border: 1px solid #e4e8ec;
   border-radius: 8px;
   background: #fafbfc;
 }
 
-.lot-row__primary {
+.updates-row__lot {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.lot-row__primary strong {
+.updates-row__lot strong,
+.updates-row__batch strong,
+.updates-row__seeded strong,
+.service-item strong,
+.stream-item strong,
+.performance-row strong {
   display: block;
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 0.96rem;
+  font-weight: 600;
 }
 
-.lot-row__primary p,
-.lot-row__meta small,
+.updates-row__lot p,
+.updates-row__batch small,
+.updates-row__seeded small,
 .service-item p,
 .stream-item p,
 .stream-item small,
@@ -645,33 +795,26 @@ async function logout() {
   color: #78909c;
 }
 
-.lot-row__state {
+.lot-indicator {
   width: 12px;
   height: 12px;
   border-radius: 50%;
 }
 
-.lot-row__state--seedling {
+.lot-indicator--seedling {
   background: #8bc34a;
 }
 
-.lot-row__state--veg {
+.lot-indicator--veg {
   background: #00acc1;
 }
 
-.lot-row__state--flower {
+.lot-indicator--flower {
   background: #ffb300;
 }
 
-.lot-row__state--harvest {
+.lot-indicator--harvest {
   background: #7cb342;
-}
-
-.lot-row__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
 }
 
 .lot-chip {
@@ -681,7 +824,7 @@ async function logout() {
   padding: 0 10px;
   border-radius: 999px;
   font-size: 0.74rem;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -736,6 +879,7 @@ async function logout() {
   background: #fafbfc;
 }
 
+.service-item__icon,
 .stream-item__icon {
   display: grid;
   place-items: center;
@@ -744,6 +888,21 @@ async function logout() {
   border-radius: 10px;
   background: #eceff1;
   color: #546e7a;
+}
+
+.service-item__icon--primary {
+  background: #e0f7fa;
+  color: #00838f;
+}
+
+.service-item__icon--warning {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.service-item__icon--success {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .performance-row {
@@ -809,6 +968,16 @@ async function logout() {
   padding: 14px;
 }
 
+@media (max-width: 1279px) {
+  .updates-table__head {
+    display: none;
+  }
+
+  .updates-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 959px) {
   .summary-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -820,14 +989,8 @@ async function logout() {
 }
 
 @media (max-width: 640px) {
-  .section-header,
-  .lot-row__meta {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .telemetry-grid,
-  .summary-strip {
+  .summary-strip,
+  .telemetry-grid {
     grid-template-columns: 1fr;
   }
 
@@ -838,6 +1001,15 @@ async function logout() {
 
   .summary-strip__item:last-child {
     border-bottom: 0;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .appbar-search {
+    width: 100%;
   }
 
   .performance-row {

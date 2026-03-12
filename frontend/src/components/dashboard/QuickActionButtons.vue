@@ -63,13 +63,13 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .quick-action {
   justify-content: center;
   min-width: 0;
-  min-height: 52px;
+  min-height: 44px;
   text-transform: none;
   letter-spacing: 0;
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -80,7 +80,7 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
@@ -91,14 +91,14 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
 }
 
 .quick-action__text strong {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #455a64;
 }
 
 .quick-action__text small {
   color: #78909c;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
