@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 const API_BASE_KEY = 'cultivatrace_api_base'
 const TOKEN_KEY = 'cultivatrace_token'
 const OPERATOR_KEY = 'cultivatrace_operator'
+const USER_EMAIL_KEY = 'cultivatrace_user_email'
 
 function resolveInitialApiBaseUrl(): string {
   const storedValue = window.localStorage.getItem(API_BASE_KEY)?.trim()
@@ -41,6 +42,7 @@ export const useUserStore = defineStore('user', () => {
   const apiBaseUrl = ref(resolveInitialApiBaseUrl())
   const token = ref(window.localStorage.getItem(TOKEN_KEY) ?? '')
   const operatorLabel = ref(window.localStorage.getItem(OPERATOR_KEY) ?? 'Field Operator')
+  const userEmail = ref(window.localStorage.getItem(USER_EMAIL_KEY) ?? '')
 
   const normalizedApiBase = computed(() => apiBaseUrl.value.trim().replace(/\/+$/, ''))
   const isAuthenticated = computed(() => token.value.trim().length > 0)
@@ -61,19 +63,48 @@ export const useUserStore = defineStore('user', () => {
     window.localStorage.removeItem(TOKEN_KEY)
   }
 
+  function setUserEmail(nextEmail: string) {
+    userEmail.value = nextEmail.trim().toLowerCase()
+
+    if (userEmail.value) {
+      window.localStorage.setItem(USER_EMAIL_KEY, userEmail.value)
+      return
+    }
+
+    window.localStorage.removeItem(USER_EMAIL_KEY)
+  }
+
   function setOperatorLabel(nextLabel: string) {
     operatorLabel.value = nextLabel.trim() || 'Field Operator'
     window.localStorage.setItem(OPERATOR_KEY, operatorLabel.value)
+  }
+
+  function setSession(nextToken: string, nextEmail: string) {
+    setToken(nextToken)
+    setUserEmail(nextEmail)
+
+    if (!window.localStorage.getItem(OPERATOR_KEY)) {
+      setOperatorLabel(nextEmail.split('@')[0] ?? 'Field Operator')
+    }
+  }
+
+  function clearSession() {
+    setToken('')
+    setUserEmail('')
   }
 
   return {
     apiBaseUrl,
     token,
     operatorLabel,
+    userEmail,
     normalizedApiBase,
     isAuthenticated,
     setApiBaseUrl,
     setToken,
+    setUserEmail,
     setOperatorLabel,
+    setSession,
+    clearSession,
   }
 })

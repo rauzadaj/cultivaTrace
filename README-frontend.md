@@ -32,6 +32,8 @@ npm run build
 
 - `src/stores/useUserStore.ts` : contexte opérateur, token, base URL API
 - `src/stores/useCropStore.ts` : chargement dashboard, polling, quick actions
+- `src/router/index.ts` : routes publiques / protégées et garde d’authentification
+- `src/views/AuthView.vue` : écran de connexion / création de compte
 - `src/components/dashboard/CropDashboard.vue` : vue principale temps réel
 - `src/components/dashboard/QuickActionButtons.vue` : saisie terrain rapide
 - `src/components/AppErrorBoundary.vue` : fallback UI global
@@ -46,4 +48,8 @@ npm run build
 
 - L’URL API par défaut est `/api`
 - Le serveur Vite proxifie `/api` vers `http://localhost:8000`
-- Le dashboard expose un champ `JWT token` pour coller le jeton obtenu via `POST http://localhost:8000/api/login`
+- L’entrée se fait par `http://localhost:5173/auth`
+- La connexion utilise `POST /api/login`
+- La création de compte utilise `POST /api/register`
+- Toute réponse `401` côté API purge la session locale et redirige vers `/auth`
+- La vue principale suit désormais une direction visuelle admin Material avec sidebar, cartes de supervision et listes d'actions terrain
