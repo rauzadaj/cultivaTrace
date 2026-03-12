@@ -18,6 +18,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
@@ -29,6 +30,7 @@ final class SeedDemoDataCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly KernelInterface $kernel,
     ) {
         parent::__construct();
     }
@@ -36,6 +38,12 @@ final class SeedDemoDataCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        if (!in_array($this->kernel->getEnvironment(), ['dev', 'test'], true)) {
+            $io->error('app:seed-demo-data is restricted to dev and test environments.');
+
+            return Command::FAILURE;
+        }
 
         $demoUser = $this->upsertDemoUser();
         $alpineResin = $this->upsertGenetic(
@@ -145,9 +153,11 @@ final class SeedDemoDataCommand extends Command
             $this->entityManager->persist($user);
         }
 
-        $user
-            ->setRoles(['ROLE_ADMIN'])
-            ->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
+        $user->setRoles(['ROLE_ADMIN']);
+
+        if ('' === $user->getPassword()) {
+            $user->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
+        }
 
         return $user;
     }
@@ -162,14 +172,14 @@ final class SeedDemoDataCommand extends Command
 
         if (!$genetic instanceof Genetic) {
             $genetic = new Genetic();
+            $genetic
+                ->setCode($code)
+                ->setName($name)
+                ->setVendor($vendor)
+                ->setMetadata($metadata);
+
             $this->entityManager->persist($genetic);
         }
-
-        $genetic
-            ->setCode($code)
-            ->setName($name)
-            ->setVendor($vendor)
-            ->setMetadata($metadata);
 
         return $genetic;
     }
@@ -192,22 +202,20 @@ final class SeedDemoDataCommand extends Command
 
         if (!$crop instanceof Crop) {
             $crop = new Crop();
+            $crop
+                ->setBatchCode($batchCode)
+                ->setDisplayName($displayName)
+                ->setGenetic($genetic)
+                ->setSeededAt($seededAt);
+
+            if ($currentStage === CropStage::Harvest) {
+                $crop->markHarvested($finalYieldGrams ?? 0, $harvestedAt);
+            } else {
+                $crop->setCurrentStageValue($currentStage->value);
+            }
+
             $this->entityManager->persist($crop);
-        }
-
-        $crop
-            ->setBatchCode($batchCode)
-            ->setDisplayName($displayName)
-            ->setGenetic($genetic)
-            ->setSeededAt($seededAt);
-
-        if ($currentStage === CropStage::Harvest) {
-            $crop->markHarvested($finalYieldGrams ?? 0, $harvestedAt);
         } else {
-            $crop->setCurrentStageValue($currentStage->value);
-        }
-
-        if ($crop->getJournalEntries()->count() > 0) {
             return;
         }
 
