@@ -55,6 +55,12 @@ Recommended action:
 - Introduce a dedicated external catalog model.
 - Define a controlled mapping between vendor catalog entries and internal genetics.
 
+Target architecture:
+- `ExternalCatalog` remains a separate bounded context from the internal `GeneticRegistry`.
+- A mapping layer links external catalog entries to internal validated genetics.
+- Internal records are the authoritative sheets used for business operations.
+- External records are ingested for enrichment and sourcing, but are never sovereign business data.
+
 ### P2 - Frontend refresh strategy is not scalable
 
 The dashboard still refreshes broad data sets on a timer rather than using targeted loading strategies.
@@ -138,7 +144,7 @@ Refactor the local bootstrap flow so the application becomes available without w
 ### 4. External catalog domain split
 
 ```text
-Introduce a dedicated external seed catalog model instead of persisting supplier entries directly into Genetic. Separate external catalog storage, define the relationship to internal genetics, prevent direct editing of supplier records from the admin UI, and migrate existing data safely.
+Introduce a dedicated ExternalCatalog bounded context instead of persisting supplier entries directly into Genetic. Keep ExternalCatalog separate from the internal GeneticRegistry, add an explicit mapping layer between the two, make internal validated records the only authoritative business sheets, and keep external ingested records non-sovereign and non-editable from the admin UI. Migrate existing data safely.
 ```
 
 ### 5. Dashboard performance redesign
