@@ -154,7 +154,7 @@ npm run build
 - Le backend Docker utilise PHP 8.3 (aligné avec les dépendances verrouillées).
 - Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
-- Le dashboard adopte maintenant une direction visuelle type SaaS control tower avec cockpit, signal cards et timeline append-only.
+- Le dashboard adopte maintenant une interface admin Material avec navigation latérale, cartes de supervision et panneaux opérationnels temps réel.
 - Le serveur Vite proxifie `/api` vers `http://localhost:8000` pour éviter le CORS en démo locale.
 - Le journal cultural est protégé en append-only au niveau ORM et base PostgreSQL.
 - Le composant `symfony/workflow` orchestre désormais les transitions `seedling -> veg -> flower -> harvest`.
