@@ -2,6 +2,8 @@
 
 Frontend Vue 3 + TypeScript pour le dashboard de suivi cultural en temps réel.
 
+Le backend consommé par ce frontend tourne désormais sur Symfony 8.0.7 / PHP 8.4.
+
 ## Installation
 
 1. Se placer dans le dossier `frontend`
