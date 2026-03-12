@@ -57,6 +57,7 @@ Variables utiles dans `docker-compose.yml` :
 
 - `APP_AUTO_BOOTSTRAP=1` : initialise automatiquement le schéma local au démarrage.
 - `APP_BOOTSTRAP_SEED_DEMO=1` : rejoue le seed de démonstration idempotent au démarrage du conteneur `app`.
+- `APP_BOOTSTRAP_SEED_CATALOG=1` : synchronise aussi le catalogue graines vérifié pour alimenter la vue frontend `Catalog`.
 
 2. Installer les dépendances Symfony (si nécessaire)
 
@@ -135,6 +136,8 @@ Flux de démo local :
    - `Analytics` : CRUD des variétés génétiques et lecture des moyennes de cycle
    - `Overview` : ajout append-only d’entrées de journal
    - `Catalog` : bibliothèque visuelle des graines synchronisées avec image, génétique, description et lien source
+
+Si `Catalog` affiche `0 entries`, le bootstrap local n'a pas encore synchronisé le catalogue graines. En environnement Docker local standard, cette sync est désormais automatique tant que `APP_BOOTSTRAP_SEED_CATALOG=1`.
 
 ## Tests
 
