@@ -22,9 +22,9 @@
           :prepend-icon="item.icon"
           :title="item.title"
           :subtitle="item.subtitle"
-          active
-          active-color="white"
+          :to="{ name: item.to }"
           rounded="lg"
+          active-color="white"
         />
       </v-list>
 
@@ -67,6 +67,11 @@
     <v-app-bar flat color="#2b3237" density="comfortable" class="dashboard-appbar">
       <v-app-bar-nav-icon v-if="!mdAndUp" color="white" @click="drawer = !drawer" />
 
+      <div class="appbar-title">
+        <span class="appbar-title__eyebrow">{{ pageKicker }}</span>
+        <strong>{{ pageTitle }}</strong>
+      </div>
+
       <div class="appbar-search">
         <v-icon icon="mdi-magnify" size="18" />
         <input
@@ -78,228 +83,116 @@
       </div>
 
       <v-spacer />
-      <v-chip size="small" variant="flat" color="primary" class="mr-2">Overview</v-chip>
+      <v-chip size="small" variant="flat" color="primary" class="mr-2">{{ activeMenuLabel }}</v-chip>
       <v-chip size="small" variant="outlined" color="white" class="mr-2">{{ userStore.operatorLabel }}</v-chip>
       <v-btn size="small" variant="text" color="white" @click="logout">Logout</v-btn>
     </v-app-bar>
 
     <v-main class="dashboard-main">
       <v-container fluid class="pa-4">
-        <v-row dense>
-          <v-col cols="12" lg="8">
-            <v-card flat class="surface-card updates-card">
-              <div class="section-header">
-                <div>
-                  <p class="section-header__eyebrow">Updates</p>
-                  <h1>Lot operations</h1>
-                </div>
-                <v-btn color="primary" variant="flat" rounded="lg" :loading="cropStore.loading" @click="cropStore.loadDashboard">
-                  Refresh
-                </v-btn>
-              </div>
+        <template v-if="isOverviewView">
+          <v-row dense>
+            <v-col cols="12" lg="8">
+              <LotsPanel :items="visibleCrops" :summary-items="summaryItems" :loading="cropStore.loading" @refresh="cropStore.loadDashboard" />
+            </v-col>
+            <v-col cols="12" lg="4">
+              <WorkspaceCard
+                :api-base-url="userStore.apiBaseUrl"
+                :operator-label="userStore.operatorLabel"
+                :user-email="userStore.userEmail"
+                @update:api-base-url="userStore.setApiBaseUrl"
+                @update:operator-label="userStore.setOperatorLabel"
+              />
+              <ServicesCard :items="serviceItems" class="mb-4" />
+              <CommentsCard :entries="cropStore.latestEntries" />
+            </v-col>
+          </v-row>
 
-              <div class="summary-strip">
-                <div v-for="item in summaryItems" :key="item.label" class="summary-strip__item">
-                  <strong>{{ item.value }}</strong>
-                  <span>{{ item.label }}</span>
-                </div>
-              </div>
+          <v-row dense class="mt-1">
+            <v-col cols="12" lg="8">
+              <AnalyticsCard :items="cropStore.cycleAverages" :analytics-width="analyticsWidth" />
+            </v-col>
+            <v-col cols="12" lg="4">
+              <TelemetryCard
+                :journal-count="cropStore.journalEntries.length"
+                :average-yield="cropStore.averageYield"
+                :average-ph-label="averagePhLabel"
+                :active-ratio-label="activeRatioLabel"
+              />
+            </v-col>
+          </v-row>
+        </template>
 
-              <div class="updates-table">
-                <header class="updates-table__head">
-                  <span>Lot</span>
-                  <span>Stage</span>
-                  <span>Batch</span>
-                  <span>Seeded</span>
-                  <span>Action</span>
-                </header>
+        <template v-else-if="isLotsView">
+          <v-row dense>
+            <v-col cols="12" lg="9">
+              <LotsPanel
+                :items="filteredCrops"
+                :summary-items="summaryItems"
+                :loading="cropStore.loading"
+                show-count
+                count-label="visibles"
+                @refresh="cropStore.loadDashboard"
+              />
+            </v-col>
+            <v-col cols="12" lg="3">
+              <WorkspaceCard
+                :api-base-url="userStore.apiBaseUrl"
+                :operator-label="userStore.operatorLabel"
+                :user-email="userStore.userEmail"
+                @update:api-base-url="userStore.setApiBaseUrl"
+                @update:operator-label="userStore.setOperatorLabel"
+              />
+              <TelemetryCard
+                :journal-count="cropStore.journalEntries.length"
+                :average-yield="cropStore.averageYield"
+                :average-ph-label="averagePhLabel"
+                :active-ratio-label="activeRatioLabel"
+              />
+            </v-col>
+          </v-row>
+        </template>
 
-                <div v-if="!visibleCrops.length" class="empty-state">Aucun lot disponible pour ce filtre.</div>
+        <template v-else-if="isServicesView">
+          <v-row dense>
+            <v-col cols="12" lg="8">
+              <ServicesCard title="Operational services" dense :items="serviceItems" />
+              <CommentsCard :entries="cropStore.latestEntries" class="mt-4" />
+            </v-col>
+            <v-col cols="12" lg="4">
+              <WorkspaceCard
+                :api-base-url="userStore.apiBaseUrl"
+                :operator-label="userStore.operatorLabel"
+                :user-email="userStore.userEmail"
+                @update:api-base-url="userStore.setApiBaseUrl"
+                @update:operator-label="userStore.setOperatorLabel"
+              />
+              <TelemetryCard
+                :journal-count="cropStore.journalEntries.length"
+                :average-yield="cropStore.averageYield"
+                :average-ph-label="averagePhLabel"
+                :active-ratio-label="activeRatioLabel"
+              />
+            </v-col>
+          </v-row>
+        </template>
 
-                <article v-for="crop in visibleCrops" :key="crop.id" class="updates-row">
-                  <div class="updates-row__lot">
-                    <span class="lot-indicator" :class="`lot-indicator--${crop.currentStage}`" />
-                    <div>
-                      <strong>{{ crop.displayName }}</strong>
-                      <p>{{ crop.genetic.code }} · {{ crop.genetic.name }}</p>
-                    </div>
-                  </div>
-
-                  <div class="updates-row__stage">
-                    <span class="lot-chip" :class="`lot-chip--${crop.currentStage}`">{{ stageLabel(crop.currentStage) }}</span>
-                  </div>
-
-                  <div class="updates-row__batch">
-                    <strong>{{ crop.batchCode }}</strong>
-                    <small>{{ crop.currentStage === 'harvest' ? 'closed cycle' : 'active cycle' }}</small>
-                  </div>
-
-                  <div class="updates-row__seeded">
-                    <strong>{{ formatDate(crop.seededAt) }}</strong>
-                    <small>{{ crop.harvestedAt ? `Harvest ${formatDate(crop.harvestedAt)}` : 'In progress' }}</small>
-                  </div>
-
-                  <div class="updates-row__action">
-                    <template v-if="crop.currentStage !== 'harvest'">
-                      <QuickActionButtons :crop-iri="crop['@id']" :disabled="cropStore.loading" />
-                    </template>
-                    <template v-else>
-                      <div class="harvest-pill">
-                        <v-icon icon="mdi-check-decagram" size="18" />
-                        <span>{{ crop.finalYieldGrams ?? '—' }} g</span>
-                      </div>
-                    </template>
-                  </div>
-                </article>
-              </div>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" lg="4">
-            <v-card flat class="surface-card session-card mb-4">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-header__eyebrow">Console</p>
-                  <h2>Workspace access</h2>
-                </div>
-              </div>
-
-              <form class="session-form" @submit.prevent>
-                <v-text-field
-                  :model-value="userStore.apiBaseUrl"
-                  label="API base URL"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  @update:model-value="userStore.setApiBaseUrl(String($event))"
-                />
-                <v-text-field
-                  :model-value="userStore.operatorLabel"
-                  label="Operateur"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  @update:model-value="userStore.setOperatorLabel(String($event))"
-                />
-                <v-text-field
-                  :model-value="userStore.userEmail"
-                  label="Compte"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  readonly
-                />
-              </form>
-            </v-card>
-
-            <v-card flat class="surface-card services-card mb-4">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-header__eyebrow">Services</p>
-                  <h2>System health</h2>
-                </div>
-              </div>
-
-              <div class="service-list">
-                <article v-for="service in serviceItems" :key="service.title" class="service-item">
-                  <div class="service-item__icon" :class="`service-item__icon--${service.tone}`">
-                    <v-icon :icon="service.icon" size="20" />
-                  </div>
-                  <div>
-                    <strong>{{ service.title }}</strong>
-                    <p>{{ service.description }}</p>
-                  </div>
-                </article>
-              </div>
-            </v-card>
-
-            <v-card flat class="surface-card comments-card">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-header__eyebrow">Comments</p>
-                  <h2>Field notes</h2>
-                </div>
-              </div>
-
-              <div v-if="!cropStore.latestEntries.length" class="empty-state empty-state--compact">
-                Aucun signal recent.
-              </div>
-              <div v-else class="stream-list">
-                <article v-for="entry in cropStore.latestEntries" :key="entry.id" class="stream-item">
-                  <div class="stream-item__icon">
-                    <v-icon :icon="entryIcon(entry.type)" size="18" />
-                  </div>
-                  <div>
-                    <strong>{{ entryLabel(entry.type) }}</strong>
-                    <p>{{ entry.crop.displayName }}</p>
-                    <small>{{ entry.notes ?? 'Signal capture sans note.' }}</small>
-                  </div>
-                </article>
-              </div>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <v-row dense class="mt-1">
-          <v-col cols="12" lg="8">
-            <v-card flat class="surface-card analytics-card">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-header__eyebrow">Analytics</p>
-                  <h2>Genetic performance</h2>
-                </div>
-              </div>
-
-              <div v-if="!cropStore.cycleAverages.length" class="empty-state empty-state--compact">
-                Aucune moyenne calculee.
-              </div>
-              <div v-else class="performance-list">
-                <article v-for="item in cropStore.cycleAverages" :key="item.geneticId" class="performance-row">
-                  <div>
-                    <strong>{{ item.geneticCode }}</strong>
-                    <p>{{ item.geneticName }}</p>
-                  </div>
-                  <div class="performance-row__bar">
-                    <div class="performance-row__track">
-                      <div class="performance-row__fill" :style="{ width: `${analyticsWidth(item.averageCycleDays)}%` }" />
-                    </div>
-                    <small>{{ item.completedCycles }} cycles · {{ item.averageCycleDays.toFixed(1) }} jours</small>
-                  </div>
-                </article>
-              </div>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" lg="4">
-            <v-card flat class="surface-card telemetry-card">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-header__eyebrow">Telemetry</p>
-                  <h2>Realtime metrics</h2>
-                </div>
-              </div>
-
-              <div class="telemetry-grid">
-                <div class="telemetry-card__item">
-                  <strong>{{ cropStore.journalEntries.length }}</strong>
-                  <span>events</span>
-                </div>
-                <div class="telemetry-card__item">
-                  <strong>{{ cropStore.averageYield ?? '—' }}</strong>
-                  <span>yield g</span>
-                </div>
-                <div class="telemetry-card__item">
-                  <strong>{{ averagePhLabel }}</strong>
-                  <span>average pH</span>
-                </div>
-                <div class="telemetry-card__item">
-                  <strong>{{ activeRatioLabel }}</strong>
-                  <span>active lots</span>
-                </div>
-              </div>
-            </v-card>
-          </v-col>
-        </v-row>
+        <template v-else>
+          <v-row dense>
+            <v-col cols="12" lg="8">
+              <AnalyticsCard :items="cropStore.cycleAverages" :analytics-width="analyticsWidth" />
+            </v-col>
+            <v-col cols="12" lg="4">
+              <ServicesCard :items="serviceItems" class="mb-4" />
+              <TelemetryCard
+                :journal-count="cropStore.journalEntries.length"
+                :average-yield="cropStore.averageYield"
+                :average-ph-label="averagePhLabel"
+                :active-ratio-label="activeRatioLabel"
+              />
+            </v-col>
+          </v-row>
+        </template>
 
         <v-alert v-if="cropStore.error" type="error" variant="tonal" class="mt-4">
           {{ cropStore.error }}
@@ -311,15 +204,21 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import QuickActionButtons from './QuickActionButtons.vue'
+import WorkspaceCard from './WorkspaceCard.vue'
+import ServicesCard from './ServicesCard.vue'
+import CommentsCard from './CommentsCard.vue'
+import AnalyticsCard from './AnalyticsCard.vue'
+import TelemetryCard from './TelemetryCard.vue'
 import { useCropStore } from '../../stores/useCropStore'
 import { useUserStore } from '../../stores/useUserStore'
 import type { CropDto, JournalEntryDto } from '../../types/api'
 
 const cropStore = useCropStore()
 const userStore = useUserStore()
+const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 const drawer = ref(true)
@@ -327,56 +226,56 @@ const search = ref('')
 
 const orderedStages: CropDto['currentStage'][] = ['seedling', 'veg', 'flower', 'harvest']
 const navigationItems = [
-  { title: 'Overview', subtitle: 'Live fleet status', icon: 'mdi-view-dashboard-outline' },
-  { title: 'Lots', subtitle: 'Cycle tracking', icon: 'mdi-sprout-outline' },
-  { title: 'Services', subtitle: 'Health checks', icon: 'mdi-shield-check-outline' },
-  { title: 'Analytics', subtitle: 'Yield correlations', icon: 'mdi-chart-box-outline' },
+  { title: 'Overview', subtitle: 'Live fleet status', icon: 'mdi-view-dashboard-outline', to: 'dashboard-overview' },
+  { title: 'Lots', subtitle: 'Cycle tracking', icon: 'mdi-sprout-outline', to: 'dashboard-lots' },
+  { title: 'Services', subtitle: 'Health checks', icon: 'mdi-shield-check-outline', to: 'dashboard-services' },
+  { title: 'Analytics', subtitle: 'Yield correlations', icon: 'mdi-chart-box-outline', to: 'dashboard-analytics' },
 ]
 
+const isOverviewView = computed(() => route.name === 'dashboard-overview')
+const isLotsView = computed(() => route.name === 'dashboard-lots')
+const isServicesView = computed(() => route.name === 'dashboard-services')
+const isAnalyticsView = computed(() => route.name === 'dashboard-analytics')
+
+const pageTitle = computed(() => {
+  if (isLotsView.value) return 'Lot operations'
+  if (isServicesView.value) return 'Service center'
+  if (isAnalyticsView.value) return 'Analytics center'
+  return 'Control dashboard'
+})
+
+const pageKicker = computed(() => {
+  if (isLotsView.value) return 'Tracked batches'
+  if (isServicesView.value) return 'Operational services'
+  if (isAnalyticsView.value) return 'Genetic correlations'
+  return 'Realtime cultivation'
+})
+
+const activeMenuLabel = computed(() => navigationItems.find((item) => item.to === route.name)?.title ?? 'Overview')
 const totalLots = computed(() => cropStore.crops.length)
 const totalCompletedCycles = computed(() => cropStore.cycleAverages.reduce((sum, item) => sum + item.completedCycles, 0))
+
 const filteredCrops = computed(() => {
   const needle = search.value.trim().toLowerCase()
-
-  if (!needle) {
-    return cropStore.crops
-  }
+  if (!needle) return cropStore.crops
 
   return cropStore.crops.filter((crop) => {
-    const haystack = [
-      crop.displayName,
-      crop.batchCode,
-      crop.genetic.code,
-      crop.genetic.name,
-      crop.currentStage,
-    ].join(' ').toLowerCase()
-
+    const haystack = [crop.displayName, crop.batchCode, crop.genetic.code, crop.genetic.name, crop.currentStage].join(' ').toLowerCase()
     return haystack.includes(needle)
   })
 })
-const visibleCrops = computed(() => filteredCrops.value.slice(0, 8))
+
+const visibleCrops = computed(() => filteredCrops.value.slice(0, 6))
 
 const averagePh = computed(() => {
-  const values = cropStore.latestEntries
-    .map((entry) => entry.phLevel?.value)
-    .filter((value): value is number => typeof value === 'number')
-
-  if (!values.length) {
-    return null
-  }
-
+  const values = cropStore.latestEntries.map((entry) => entry.phLevel?.value).filter((value): value is number => typeof value === 'number')
+  if (!values.length) return null
   return values.reduce((sum, value) => sum + value, 0) / values.length
 })
 
 const averagePpm = computed(() => {
-  const values = cropStore.latestEntries
-    .map((entry) => entry.nutrientConcentration?.ppm)
-    .filter((value): value is number => typeof value === 'number')
-
-  if (!values.length) {
-    return null
-  }
-
+  const values = cropStore.latestEntries.map((entry) => entry.nutrientConcentration?.ppm).filter((value): value is number => typeof value === 'number')
+  if (!values.length) return null
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
 })
 
@@ -387,21 +286,11 @@ const stageNodes = computed(() => orderedStages.map((stage) => ({
 })))
 
 const analyticsLeader = computed(() => {
-  if (!cropStore.cycleAverages.length) {
-    return null
-  }
-
+  if (!cropStore.cycleAverages.length) return null
   return [...cropStore.cycleAverages].sort((left, right) => right.completedCycles - left.completedCycles)[0]
 })
 
-const maxAverageCycleDays = computed(() => {
-  if (!cropStore.cycleAverages.length) {
-    return 1
-  }
-
-  return Math.max(...cropStore.cycleAverages.map((item) => item.averageCycleDays))
-})
-
+const maxAverageCycleDays = computed(() => cropStore.cycleAverages.length ? Math.max(...cropStore.cycleAverages.map((item) => item.averageCycleDays)) : 1)
 const averagePhLabel = computed(() => averagePh.value?.toFixed(2) ?? '—')
 const averagePpmLabel = computed(() => averagePpm.value ? `${averagePpm.value} ppm` : '—')
 const analyticsLeaderLabel = computed(() => analyticsLeader.value ? analyticsLeader.value.geneticCode : 'No analytics')
@@ -419,73 +308,36 @@ const serviceItems = computed(() => [
     title: 'Genetics',
     description: analyticsLeaderLabel.value,
     icon: 'mdi-leaf',
-    tone: 'primary',
+    tone: 'primary' as const,
+    status: analyticsLeaderLabel.value,
   },
   {
     title: 'Chemistry',
     description: `${averagePhLabel.value} · ${averagePpmLabel.value}`,
     icon: 'mdi-flask-outline',
-    tone: 'warning',
+    tone: 'warning' as const,
+    status: averagePhLabel.value,
   },
   {
     title: 'Journal',
     description: `${cropStore.latestEntries.length} append-only events visibles`,
     icon: 'mdi-book-lock-outline',
-    tone: 'success',
+    tone: 'success' as const,
+    status: `${cropStore.journalEntries.length} events`,
   },
 ])
 
 const syncLabel = computed(() => {
-  if (!cropStore.lastSyncedAt) {
-    return 'Jamais synchronise'
-  }
-
-  return `Synchro ${new Date(cropStore.lastSyncedAt).toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })}`
+  if (!cropStore.lastSyncedAt) return 'Jamais synchronise'
+  return `Synchro ${new Date(cropStore.lastSyncedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
 })
 
 function analyticsWidth(value: number) {
   return Math.max((value / maxAverageCycleDays.value) * 100, 14)
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 function stageLabel(stage: CropDto['currentStage'] | string) {
-  return {
-    seedling: 'Seedling',
-    veg: 'Veg',
-    flower: 'Flower',
-    harvest: 'Harvest',
-  }[stage] ?? stage
-}
-
-function entryLabel(type: JournalEntryDto['type'] | string) {
-  return {
-    irrigation: 'Arrosage',
-    fertilization: 'Fertilisation',
-    environment_check: 'Controle environnement',
-    stage_transition: 'Transition de stade',
-    observation: 'Observation',
-  }[type] ?? type
-}
-
-function entryIcon(type: JournalEntryDto['type']) {
-  return {
-    irrigation: 'mdi-water-outline',
-    fertilization: 'mdi-flask-outline',
-    environment_check: 'mdi-thermometer-lines',
-    stage_transition: 'mdi-swap-horizontal',
-    observation: 'mdi-eye-outline',
-  }[type]
+  return { seedling: 'Seedling', veg: 'Veg', flower: 'Flower', harvest: 'Harvest' }[stage] ?? stage
 }
 
 onMounted(async () => {
@@ -502,6 +354,129 @@ async function logout() {
   userStore.clearSession()
   await router.push({ name: 'auth' })
 }
+</script>
+
+<script lang="ts">
+import { defineComponent, PropType } from 'vue'
+import { VBtn, VCard, VChip, VIcon } from 'vuetify/components'
+import QuickActionButtons from './QuickActionButtons.vue'
+import type { CropDto } from '../../types/api'
+
+export const LotsPanel = defineComponent({
+  name: 'LotsPanel',
+  components: {
+    QuickActionButtons,
+    VBtn,
+    VCard,
+    VChip,
+    VIcon,
+  },
+  props: {
+    items: {
+      type: Array as PropType<CropDto[]>,
+      required: true,
+    },
+    summaryItems: {
+      type: Array as PropType<Array<{ label: string; value: string | number | null }>>,
+      required: true,
+    },
+    loading: {
+      type: Boolean,
+      required: true,
+    },
+    showCount: {
+      type: Boolean,
+      default: false,
+    },
+    countLabel: {
+      type: String,
+      default: '',
+    },
+  },
+  emits: ['refresh'],
+  methods: {
+    formatDate(value: string) {
+      return new Date(value).toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    },
+    stageLabel(stage: CropDto['currentStage']) {
+      return { seedling: 'Seedling', veg: 'Veg', flower: 'Flower', harvest: 'Harvest' }[stage]
+    },
+  },
+  template: `
+    <v-card flat class="surface-card updates-card">
+      <div class="section-header">
+        <div>
+          <p class="section-header__eyebrow">Updates</p>
+          <h1>Lot operations</h1>
+        </div>
+        <div class="section-actions">
+          <v-chip v-if="showCount" size="small" variant="tonal" color="primary">{{ items.length }} {{ countLabel }}</v-chip>
+          <v-btn color="primary" variant="flat" rounded="lg" :loading="loading" @click="$emit('refresh')">Refresh</v-btn>
+        </div>
+      </div>
+
+      <div class="summary-strip">
+        <div v-for="item in summaryItems" :key="item.label" class="summary-strip__item">
+          <strong>{{ item.value }}</strong>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+
+      <div class="updates-table">
+        <header class="updates-table__head">
+          <span>Lot</span>
+          <span>Stage</span>
+          <span>Batch</span>
+          <span>Seeded</span>
+          <span>Action</span>
+        </header>
+
+        <div v-if="!items.length" class="empty-state">Aucun lot disponible pour ce filtre.</div>
+
+        <article v-for="crop in items" :key="crop.id" class="updates-row">
+          <div class="updates-row__lot">
+            <span class="lot-indicator" :class="\`lot-indicator--\${crop.currentStage}\`" />
+            <div>
+              <strong>{{ crop.displayName }}</strong>
+              <p>{{ crop.genetic.code }} · {{ crop.genetic.name }}</p>
+            </div>
+          </div>
+
+          <div class="updates-row__stage">
+            <span class="lot-chip" :class="\`lot-chip--\${crop.currentStage}\`">{{ stageLabel(crop.currentStage) }}</span>
+          </div>
+
+          <div class="updates-row__batch">
+            <strong>{{ crop.batchCode }}</strong>
+            <small>{{ crop.currentStage === 'harvest' ? 'closed cycle' : 'active cycle' }}</small>
+          </div>
+
+          <div class="updates-row__seeded">
+            <strong>{{ formatDate(crop.seededAt) }}</strong>
+            <small>{{ crop.harvestedAt ? \`Harvest \${formatDate(crop.harvestedAt)}\` : 'In progress' }}</small>
+          </div>
+
+          <div class="updates-row__action">
+            <template v-if="crop.currentStage !== 'harvest'">
+              <QuickActionButtons :crop-iri="crop['@id']" :disabled="loading" />
+            </template>
+            <template v-else>
+              <div class="harvest-pill">
+                <v-icon icon="mdi-check-decagram" size="18" />
+                <span>{{ crop.finalYieldGrams ?? '—' }} g</span>
+              </div>
+            </template>
+          </div>
+        </article>
+      </div>
+    </v-card>
+  `,
+})
 </script>
 
 <style scoped>
@@ -627,7 +602,21 @@ async function logout() {
 }
 
 .dashboard-appbar {
+  gap: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.appbar-title {
+  display: grid;
+  min-width: 180px;
+  color: white;
+}
+
+.appbar-title__eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .appbar-search {
@@ -666,12 +655,7 @@ async function logout() {
   box-shadow: 0 1px 2px rgba(23, 35, 45, 0.06);
 }
 
-.updates-card,
-.session-card,
-.services-card,
-.comments-card,
-.analytics-card,
-.telemetry-card {
+.updates-card {
   padding: 18px;
 }
 
@@ -683,10 +667,6 @@ async function logout() {
   margin-bottom: 18px;
 }
 
-.section-header--compact {
-  margin-bottom: 14px;
-}
-
 .section-header__eyebrow {
   margin: 0 0 4px;
   color: #90a4ae;
@@ -695,16 +675,17 @@ async function logout() {
   letter-spacing: 0.12em;
 }
 
-.section-header h1,
-.section-header h2 {
+.section-header h1 {
   margin: 0;
   color: #37474f;
   font-size: 1.5rem;
   font-weight: 500;
 }
 
-.section-header h2 {
-  font-size: 1.2rem;
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .summary-strip {
@@ -775,10 +756,7 @@ async function logout() {
 
 .updates-row__lot strong,
 .updates-row__batch strong,
-.updates-row__seeded strong,
-.service-item strong,
-.stream-item strong,
-.performance-row strong {
+.updates-row__seeded strong {
   display: block;
   font-size: 0.96rem;
   font-weight: 600;
@@ -786,11 +764,7 @@ async function logout() {
 
 .updates-row__lot p,
 .updates-row__batch small,
-.updates-row__seeded small,
-.service-item p,
-.stream-item p,
-.stream-item small,
-.performance-row p {
+.updates-row__seeded small {
   margin: 0;
   color: #78909c;
 }
@@ -858,103 +832,6 @@ async function logout() {
   color: #558b2f;
 }
 
-.session-form,
-.service-list,
-.stream-list,
-.performance-list {
-  display: grid;
-  gap: 12px;
-}
-
-.service-item,
-.stream-item,
-.performance-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-  padding: 12px;
-  border: 1px solid #e4e8ec;
-  border-radius: 8px;
-  background: #fafbfc;
-}
-
-.service-item__icon,
-.stream-item__icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #eceff1;
-  color: #546e7a;
-}
-
-.service-item__icon--primary {
-  background: #e0f7fa;
-  color: #00838f;
-}
-
-.service-item__icon--warning {
-  background: #fff3e0;
-  color: #ef6c00;
-}
-
-.service-item__icon--success {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.performance-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-}
-
-.performance-row__bar {
-  display: grid;
-  gap: 8px;
-}
-
-.performance-row__track {
-  height: 8px;
-  border-radius: 999px;
-  background: #e4ebf0;
-  overflow: hidden;
-}
-
-.performance-row__fill {
-  height: 100%;
-  background: linear-gradient(90deg, #00acc1, #26c6da);
-}
-
-.performance-row small {
-  color: #78909c;
-}
-
-.telemetry-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.telemetry-card__item {
-  padding: 14px;
-  border: 1px solid #e4e8ec;
-  border-radius: 8px;
-  background: #fafbfc;
-  text-align: center;
-}
-
-.telemetry-card__item strong {
-  display: block;
-  color: #455a64;
-  font-size: 1.35rem;
-}
-
-.telemetry-card__item span {
-  color: #78909c;
-  font-size: 0.84rem;
-}
-
 .empty-state {
   padding: 18px;
   border: 1px dashed #ccd6dd;
@@ -962,10 +839,6 @@ async function logout() {
   background: #fafcfd;
   color: #78909c;
   text-align: center;
-}
-
-.empty-state--compact {
-  padding: 14px;
 }
 
 @media (max-width: 1279px) {
@@ -989,8 +862,7 @@ async function logout() {
 }
 
 @media (max-width: 640px) {
-  .summary-strip,
-  .telemetry-grid {
+  .summary-strip {
     grid-template-columns: 1fr;
   }
 
@@ -1008,12 +880,12 @@ async function logout() {
     align-items: flex-start;
   }
 
-  .appbar-search {
-    width: 100%;
+  .dashboard-appbar {
+    gap: 8px;
   }
 
-  .performance-row {
-    grid-template-columns: 1fr;
+  .appbar-search {
+    width: 100%;
   }
 }
 </style>
