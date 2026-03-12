@@ -1,191 +1,179 @@
-git checkout -b architecture/stabilization
+# CultivaTrace Architecture Audit
 
-mkdir -p docs
+## Scope
 
-cat << 'EOF' > docs/architecture-audit.md
-# CultivaTrace — Architecture Audit
+This audit consolidates the current structural gaps identified across the Symfony backend, Vue frontend, delivery flow, and operational tooling. The goal is to convert these findings into trackable GitHub issues and an actionable roadmap.
 
-## Contexte
+## Findings
 
-Cet audit identifie plusieurs faiblesses structurelles dans l'architecture actuelle du projet CultivaTrace.  
-Les points sont classés par priorité afin de sécuriser le système et améliorer sa scalabilité.
+### P1 - API authorization is too coarse
 
----
+Current access control only distinguishes public authentication endpoints from the rest of `/api`. Core resources still expose write operations without per-operation authorization rules.
 
-# Priorité P1
+Impact:
+- Any authenticated user can mutate critical business objects.
+- The current model is incompatible with production multi-user SaaS constraints.
 
-## RBAC insuffisant sur l’API
+Recommended action:
+- Introduce explicit roles such as `ROLE_ADMIN`, `ROLE_OPERATOR`, and `ROLE_VIEWER`.
+- Add `security` rules per API Platform operation.
+- Implement voters for domain-sensitive mutations.
 
-Tout utilisateur authentifié peut actuellement modifier des entités critiques.
+### P1 - Legacy API resources are still exposed
 
-Problèmes identifiés :
+`Plot` and `CropActivity` remain exposed as API resources even though the active codebase now follows a Domain/Application/Infrastructure split elsewhere.
 
-- RegisterUserController crée directement des comptes applicatifs
-- security.yaml protège uniquement /api
-- Crop, Genetic et OperationalService exposent du CRUD sans règles de sécurité
+Impact:
+- Dead or ambiguous endpoints stay publicly reachable.
+- The public contract no longer reflects the intended domain model.
 
-Impact :
+Recommended action:
+- Remove these endpoints or migrate them into the current domain architecture.
+- Clean associated persistence and documentation drift.
 
-- suppression de données critiques possible
-- altération du cœur métier
+### P1 - Application startup depends on an external catalog source
 
-Action :
+Local bootstrap still relies on vendor catalog synchronization during environment preparation.
 
-Implémenter une stratégie RBAC complète avec voters Symfony et règles security par opération.
+Impact:
+- Startup time depends on external network availability.
+- A non-critical integration can delay app readiness.
 
----
+Recommended action:
+- Keep bootstrap idempotent for schema and demo seed only.
+- Move catalog synchronization to a dedicated command or async process.
 
-## Surface API legacy
+### P2 - External seed catalog and internal genetics are conflated
 
-Les entités suivantes exposent encore des endpoints API :
+Vendor catalog entries are synchronized directly into the internal `Genetic` repository.
 
-- Plot
-- CropActivity
+Impact:
+- Internal and external reference data share the same CRUD surface.
+- Supplier-sourced data can be manually altered as if it were internal master data.
 
-Elles ne font plus partie de l'architecture Domain/Application/Infrastructure.
+Recommended action:
+- Introduce a dedicated external catalog model.
+- Define a controlled mapping between vendor catalog entries and internal genetics.
 
-Impact :
+### P2 - Frontend refresh strategy is not scalable
 
-- endpoints morts
-- contrat API ambigu
+The dashboard still refreshes broad data sets on a timer rather than using targeted loading strategies.
 
-Action :
+Impact:
+- Network cost grows with journal, catalog, and crop volume.
+- UI responsiveness degrades as the dataset scales.
 
-supprimer ou migrer ces entités.
+Recommended action:
+- Replace full refresh patterns with section-level loading.
+- Add pagination, filtered endpoints, and aggregated dashboard endpoints.
 
----
+### P2 - Test coverage does not protect critical flows
 
-## Bootstrap couplé à une dépendance externe
+There are useful unit tests, but there is still no meaningful end-to-end safety net for authentication, routing, CRUD workflows, and dashboard runtime integrity.
 
-Le démarrage Docker dépend de :
+Impact:
+- Regressions can reach production undetected.
+- Local validation remains heavily manual.
 
-app:sync-seed-catalog
+Recommended action:
+- Add backend integration tests.
+- Add frontend unit/component tests.
+- Add Playwright smoke coverage for the main product journey.
 
-qui appelle un catalogue externe.
+### P2 - Authentication and onboarding remain demo-oriented
 
-Impact :
+The project still carries demo-centric authentication behaviors and lacks production-grade anti-abuse controls.
 
-- démarrage lent
-- indisponibilité possible
+Impact:
+- The auth flow is not suitable for a production tenant environment.
+- Registration can be abused or misused.
 
-Action :
+Recommended action:
+- Remove demo shortcuts from the standard UX.
+- Add rate limiting and stronger registration constraints.
+- Clarify production versus demo behavior.
 
-découpler cette synchronisation.
+### P3 - Documentation is drifting from the actual product
 
----
+The documentation is functional but not yet contractual. Some sections already diverge from the live dashboard and current technical stack.
 
-# Priorité P2
+Impact:
+- Onboarding becomes slower.
+- Documentation cannot be treated as a reliable source of truth.
 
-## Mélange catalogue externe / données internes
+Recommended action:
+- Rebuild documentation around architecture, operations, security, and product surfaces.
 
-Les données Humboldt sont injectées directement dans l’entité Genetic.
+## Roadmap
 
-Impact :
+1. Secure the API with RBAC and operation-level authorization.
+2. Remove or migrate legacy API resources.
+3. Decouple runtime bootstrap from external catalog synchronization.
+4. Split external catalog data from internal genetics.
+5. Rework dashboard data loading and scalability.
+6. Build a full testing pyramid.
+7. Harden authentication and onboarding.
+8. Rewrite project documentation as a contractual source.
 
-- confusion métier
-- risque d’édition des données externes
+## Execution Prompts
 
-Action :
+### 1. RBAC hardening
 
-introduire une entité dédiée au catalogue externe.
+```text
+Audit and implement a complete RBAC strategy for CultivaTrace. Add role separation for admin, operator, and viewer. Protect Crop, Genetic, OperationalService, and JournalEntry with per-operation API Platform security rules and Symfony voters. Cover custom controllers as well. Add authorization tests and update the README with a permission matrix.
+```
 
----
+### 2. Legacy API cleanup
 
-## Stratégie frontend non scalable
+```text
+Audit the remaining legacy ApiResource entities in src/Entity and remove or migrate them into the current DDD architecture. Specifically assess Plot and CropActivity, remove dead endpoints, update persistence if needed, and align the public API documentation with the remaining supported resources.
+```
 
-Le store recharge toutes les données toutes les 15 secondes.
+### 3. Bootstrap decoupling
 
-Impact :
+```text
+Refactor the local bootstrap flow so the application becomes available without waiting for external catalog synchronization. Keep migrations and demo seed idempotent during startup, move vendor catalog sync to an explicit async or manual step, add healthchecks, and document the startup contract.
+```
 
-- explosion réseau
-- mauvaise scalabilité
+### 4. External catalog domain split
 
-Action :
+```text
+Introduce a dedicated external seed catalog model instead of persisting supplier entries directly into Genetic. Separate external catalog storage, define the relationship to internal genetics, prevent direct editing of supplier records from the admin UI, and migrate existing data safely.
+```
 
-implémenter pagination et endpoints agrégés.
+### 5. Dashboard performance redesign
 
----
+```text
+Optimize the CultivaTrace dashboard data flow. Replace broad timed refreshes with section-level loading, pagination, filtered reads, and dedicated aggregated backend endpoints. Reduce redundant fetching after mutations and add tests or metrics proving the improvement.
+```
 
-## Couverture de tests insuffisante
+### 6. Testing pyramid
 
-Absence de tests couvrant :
+```text
+Add a real testing pyramid to CultivaTrace. Introduce backend integration tests for auth, CRUD, workflow, and error handling; frontend tests for routing, guards, and dashboard sections; and Playwright smoke coverage for login, navigation, and core CRUD paths. Remove placeholder smoke tests.
+```
 
-- navigation frontend
-- auth
-- CRUD critiques
+### 7. Authentication hardening
 
-Action :
+```text
+Turn the current authentication flow into a production-grade onboarding flow. Remove demo shortcuts from the normal login experience, add rate limiting and stronger validation to registration, clarify demo versus production behavior, and update both backend and frontend documentation accordingly.
+```
 
-mettre en place une pyramide de tests.
+### 8. Documentation rewrite
 
----
+```text
+Rewrite the CultivaTrace documentation so it matches the actual product and architecture. Update README files, document dashboard sections, workflows, bootstrap behavior, catalog synchronization, security model, and operational setup. Keep the result concise but contractual.
+```
 
-## Flux d’auth encore en mode démo
+## GitHub Issue Mapping
 
-L'écran de login expose :
+The roadmap items above are intended to map one-to-one to GitHub issues:
 
-- credentials démo
-- champ API URL
-
-Action :
-
-durcir le flux d'authentification.
-
----
-
-# Priorité P3
-
-## Documentation
-
-La documentation ne correspond plus exactement au code.
-
-Action :
-
-refaire une documentation contractuelle.
-EOF
-
-
-git add docs/architecture-audit.md
-git commit -m "docs: add architecture audit and stabilization roadmap"
-git push origin architecture/stabilization
-
-
-gh issue create \
---title "Security: Implement RBAC strategy on API Platform" \
---body "Implement RBAC roles (admin, operator, viewer) and add security rules to Crop, Genetic, OperationalService and JournalEntry. Add voters, authorization tests and permission matrix documentation." \
---label security,architecture
-
-gh issue create \
---title "Remove legacy API surface (Plot & CropActivity)" \
---body "Audit Plot and CropActivity ApiResources and remove or migrate them. Clean dead endpoints and update migrations." \
---label architecture,tech-debt
-
-gh issue create \
---title "Decouple Docker bootstrap from seed catalog synchronization" \
---body "Remove catalog sync from entrypoint. Keep migrations/seed only and move catalog sync to async job or manual command." \
---label architecture,performance
-
-gh issue create \
---title "Separate external seed catalog from internal Genetic repository" \
---body "Introduce ExternalSeedCatalog entity and prevent editing external supplier data." \
---label architecture,backend
-
-gh issue create \
---title "Optimize frontend dashboard refresh strategy" \
---body "Replace full refresh every 15 seconds with section loading, pagination and aggregated endpoints." \
---label frontend,performance
-
-gh issue create \
---title "Implement full testing pyramid" \
---body "Add backend integration tests, frontend tests and Playwright e2e covering login, dashboard and CRUD flows." \
---label tests
-
-gh issue create \
---title "Harden authentication and onboarding flow" \
---body "Remove demo credentials, remove API base URL input, add rate limiting and stronger validation." \
---label security,frontend
-
-gh issue create \
---title "Rewrite project documentation" \
---body "Align documentation with current project state. Update backend/frontend README and architecture docs." \
---label documentation
+1. Security: implement RBAC strategy on API Platform
+2. Remove legacy API surface (Plot and CropActivity)
+3. Decouple Docker bootstrap from seed catalog synchronization
+4. Separate external seed catalog from internal Genetic repository
+5. Optimize frontend dashboard refresh strategy
+6. Implement full testing pyramid
+7. Harden authentication and onboarding flow
+8. Rewrite project documentation
