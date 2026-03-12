@@ -1,5 +1,14 @@
 export interface HydraCollection<T> {
-  'hydra:member': T[]
+  'hydra:member'?: T[]
+  member?: T[]
+  totalItems?: number
+  'hydra:totalItems'?: number
+  view?: {
+    next?: string
+  }
+  'hydra:view'?: {
+    'hydra:next'?: string
+  }
 }
 
 export interface GeneticDto {
