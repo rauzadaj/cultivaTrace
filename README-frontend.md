@@ -52,4 +52,4 @@ npm run build
 - La connexion utilise `POST /api/login`
 - La création de compte utilise `POST /api/register`
 - Toute réponse `401` côté API purge la session locale et redirige vers `/auth`
-- La vue principale suit désormais une direction visuelle admin Material avec sidebar, cartes de supervision et listes d'actions terrain
+- La vue principale suit désormais une direction visuelle admin Material dense avec sidebar, table d'opérations, services et listes d'actions terrain
