@@ -5,8 +5,40 @@ const API_BASE_KEY = 'cultivatrace_api_base'
 const TOKEN_KEY = 'cultivatrace_token'
 const OPERATOR_KEY = 'cultivatrace_operator'
 
+function resolveInitialApiBaseUrl(): string {
+  const storedValue = window.localStorage.getItem(API_BASE_KEY)?.trim()
+
+  if (!storedValue) {
+    return '/api'
+  }
+
+  const normalizedStoredValue = storedValue.replace(/\/+$/, '')
+  const isLocalProxyContext = window.location.hostname === 'localhost' && window.location.port === '5173'
+
+  if (isLocalProxyContext) {
+    try {
+      const parsedStoredValue = new URL(normalizedStoredValue)
+      const normalizedPath = parsedStoredValue.pathname.replace(/\/+$/, '')
+      const isLocalBackend =
+        ['localhost', '127.0.0.1'].includes(parsedStoredValue.hostname)
+        && parsedStoredValue.port === '8000'
+        && normalizedPath === '/api'
+
+      if (isLocalBackend) {
+        window.localStorage.setItem(API_BASE_KEY, '/api')
+
+        return '/api'
+      }
+    } catch {
+      // Keep non-URL values as-is.
+    }
+  }
+
+  return storedValue
+}
+
 export const useUserStore = defineStore('user', () => {
-  const apiBaseUrl = ref(window.localStorage.getItem(API_BASE_KEY) ?? 'http://localhost:8000/api')
+  const apiBaseUrl = ref(resolveInitialApiBaseUrl())
   const token = ref(window.localStorage.getItem(TOKEN_KEY) ?? '')
   const operatorLabel = ref(window.localStorage.getItem(OPERATOR_KEY) ?? 'Field Operator')
 
