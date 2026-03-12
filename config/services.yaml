@@ -21,6 +21,7 @@ services:
             - '../src/Kernel.php'
 
     App\Application\Cultivation\Analytics\CropCycleAnalyticsGateway: '@App\Infrastructure\Persistence\Doctrine\Repository\DoctrineCropCycleAnalyticsGateway'
+    App\Application\Catalog\SeedCatalog\SeedCatalogProvider: '@App\Infrastructure\Catalog\Humboldt\HumboldtSeedCatalogProvider'
 
     App\Infrastructure\Http\Controller\:
         resource: '../src/Infrastructure/Http/Controller/'
