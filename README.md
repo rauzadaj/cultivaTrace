@@ -80,6 +80,7 @@ En réexécution, elle réinitialise explicitement le compte de démo `demo@cult
 Note :
 - Un `401 JWT Token not found` sur `/api` est normal si vous n’êtes pas authentifié.
 - Le login JWT est exposé sur `POST /api/login`.
+- La création de compte est exposée sur `POST /api/register`.
 - Les clés privées générées localement restent ignorées par Git via `config/jwt/*.pem`.
 
 ## Lancer le frontend (Vue / Vuetify)
@@ -97,10 +98,10 @@ Frontend disponible sur :
 
 Flux de démo local :
 
-1. Lancer `POST http://localhost:8000/api/login` avec `demo@cultivatrace.local` / `demo123`
-2. Copier le champ `token`
-3. Ouvrir `http://localhost:5173/index.html`
-4. Laisser `API base URL` sur `/api` et coller le JWT dans le champ `JWT token`
+1. Ouvrir `http://localhost:5173/auth`
+2. Se connecter avec `demo@cultivatrace.local` / `demo123`, ou créer un compte via l’onglet `Sign up`
+3. Laisser `API base URL` sur `/api`
+4. Après authentification, la redirection vers `/dashboard` est automatique
 
 ## Tests
 
@@ -154,6 +155,7 @@ npm run build
 - Le backend Docker utilise PHP 8.3 (aligné avec les dépendances verrouillées).
 - Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
+- Le frontend embarque désormais un routeur avec garde d’authentification et redirection automatique vers `/auth` sur `401`.
 - Le serveur Vite proxifie `/api` vers `http://localhost:8000` pour éviter le CORS en démo locale.
 - Le journal cultural est protégé en append-only au niveau ORM et base PostgreSQL.
 - Le composant `symfony/workflow` orchestre désormais les transitions `seedling -> veg -> flower -> harvest`.
