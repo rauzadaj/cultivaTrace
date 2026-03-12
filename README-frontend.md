@@ -41,3 +41,9 @@ npm run build
 - Consommation Hydra sur `/api/crops` et `/api/journal_entries`
 - Consommation JSON sur `/api/analytics/cycle-average`
 - Typage strict dans `src/types/api.ts`
+
+## Démo locale
+
+- L’URL API par défaut est `/api`
+- Le serveur Vite proxifie `/api` vers `http://localhost:8000`
+- Le dashboard expose un champ `JWT token` pour coller le jeton obtenu via `POST http://localhost:8000/api/login`

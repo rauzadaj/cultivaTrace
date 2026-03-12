@@ -48,13 +48,28 @@ docker compose up --build -d
 docker exec -it cultivatrace_app composer install
 ```
 
-3. Lancer les migrations (si nécessaire)
+3. Générer la paire de clés JWT locale (si nécessaire)
+
+```bash
+docker exec -it cultivatrace_app php bin/console lexik:jwt:generate-keypair --overwrite
+```
+
+4. Lancer les migrations (si nécessaire)
 
 ```bash
 docker exec -it cultivatrace_app php bin/console doctrine:migrations:migrate
 ```
 
-4. API disponible sur :
+5. Injecter les données de démonstration locales
+
+```bash
+docker exec -it cultivatrace_app php bin/console app:seed-demo-data
+```
+
+Cette commande est volontairement limitée aux environnements `dev` et `test`.
+En réexécution, elle réinitialise explicitement le compte de démo `demo@cultivatrace.local` avec le mot de passe `demo123` pour garantir un bootstrap local déterministe.
+
+6. API disponible sur :
 
 - `http://localhost:8000/api`
 - `http://localhost:8000/api/analytics/cycle-average`
@@ -64,6 +79,8 @@ docker exec -it cultivatrace_app php bin/console doctrine:migrations:migrate
 
 Note :
 - Un `401 JWT Token not found` sur `/api` est normal si vous n’êtes pas authentifié.
+- Le login JWT est exposé sur `POST /api/login`.
+- Les clés privées générées localement restent ignorées par Git via `config/jwt/*.pem`.
 
 ## Lancer le frontend (Vue / Vuetify)
 
@@ -77,6 +94,13 @@ npm run dev
 Frontend disponible sur :
 
 - `http://localhost:5173`
+
+Flux de démo local :
+
+1. Lancer `POST http://localhost:8000/api/login` avec `demo@cultivatrace.local` / `demo123`
+2. Copier le champ `token`
+3. Ouvrir `http://localhost:5173/index.html`
+4. Laisser `API base URL` sur `/api` et coller le JWT dans le champ `JWT token`
 
 ## Tests
 
@@ -130,6 +154,7 @@ npm run build
 - Le backend Docker utilise PHP 8.3 (aligné avec les dépendances verrouillées).
 - Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
+- Le serveur Vite proxifie `/api` vers `http://localhost:8000` pour éviter le CORS en démo locale.
 - Le journal cultural est protégé en append-only au niveau ORM et base PostgreSQL.
 - Le composant `symfony/workflow` orchestre désormais les transitions `seedling -> veg -> flower -> harvest`.
 - Chaque transition de cycle ajoute une entrée append-only de type `stage_transition` dans le journal du lot.
