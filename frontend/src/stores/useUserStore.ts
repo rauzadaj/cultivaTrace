@@ -15,10 +15,23 @@ function resolveInitialApiBaseUrl(): string {
   const normalizedStoredValue = storedValue.replace(/\/+$/, '')
   const isLocalProxyContext = window.location.hostname === 'localhost' && window.location.port === '5173'
 
-  if (isLocalProxyContext && normalizedStoredValue === 'http://localhost:8000/api') {
-    window.localStorage.setItem(API_BASE_KEY, '/api')
+  if (isLocalProxyContext) {
+    try {
+      const parsedStoredValue = new URL(normalizedStoredValue)
+      const normalizedPath = parsedStoredValue.pathname.replace(/\/+$/, '')
+      const isLocalBackend =
+        ['localhost', '127.0.0.1'].includes(parsedStoredValue.hostname)
+        && parsedStoredValue.port === '8000'
+        && normalizedPath === '/api'
 
-    return '/api'
+      if (isLocalBackend) {
+        window.localStorage.setItem(API_BASE_KEY, '/api')
+
+        return '/api'
+      }
+    } catch {
+      // Keep non-URL values as-is.
+    }
   }
 
   return storedValue
