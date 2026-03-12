@@ -66,6 +66,8 @@ docker exec -it cultivatrace_app php bin/console doctrine:migrations:migrate
 docker exec -it cultivatrace_app php bin/console app:seed-demo-data
 ```
 
+Cette commande est volontairement limitée aux environnements `dev` et `test`.
+
 6. API disponible sur :
 
 - `http://localhost:8000/api`
