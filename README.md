@@ -177,6 +177,7 @@ npm run build
 - Le backend Docker et le runtime local sont désormais alignés sur PHP 8.4.
 - Le noyau backend tourne maintenant sur Symfony 8.0.7.
 - DoctrineBundle a été migré en 3.2 pour ouvrir la compatibilité Symfony 8.
+- Le conteneur PHP réapplique automatiquement les permissions de `var/` au démarrage pour garder `cache/` et `log/` inscriptibles après recréation des volumes Docker.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
 - Le frontend embarque désormais un routeur avec garde d’authentification et redirection automatique vers `/auth` sur `401`.
 - Le dashboard adopte maintenant une interface admin Material dense, plus proche d'une console SaaS d'exploitation avec navigation latérale, logo unifié et écrans CRUD par section.
