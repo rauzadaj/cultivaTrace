@@ -51,6 +51,13 @@ Si vous migrez depuis un runtime plus ancien, forcez le rebuild des services PHP
 docker compose up -d --build --force-recreate app web
 ```
 
+Le service `app` attend maintenant PostgreSQL, applique automatiquement les migrations Doctrine en `dev`, puis recharge le dataset de démonstration si le bootstrap auto reste activé.
+
+Variables utiles dans `docker-compose.yml` :
+
+- `APP_AUTO_BOOTSTRAP=1` : initialise automatiquement le schéma local au démarrage.
+- `APP_BOOTSTRAP_SEED_DEMO=1` : rejoue le seed de démonstration idempotent au démarrage du conteneur `app`.
+
 2. Installer les dépendances Symfony (si nécessaire)
 
 ```bash
@@ -69,6 +76,8 @@ docker exec -it cultivatrace_app php bin/console lexik:jwt:generate-keypair --ov
 docker exec -it cultivatrace_app php bin/console doctrine:migrations:migrate
 ```
 
+En environnement Docker local, cette étape est désormais automatique tant que `APP_AUTO_BOOTSTRAP=1`.
+
 5. Injecter les données de démonstration locales
 
 ```bash
@@ -77,6 +86,7 @@ docker exec -it cultivatrace_app php bin/console app:seed-demo-data
 
 Cette commande est volontairement limitée aux environnements `dev` et `test`.
 En réexécution, elle réinitialise explicitement le compte de démo `demo@cultivatrace.local` avec le mot de passe `demo123` pour garantir un bootstrap local déterministe.
+En environnement Docker local, cette étape est aussi automatique tant que `APP_BOOTSTRAP_SEED_DEMO=1`.
 
 6. Vérifier la version Symfony / PHP dans le conteneur (optionnel)
 
@@ -157,6 +167,49 @@ php bin/console debug:config framework workflows
 cd frontend
 npm run build
 ```
+
+## Catalogue graines verifie
+
+CultivaTrace embarque maintenant une sync de catalogue graines vers `Genetic` et un export JSON versionne.
+
+Commande :
+
+```bash
+php bin/console app:sync-seed-catalog
+```
+
+Mode export seul :
+
+```bash
+php bin/console app:sync-seed-catalog --no-upsert
+```
+
+Snapshot versionne :
+
+- `catalog/seed-catalog/humboldt-california-canada.json`
+
+Source amont unique retenue :
+
+- `https://humboldtseedcompany.com`
+
+Pourquoi cette source :
+
+- le meme domaine publie les fiches varietales, les images produit, les descriptions et la lineage/parentals
+- le domaine expose aussi les pages de distribution marche US/Canada, ce qui permet de rester sur une seule origine de donnees
+- le `page-sitemap.xml` du domaine sert de source exhaustive pour les pages produit actuellement publiees
+
+Portee legale exacte :
+
+- il n'existe pas de registre gouvernemental exhaustif des noms de varietes autorisees en Californie ou au Canada
+- le catalogue est donc exhaustif a l'echelle de la source retenue et borne aux varietes commercialisees par ce fournisseur pour ces marches
+- Californie : la conformite depend du fait que les graines ou plantes proviennent d'une source licenciee, pas d'une whitelist de strain names
+- Canada : la conformite depend de l'achat de graines/semis legaux et des limites de culture applicables localement
+
+References officielles verifiees :
+
+- Canada : `https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/personal-use/growing-cannabis-home-safely.html`
+- Californie, culture a domicile : `https://cannabis.ca.gov/consumers/whats-legal/`
+- Californie, transfert aux consommateurs via nursery/licensed goods : `https://govt.westlaw.com/calregs/Document/IB654858A4D8C4A179AA3A8A7DAA20E5F`
 
 ## Structure rapide
 
