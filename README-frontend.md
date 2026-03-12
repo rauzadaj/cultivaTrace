@@ -47,3 +47,4 @@ npm run build
 - L’URL API par défaut est `/api`
 - Le serveur Vite proxifie `/api` vers `http://localhost:8000`
 - Le dashboard expose un champ `JWT token` pour coller le jeton obtenu via `POST http://localhost:8000/api/login`
+- La vue principale suit désormais une direction visuelle "control tower SaaS" plus adaptée à une démo produit moderne
