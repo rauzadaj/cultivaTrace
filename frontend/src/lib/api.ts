@@ -17,6 +17,24 @@ interface ApiFetchOptions {
   redirectOnUnauthorized?: boolean
 }
 
+function resolveApiUrl(baseUrl: string, path: string): string {
+  if (/^https?:\/\//i.test(path)) {
+    return path
+  }
+
+  if (/^https?:\/\//i.test(baseUrl) && path.startsWith('/api/')) {
+    const parsedBaseUrl = new URL(baseUrl)
+
+    return `${parsedBaseUrl.origin}${path}`
+  }
+
+  if (path.startsWith('/api/')) {
+    return path
+  }
+
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 function redirectToAuth() {
   if (window.location.pathname.startsWith('/auth')) {
     return
@@ -43,7 +61,7 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const userStore = useUserStore()
   const baseUrl = userStore.normalizedApiBase
-  const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+  const url = resolveApiUrl(baseUrl, path)
   const headers = new Headers(init.headers)
   const authenticate = options.authenticate ?? true
   const redirectOnUnauthorized = options.redirectOnUnauthorized ?? true
@@ -86,6 +104,32 @@ export async function loadHydraCollection<T>(path: string): Promise<T[]> {
 
 export async function loadAnalytics(path: string): Promise<AnalyticsResponse> {
   return apiFetch<AnalyticsResponse>(path, {}, { accept: 'application/json' })
+}
+
+export async function createResource<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function patchResource<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+  return apiFetch<T>(
+    path,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    {
+      contentType: 'application/merge-patch+json',
+    },
+  )
+}
+
+export async function deleteResource(path: string): Promise<void> {
+  await apiFetch<null>(path, {
+    method: 'DELETE',
+  })
 }
 
 export async function login(email: string, password: string): Promise<AuthTokenResponse> {
