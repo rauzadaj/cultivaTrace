@@ -4,6 +4,7 @@
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
+/config/reference.php
 /public/bundles/
 /var/
 /vendor/
@@ -23,6 +24,7 @@
 /frontend/node_modules/
 /frontend/dist/
 /frontend/.vite/
+/frontend/.logs/
 /frontend/.env.local
 /frontend/.env.*.local
 npm-debug.log*
