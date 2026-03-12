@@ -88,7 +88,8 @@
         <OverviewSection v-if="route.name === 'dashboard-overview'" :search="search" />
         <LotsSection v-else-if="route.name === 'dashboard-lots'" :search="search" />
         <ServicesSection v-else-if="route.name === 'dashboard-services'" :search="search" />
-        <AnalyticsSection v-else :search="search" />
+        <AnalyticsSection v-else-if="route.name === 'dashboard-analytics'" :search="search" />
+        <RoadmapSection v-else :search="search" />
 
         <v-alert v-if="cropStore.error" type="error" variant="tonal" class="mt-4">
           {{ cropStore.error }}
@@ -106,6 +107,7 @@ import AnalyticsSection from './AnalyticsSection.vue'
 import LotsSection from './LotsSection.vue'
 import OverviewSection from './OverviewSection.vue'
 import ServicesSection from './ServicesSection.vue'
+import RoadmapSection from './RoadmapSection.vue'
 import { useCropStore } from '../../stores/useCropStore'
 import { useUserStore } from '../../stores/useUserStore'
 import type { CropDto } from '../../types/api'
@@ -124,12 +126,14 @@ const navigationItems = [
   { title: 'Lots', subtitle: 'Cycle tracking', icon: 'mdi-sprout-outline', to: 'dashboard-lots' },
   { title: 'Services', subtitle: 'Health checks', icon: 'mdi-shield-check-outline', to: 'dashboard-services' },
   { title: 'Analytics', subtitle: 'Yield correlations', icon: 'mdi-chart-box-outline', to: 'dashboard-analytics' },
+  { title: 'Roadmap', subtitle: 'Delivery milestones', icon: 'mdi-map-marker-path', to: 'dashboard-roadmap' },
 ] as const
 
 const pageTitle = computed(() => {
   if (route.name === 'dashboard-lots') return 'Lot operations'
   if (route.name === 'dashboard-services') return 'Service center'
   if (route.name === 'dashboard-analytics') return 'Analytics center'
+  if (route.name === 'dashboard-roadmap') return 'Execution roadmap'
 
   return 'Control dashboard'
 })
@@ -138,6 +142,7 @@ const pageKicker = computed(() => {
   if (route.name === 'dashboard-lots') return 'Tracked batches'
   if (route.name === 'dashboard-services') return 'Operational services'
   if (route.name === 'dashboard-analytics') return 'Genetic correlations'
+  if (route.name === 'dashboard-roadmap') return 'Program delivery'
 
   return 'Realtime cultivation'
 })

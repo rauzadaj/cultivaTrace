@@ -105,12 +105,13 @@ Flux de démo local :
 2. Se connecter avec `demo@cultivatrace.local` / `demo123`, ou créer un compte via l’onglet `Sign up`
 3. Laisser `API base URL` sur `/api`
 4. Après authentification, la redirection vers `/dashboard/overview` est automatique
-5. Le menu latéral permet ensuite d'accéder à `Overview`, `Lots`, `Services` et `Analytics`
+5. Le menu latéral permet ensuite d'accéder à `Overview`, `Lots`, `Services`, `Analytics` et `Roadmap`
 6. Chaque section expose désormais des écrans de gestion:
    - `Lots` : création, édition, suppression et transitions de cycle
    - `Services` : CRUD complet du catalogue opérationnel
    - `Analytics` : CRUD des variétés génétiques et lecture des moyennes de cycle
    - `Overview` : ajout append-only d’entrées de journal
+   - `Roadmap` : suivi des jalons de livraison produit
 
 ## Tests
 

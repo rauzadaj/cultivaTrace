@@ -55,6 +55,15 @@ const router = createRouter({
         requiresAuth: true,
       },
     },
+
+    {
+      path: '/dashboard/roadmap',
+      name: 'dashboard-roadmap',
+      component: DashboardView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
     {
       path: '/:pathMatch(.*)*',
       redirect: '/dashboard/overview',
