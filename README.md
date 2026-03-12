@@ -229,6 +229,7 @@ References officielles verifiees :
 ## Notes de développement
 
 - Le backend Docker et le runtime local sont désormais alignés sur PHP 8.4.
+- Les workflows GitHub Actions backend sont eux aussi alignés sur PHP 8.4 pour rester compatibles avec les contraintes Composer du projet.
 - Le noyau backend tourne maintenant sur Symfony 8.0.7.
 - DoctrineBundle a été migré en 3.2 pour ouvrir la compatibilité Symfony 8.
 - Le conteneur PHP réapplique automatiquement les permissions de `var/` au démarrage pour garder `cache/` et `log/` inscriptibles après recréation des volumes Docker.
