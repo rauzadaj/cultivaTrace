@@ -52,6 +52,51 @@ export interface GeneticCycleAverageDto {
   averageCycleDays: number
 }
 
+export interface OperationalServiceDto {
+  '@id': string
+  id: string
+  name: string
+  category: string
+  description: string
+  icon: string
+  tone: 'primary' | 'warning' | 'success'
+  statusLabel: string
+  position: number
+  updatedAt: string
+}
+
+export interface CropWritePayload {
+  batchCode: string
+  displayName: string
+  seededAt: string
+  genetic: string
+}
+
+export interface GeneticWritePayload {
+  code: string
+  name: string
+  vendor: string | null
+  metadata: Record<string, unknown>
+}
+
+export interface OperationalServiceWritePayload {
+  name: string
+  category: string
+  description: string
+  icon: string
+  tone: 'primary' | 'warning' | 'success'
+  statusLabel: string
+  position: number
+}
+
+export interface JournalEntryWritePayload {
+  crop: string
+  type: JournalEntryDto['type']
+  occurredAt: string
+  notes: string | null
+  metadata: Record<string, unknown>
+}
+
 export interface AnalyticsResponse {
   data: GeneticCycleAverageDto[]
 }

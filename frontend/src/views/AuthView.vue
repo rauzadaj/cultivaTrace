@@ -2,6 +2,10 @@
   <v-app class="auth-shell">
     <div class="auth-layout">
       <section class="auth-hero">
+        <div class="auth-hero__brand">
+          <img src="/cultivatrace.png" alt="CultivaTrace" class="auth-hero__logo">
+          <span>CultivaTrace</span>
+        </div>
         <p class="auth-hero__eyebrow">CultivaTrace</p>
         <h1>Connecte l’operation terrain avant d’ouvrir le cockpit.</h1>
         <p class="auth-hero__copy">
@@ -178,6 +182,29 @@ function resolveRedirectTarget() {
 
 .auth-hero {
   color: #33434d;
+}
+
+.auth-hero__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.auth-hero__brand span {
+  color: #33434d;
+  font-weight: 600;
+}
+
+.auth-hero__logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: cover;
 }
 
 .auth-hero__eyebrow,

@@ -31,16 +31,21 @@ npm run build
 ## Structure
 
 - `src/stores/useUserStore.ts` : contexte opérateur, token, base URL API
-- `src/stores/useCropStore.ts` : chargement dashboard, polling, quick actions
+- `src/stores/useCropStore.ts` : chargement dashboard, polling, quick actions, CRUD lots/génétiques/services
 - `src/router/index.ts` : routes publiques / protégées et garde d’authentification
 - `src/views/AuthView.vue` : écran de connexion / création de compte
-- `src/components/dashboard/CropDashboard.vue` : vue principale temps réel
+- `src/components/dashboard/CropDashboard.vue` : shell principal avec sidebar/logo/topbar
+- `src/components/dashboard/OverviewSection.vue` : overview + ajout d’entrées journal append-only
+- `src/components/dashboard/LotsSection.vue` : CRUD lots + transitions de cycle
+- `src/components/dashboard/ServicesSection.vue` : CRUD services opérationnels
+- `src/components/dashboard/AnalyticsSection.vue` : CRUD génétiques + lecture analytics
 - `src/components/dashboard/QuickActionButtons.vue` : saisie terrain rapide
 - `src/components/AppErrorBoundary.vue` : fallback UI global
 
 ## Contrat frontend
 
 - Consommation Hydra sur `/api/crops` et `/api/journal_entries`
+- Consommation Hydra sur `/api/genetics` et `/api/operational_services`
 - Consommation JSON sur `/api/analytics/cycle-average`
 - Typage strict dans `src/types/api.ts`
 
@@ -52,5 +57,6 @@ npm run build
 - La connexion utilise `POST /api/login`
 - La création de compte utilise `POST /api/register`
 - Toute réponse `401` côté API purge la session locale et redirige vers `/auth`
-- La vue principale suit désormais une direction visuelle admin Material dense avec sidebar, table d'opérations, services et listes d'actions terrain
+- La vue principale suit désormais une direction visuelle admin Material dense avec logo unifié, sidebar, table d'opérations, services et listes d'actions terrain
 - Le menu latéral route maintenant vers `Overview`, `Lots`, `Services` et `Analytics`
+- Chaque route du menu est maintenant exploitable avec des écrans de création, mise à jour et suppression adaptés au domaine métier
