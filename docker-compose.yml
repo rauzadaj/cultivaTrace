@@ -11,6 +11,9 @@ services:
     depends_on:
       - db
     environment:
+      APP_ENV: dev
+      APP_AUTO_BOOTSTRAP: "1"
+      APP_BOOTSTRAP_SEED_DEMO: "1"
       DATABASE_URL: postgresql://cultiva:password@db:5432/cultivatrace?serverVersion=13&charset=utf8
 
   web:
