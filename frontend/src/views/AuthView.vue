@@ -150,7 +150,7 @@ async function submit() {
 }
 
 function resolveRedirectTarget() {
-  return typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+  return typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard/overview'
 }
 </script>
 
