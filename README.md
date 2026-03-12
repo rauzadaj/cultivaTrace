@@ -67,6 +67,7 @@ docker exec -it cultivatrace_app php bin/console app:seed-demo-data
 ```
 
 Cette commande est volontairement limitée aux environnements `dev` et `test`.
+En réexécution, elle réinitialise explicitement le compte de démo `demo@cultivatrace.local` avec le mot de passe `demo123` pour garantir un bootstrap local déterministe.
 
 6. API disponible sur :
 

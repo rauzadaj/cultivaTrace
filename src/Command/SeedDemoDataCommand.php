@@ -153,11 +153,9 @@ final class SeedDemoDataCommand extends Command
             $this->entityManager->persist($user);
         }
 
-        $user->setRoles(['ROLE_ADMIN']);
-
-        if ('' === $user->getPassword()) {
-            $user->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
-        }
+        $user
+            ->setRoles(['ROLE_ADMIN'])
+            ->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
 
         return $user;
     }

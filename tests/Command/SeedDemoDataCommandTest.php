@@ -91,4 +91,65 @@ final class SeedDemoDataCommandTest extends TestCase
         self::assertSame(Command::SUCCESS, $commandTester->execute([]));
         self::assertStringContainsString('Demo environment ready', $commandTester->getDisplay());
     }
+
+    public function testItResetsTheDemoUserPasswordOnReseed(): void
+    {
+        $existingUser = (new User())
+            ->setEmail('demo@cultivatrace.local')
+            ->setPassword('stale-password-hash');
+
+        $userRepository = $this->getMockBuilder(EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $userRepository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['email' => 'demo@cultivatrace.local'])
+            ->willReturn($existingUser);
+
+        $geneticRepository = $this->getMockBuilder(EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $geneticRepository->expects(self::exactly(2))
+            ->method('findOneBy')
+            ->willReturnOnConsecutiveCalls(null, null);
+
+        $cropRepository = $this->getMockBuilder(EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $cropRepository->expects(self::exactly(3))
+            ->method('findOneBy')
+            ->willReturnOnConsecutiveCalls(null, null, null);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('getRepository')
+            ->willReturnMap([
+                [User::class, $userRepository],
+                [Genetic::class, $geneticRepository],
+                [Crop::class, $cropRepository],
+            ]);
+        $entityManager->expects(self::exactly(5))->method('persist');
+        $entityManager->expects(self::once())->method('flush');
+
+        $passwordHasher = $this->createMock(UserPasswordHasherInterface::class);
+        $passwordHasher->expects(self::once())
+            ->method('hashPassword')
+            ->with($existingUser, 'demo123')
+            ->willReturn('fresh-demo-password-hash');
+
+        $kernel = $this->createConfiguredMock(KernelInterface::class, [
+            'getEnvironment' => 'test',
+        ]);
+
+        $commandTester = new CommandTester(new SeedDemoDataCommand(
+            $entityManager,
+            $passwordHasher,
+            $kernel,
+        ));
+
+        self::assertSame(Command::SUCCESS, $commandTester->execute([]));
+        self::assertSame('fresh-demo-password-hash', $existingUser->getPassword());
+    }
 }
