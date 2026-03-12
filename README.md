@@ -134,6 +134,7 @@ Flux de démo local :
    - `Services` : CRUD complet du catalogue opérationnel
    - `Analytics` : CRUD des variétés génétiques et lecture des moyennes de cycle
    - `Overview` : ajout append-only d’entrées de journal
+   - `Catalog` : bibliothèque visuelle des graines synchronisées avec image, génétique, description et lien source
 
 ## Tests
 

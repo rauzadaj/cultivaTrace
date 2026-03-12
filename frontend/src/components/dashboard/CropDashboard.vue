@@ -72,7 +72,7 @@
         <input
           v-model.trim="search"
           type="text"
-          placeholder="Find lot, genetic or service"
+          placeholder="Find lot, service or seed line"
           aria-label="Search workspace"
         >
       </div>
@@ -88,7 +88,8 @@
         <OverviewSection v-if="route.name === 'dashboard-overview'" :search="search" />
         <LotsSection v-else-if="route.name === 'dashboard-lots'" :search="search" />
         <ServicesSection v-else-if="route.name === 'dashboard-services'" :search="search" />
-        <AnalyticsSection v-else :search="search" />
+        <AnalyticsSection v-else-if="route.name === 'dashboard-analytics'" :search="search" />
+        <CatalogSection v-else :search="search" />
 
         <v-alert v-if="cropStore.error" type="error" variant="tonal" class="mt-4">
           {{ cropStore.error }}
@@ -103,6 +104,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import AnalyticsSection from './AnalyticsSection.vue'
+import CatalogSection from './CatalogSection.vue'
 import LotsSection from './LotsSection.vue'
 import OverviewSection from './OverviewSection.vue'
 import ServicesSection from './ServicesSection.vue'
@@ -124,12 +126,14 @@ const navigationItems = [
   { title: 'Lots', subtitle: 'Cycle tracking', icon: 'mdi-sprout-outline', to: 'dashboard-lots' },
   { title: 'Services', subtitle: 'Health checks', icon: 'mdi-shield-check-outline', to: 'dashboard-services' },
   { title: 'Analytics', subtitle: 'Yield correlations', icon: 'mdi-chart-box-outline', to: 'dashboard-analytics' },
+  { title: 'Catalog', subtitle: 'Seed library', icon: 'mdi-image-multiple-outline', to: 'dashboard-catalog' },
 ] as const
 
 const pageTitle = computed(() => {
   if (route.name === 'dashboard-lots') return 'Lot operations'
   if (route.name === 'dashboard-services') return 'Service center'
   if (route.name === 'dashboard-analytics') return 'Analytics center'
+  if (route.name === 'dashboard-catalog') return 'Seed catalog'
 
   return 'Control dashboard'
 })
@@ -138,6 +142,7 @@ const pageKicker = computed(() => {
   if (route.name === 'dashboard-lots') return 'Tracked batches'
   if (route.name === 'dashboard-services') return 'Operational services'
   if (route.name === 'dashboard-analytics') return 'Genetic correlations'
+  if (route.name === 'dashboard-catalog') return 'Verified seed library'
 
   return 'Realtime cultivation'
 })
