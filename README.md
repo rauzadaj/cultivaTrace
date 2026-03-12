@@ -4,7 +4,8 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 
 ## Stack technique
 
-- Symfony 6.4 + API Platform
+- Symfony 8.0.7 + API Platform 4.2
+- PHP 8.4
 - PostgreSQL 13
 - Auth JWT (LexikJWTAuthenticationBundle)
 - Frontend Vue 3 + TypeScript + Pinia + Vite + Vuetify
@@ -44,6 +45,12 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 docker compose up --build -d
 ```
 
+Si vous migrez depuis un runtime plus ancien, forcez le rebuild des services PHP/Nginx :
+
+```bash
+docker compose up -d --build --force-recreate app web
+```
+
 2. Installer les dépendances Symfony (si nécessaire)
 
 ```bash
@@ -71,7 +78,13 @@ docker exec -it cultivatrace_app php bin/console app:seed-demo-data
 Cette commande est volontairement limitée aux environnements `dev` et `test`.
 En réexécution, elle réinitialise explicitement le compte de démo `demo@cultivatrace.local` avec le mot de passe `demo123` pour garantir un bootstrap local déterministe.
 
-6. API disponible sur :
+6. Vérifier la version Symfony / PHP dans le conteneur (optionnel)
+
+```bash
+docker compose exec -it cultivatrace_app php bin/console about
+```
+
+7. API disponible sur :
 
 - `http://localhost:8000/api`
 - `http://localhost:8000/api/analytics/cycle-average`
@@ -161,8 +174,9 @@ npm run build
 
 ## Notes de développement
 
-- Le backend Docker utilise PHP 8.3 (aligné avec les dépendances verrouillées).
-- Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
+- Le backend Docker et le runtime local sont désormais alignés sur PHP 8.4.
+- Le noyau backend tourne maintenant sur Symfony 8.0.7.
+- DoctrineBundle a été migré en 3.2 pour ouvrir la compatibilité Symfony 8.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
 - Le frontend embarque désormais un routeur avec garde d’authentification et redirection automatique vers `/auth` sur `401`.
 - Le dashboard adopte maintenant une interface admin Material dense, plus proche d'une console SaaS d'exploitation avec navigation latérale, logo unifié et écrans CRUD par section.
