@@ -14,9 +14,10 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 
 - `src/Domain/Cultivation` : coeur métier (`Crop`, `JournalEntry`, `Genetic`, enums, value objects)
 - `src/Application/Cultivation` : services applicatifs et read models d’analyse
+- `src/Domain/Operations` : catalogue métier des services opérationnels exposés en CRUD
 - `src/Infrastructure` : contrôleurs HTTP, subscriber d’erreurs, adaptateurs Doctrine
 - `frontend/src/stores` : stores Pinia modulaires
-- `frontend/src/components/dashboard` : dashboard temps réel et quick actions mobile-first
+- `frontend/src/components/dashboard` : dashboard temps réel, menu SaaS Material et écrans CRUD par section
 
 ## Modèle métier livré
 
@@ -24,6 +25,7 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 - `JournalEntry` : journal append-only exposé en lecture/écriture de création uniquement
 - Les mutations `UPDATE` et `DELETE` du journal sont bloquées par Doctrine et par trigger PostgreSQL
 - `Genetic` : variété génétique avec métadonnées flexibles stockées en JSON/JSONB
+- `OperationalService` : service opérationnel éditable côté console avec ordre d’affichage, icône et tonalité
 - `PhLevel` et `NutrientConcentration` : value objects métier pour les mesures critiques
 - `GET /api/analytics/cycle-average` : agrégation de durée moyenne de cycle par variété
 - `POST /api/crops/{id}/transitions/{transition}` : transitions de cycle pilotées par Symfony Workflow
@@ -73,6 +75,7 @@ En réexécution, elle réinitialise explicitement le compte de démo `demo@cult
 
 - `http://localhost:8000/api`
 - `http://localhost:8000/api/analytics/cycle-average`
+- `http://localhost:8000/api/operational_services`
 - `http://localhost:8000/api/crops/{id}/transitions/start_vegetative`
 - `http://localhost:8000/api/crops/{id}/transitions/start_flowering`
 - `http://localhost:8000/api/crops/{id}/transitions/harvest`
@@ -103,6 +106,11 @@ Flux de démo local :
 3. Laisser `API base URL` sur `/api`
 4. Après authentification, la redirection vers `/dashboard/overview` est automatique
 5. Le menu latéral permet ensuite d'accéder à `Overview`, `Lots`, `Services` et `Analytics`
+6. Chaque section expose désormais des écrans de gestion:
+   - `Lots` : création, édition, suppression et transitions de cycle
+   - `Services` : CRUD complet du catalogue opérationnel
+   - `Analytics` : CRUD des variétés génétiques et lecture des moyennes de cycle
+   - `Overview` : ajout append-only d’entrées de journal
 
 ## Tests
 
@@ -157,7 +165,7 @@ npm run build
 - Le runtime de test local exécute aussi correctement PHPUnit sous PHP 8.4.
 - Le frontend cible un dashboard opérationnel temps réel et des quick actions terrain.
 - Le frontend embarque désormais un routeur avec garde d’authentification et redirection automatique vers `/auth` sur `401`.
-- Le dashboard adopte maintenant une interface admin Material dense, plus proche d'une console SaaS d'exploitation avec navigation latérale, table d'opérations et panneaux de supervision.
+- Le dashboard adopte maintenant une interface admin Material dense, plus proche d'une console SaaS d'exploitation avec navigation latérale, logo unifié et écrans CRUD par section.
 - Le serveur Vite proxifie `/api` vers `http://localhost:8000` pour éviter le CORS en démo locale.
 - Le journal cultural est protégé en append-only au niveau ORM et base PostgreSQL.
 - Le composant `symfony/workflow` orchestre désormais les transitions `seedling -> veg -> flower -> harvest`.
