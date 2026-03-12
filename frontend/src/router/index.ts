@@ -9,7 +9,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/dashboard',
+      redirect: '/dashboard/overview',
     },
     {
       path: '/auth',
@@ -21,7 +21,35 @@ const router = createRouter({
     },
     {
       path: '/dashboard',
-      name: 'dashboard',
+      redirect: '/dashboard/overview',
+    },
+    {
+      path: '/dashboard/overview',
+      name: 'dashboard-overview',
+      component: DashboardView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/dashboard/lots',
+      name: 'dashboard-lots',
+      component: DashboardView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/dashboard/services',
+      name: 'dashboard-services',
+      component: DashboardView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/dashboard/analytics',
+      name: 'dashboard-analytics',
       component: DashboardView,
       meta: {
         requiresAuth: true,
@@ -29,7 +57,7 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/dashboard',
+      redirect: '/dashboard/overview',
     },
   ],
 })
@@ -45,7 +73,7 @@ router.beforeEach((to) => {
   }
 
   if (to.name === 'auth' && userStore.isAuthenticated) {
-    return typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard'
+    return typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard/overview'
   }
 
   return true
