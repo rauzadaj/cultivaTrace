@@ -10,7 +10,7 @@
           </p>
         </div>
 
-        <div class="hero-controls">
+        <form class="hero-controls" @submit.prevent>
           <v-text-field
             :model-value="userStore.apiBaseUrl"
             label="API base URL"
@@ -27,11 +27,22 @@
             hide-details
             @update:model-value="userStore.setOperatorLabel(String($event))"
           />
+          <v-text-field
+            :model-value="userStore.token"
+            label="JWT token"
+            variant="solo-filled"
+            density="comfortable"
+            hide-details
+            clearable
+            type="password"
+            autocomplete="current-password"
+            @update:model-value="userStore.setToken(String($event ?? ''))"
+          />
           <div class="hero-meta">
             <span>{{ userStore.operatorLabel }}</span>
             <span>{{ syncLabel }}</span>
           </div>
-        </div>
+        </form>
       </section>
 
       <section class="metrics-grid">
