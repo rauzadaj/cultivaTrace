@@ -147,6 +147,18 @@ Refactor the local bootstrap flow so the application becomes available without w
 Introduce a dedicated ExternalCatalog bounded context instead of persisting supplier entries directly into Genetic. Keep ExternalCatalog separate from the internal GeneticRegistry, add an explicit mapping layer between the two, make internal validated records the only authoritative business sheets, and keep external ingested records non-sovereign and non-editable from the admin UI. Migrate existing data safely.
 ```
 
+Suggested target model:
+- `ExternalCatalogEntry`: supplier record, immutable snapshot fields, source URL, source provider, image, raw metadata, ingestion timestamps.
+- `Genetic`: internal validated business record used by cultivation workflows, analytics, and CRUD operations.
+- `GeneticCatalogMapping`: explicit link between one internal genetic record and one or more supplier entries, with mapping status and reviewer metadata.
+
+Acceptance criteria:
+- Supplier data is no longer persisted directly into `Genetic`.
+- Admin UI cannot edit supplier records as internal genetics.
+- Internal genetics remain the only records selectable in business workflows.
+- Mapping status is visible and auditable.
+- Existing synchronized catalog rows are migrated without breaking current dashboard usage.
+
 ### 5. Dashboard performance redesign
 
 ```text
