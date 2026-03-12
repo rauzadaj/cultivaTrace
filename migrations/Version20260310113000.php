@@ -16,7 +16,7 @@ final class Version20260310113000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('CREATE TABLE genetic (id VARCHAR(26) NOT NULL, code VARCHAR(64) NOT NULL, name VARCHAR(160) NOT NULL, vendor VARCHAR(160) DEFAULT NULL, metadata JSON NOT NULL, PRIMARY KEY(id))');
+        $this->addSql('CREATE TABLE genetic (id VARCHAR(26) NOT NULL, code VARCHAR(64) NOT NULL, name VARCHAR(160) NOT NULL, vendor VARCHAR(160) DEFAULT NULL, metadata JSONB NOT NULL, PRIMARY KEY(id))');
         $this->addSql('COMMENT ON COLUMN genetic.metadata IS \'(DC2Type:json)\'');
         $this->addSql('CREATE UNIQUE INDEX uniq_genetic_code ON genetic (code)');
         $this->addSql('CREATE INDEX idx_genetic_metadata_gin ON genetic USING GIN (metadata)');
@@ -28,7 +28,7 @@ final class Version20260310113000 extends AbstractMigration
         $this->addSql('CREATE INDEX idx_crop_genetic ON crop (genetic_id)');
         $this->addSql('ALTER TABLE crop ADD CONSTRAINT fk_crop_genetic FOREIGN KEY (genetic_id) REFERENCES genetic (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
 
-        $this->addSql('CREATE TABLE journal_entry (id VARCHAR(26) NOT NULL, crop_id VARCHAR(26) NOT NULL, type VARCHAR(32) NOT NULL, occurred_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, notes TEXT DEFAULT NULL, metadata JSON NOT NULL, ph_value_centi SMALLINT DEFAULT NULL, nutrient_ppm INT DEFAULT NULL, PRIMARY KEY(id))');
+        $this->addSql('CREATE TABLE journal_entry (id VARCHAR(26) NOT NULL, crop_id VARCHAR(26) NOT NULL, type VARCHAR(32) NOT NULL, occurred_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, notes TEXT DEFAULT NULL, metadata JSONB NOT NULL, ph_value_centi SMALLINT DEFAULT NULL, nutrient_ppm INT DEFAULT NULL, PRIMARY KEY(id))');
         $this->addSql('COMMENT ON COLUMN journal_entry.metadata IS \'(DC2Type:json)\'');
         $this->addSql('CREATE INDEX idx_journal_entry_occurred_at ON journal_entry (occurred_at)');
         $this->addSql('CREATE INDEX idx_journal_entry_crop_occurred_at ON journal_entry (crop_id, occurred_at)');
