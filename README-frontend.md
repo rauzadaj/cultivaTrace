@@ -53,3 +53,4 @@ npm run build
 - La création de compte utilise `POST /api/register`
 - Toute réponse `401` côté API purge la session locale et redirige vers `/auth`
 - La vue principale suit désormais une direction visuelle admin Material dense avec sidebar, table d'opérations, services et listes d'actions terrain
+- Le menu latéral route maintenant vers `Overview`, `Lots`, `Services` et `Analytics`
