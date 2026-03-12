@@ -55,3 +55,12 @@ export interface GeneticCycleAverageDto {
 export interface AnalyticsResponse {
   data: GeneticCycleAverageDto[]
 }
+
+export interface AuthTokenResponse {
+  token: string
+}
+
+export interface RegistrationResponse {
+  id: number
+  email: string
+}

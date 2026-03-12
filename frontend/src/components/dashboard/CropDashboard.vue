@@ -27,21 +27,11 @@
             hide-details
             @update:model-value="userStore.setOperatorLabel(String($event))"
           />
-          <v-text-field
-            :model-value="userStore.token"
-            label="JWT token"
-            variant="solo-filled"
-            density="comfortable"
-            hide-details
-            clearable
-            type="password"
-            autocomplete="current-password"
-            @update:model-value="userStore.setToken(String($event ?? ''))"
-          />
           <div class="hero-meta">
-            <span>{{ userStore.operatorLabel }}</span>
+            <span>{{ userStore.userEmail || userStore.operatorLabel }}</span>
             <span>{{ syncLabel }}</span>
           </div>
+          <v-btn color="secondary" variant="tonal" @click="logout">Se deconnecter</v-btn>
         </form>
       </section>
 
@@ -169,12 +159,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import QuickActionButtons from './QuickActionButtons.vue'
 import { useCropStore } from '../../stores/useCropStore'
 import { useUserStore } from '../../stores/useUserStore'
 
 const cropStore = useCropStore()
 const userStore = useUserStore()
+const router = useRouter()
 
 const syncLabel = computed(() => {
   if (!cropStore.lastSyncedAt) {
@@ -223,6 +215,12 @@ onMounted(async () => {
 onUnmounted(() => {
   cropStore.stopRealtimePolling()
 })
+
+async function logout() {
+  cropStore.stopRealtimePolling()
+  userStore.clearSession()
+  await router.push({ name: 'auth' })
+}
 </script>
 
 <style scoped>
