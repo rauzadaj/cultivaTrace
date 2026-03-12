@@ -41,6 +41,7 @@ npm run build
 - `src/components/dashboard/LotsSection.vue` : CRUD lots + transitions de cycle
 - `src/components/dashboard/ServicesSection.vue` : CRUD services opérationnels
 - `src/components/dashboard/AnalyticsSection.vue` : CRUD génétiques + lecture analytics
+- `src/components/dashboard/CatalogSection.vue` : catalogue visuel des graines avec image, génétique, description et lien source
 - `src/components/dashboard/QuickActionButtons.vue` : saisie terrain rapide
 - `src/components/AppErrorBoundary.vue` : fallback UI global
 
@@ -60,5 +61,6 @@ npm run build
 - La création de compte utilise `POST /api/register`
 - Toute réponse `401` côté API purge la session locale et redirige vers `/auth`
 - La vue principale suit désormais une direction visuelle admin Material dense avec logo unifié, sidebar, table d'opérations, services et listes d'actions terrain
-- Le menu latéral route maintenant vers `Overview`, `Lots`, `Services` et `Analytics`
+- Le menu latéral route maintenant vers `Overview`, `Lots`, `Services`, `Analytics` et `Catalog`
 - Chaque route du menu est maintenant exploitable avec des écrans de création, mise à jour et suppression adaptés au domaine métier
+- `Catalog` expose les graines synchronisées depuis le catalogue vérifié Humboldt avec cartes image + lineage + description

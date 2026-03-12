@@ -56,6 +56,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/dashboard/catalog',
+      name: 'dashboard-catalog',
+      component: DashboardView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/dashboard/overview',
     },
