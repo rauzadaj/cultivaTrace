@@ -129,17 +129,40 @@ Recommended action:
 Audit and implement a complete RBAC strategy for CultivaTrace. Add role separation for admin, operator, and viewer. Protect Crop, Genetic, OperationalService, and JournalEntry with per-operation API Platform security rules and Symfony voters. Cover custom controllers as well. Add authorization tests and update the README with a permission matrix.
 ```
 
+Suggested target model:
+- `ROLE_ADMIN`: full governance over configuration, catalog mapping, user administration, and destructive operations.
+- `ROLE_OPERATOR`: operational write access limited to cultivation execution, journal append, and authorized workflow transitions.
+- `ROLE_VIEWER`: read-only access to dashboard, analytics, and permitted catalog views.
+
+Acceptance criteria:
+- Every mutating API operation has an explicit authorization rule.
+- Custom controllers enforce the same permission model as API Platform resources.
+- Unauthorized access paths are covered by backend tests.
+- The project documentation includes a role/permission matrix.
+
 ### 2. Legacy API cleanup
 
 ```text
 Audit the remaining legacy ApiResource entities in src/Entity and remove or migrate them into the current DDD architecture. Specifically assess Plot and CropActivity, remove dead endpoints, update persistence if needed, and align the public API documentation with the remaining supported resources.
 ```
 
+Acceptance criteria:
+- `Plot` and `CropActivity` are either fully migrated into the active architecture or removed from the exposed API surface.
+- No dead API Platform resource remains under `src/Entity`.
+- Public API documentation reflects only supported resources.
+- Any required migration path is documented and tested.
+
 ### 3. Bootstrap decoupling
 
 ```text
 Refactor the local bootstrap flow so the application becomes available without waiting for external catalog synchronization. Keep migrations and demo seed idempotent during startup, move vendor catalog sync to an explicit async or manual step, add healthchecks, and document the startup contract.
 ```
+
+Acceptance criteria:
+- App readiness no longer depends on a remote catalog provider.
+- Docker startup still applies schema and local demo bootstrap safely.
+- Catalog sync remains available as an explicit operation with observable status.
+- The local setup documentation reflects the new startup contract.
 
 ### 4. External catalog domain split
 
@@ -165,11 +188,23 @@ Acceptance criteria:
 Optimize the CultivaTrace dashboard data flow. Replace broad timed refreshes with section-level loading, pagination, filtered reads, and dedicated aggregated backend endpoints. Reduce redundant fetching after mutations and add tests or metrics proving the improvement.
 ```
 
+Acceptance criteria:
+- The dashboard no longer performs full multi-collection refreshes on a fixed interval.
+- Large collections are paginated or filtered by design.
+- Dashboard-specific aggregate endpoints replace at least the current hottest cross-resource reads.
+- The improvement is validated by measurable network or rendering reduction.
+
 ### 6. Testing pyramid
 
 ```text
 Add a real testing pyramid to CultivaTrace. Introduce backend integration tests for auth, CRUD, workflow, and error handling; frontend tests for routing, guards, and dashboard sections; and Playwright smoke coverage for login, navigation, and core CRUD paths. Remove placeholder smoke tests.
 ```
+
+Acceptance criteria:
+- Placeholder smoke tests are removed or replaced with meaningful assertions.
+- Backend integration tests cover auth, workflow, CRUD, and error envelopes.
+- Frontend tests cover route guards and key dashboard sections.
+- CI executes at least one end-to-end product smoke journey.
 
 ### 7. Authentication hardening
 
@@ -177,11 +212,23 @@ Add a real testing pyramid to CultivaTrace. Introduce backend integration tests 
 Turn the current authentication flow into a production-grade onboarding flow. Remove demo shortcuts from the normal login experience, add rate limiting and stronger validation to registration, clarify demo versus production behavior, and update both backend and frontend documentation accordingly.
 ```
 
+Acceptance criteria:
+- Demo credentials are not exposed in the default production login path.
+- Registration is rate-limited and validated beyond the current minimum.
+- Demo mode, if kept, is explicit and isolated from the standard onboarding flow.
+- Documentation clearly distinguishes production and demo authentication behavior.
+
 ### 8. Documentation rewrite
 
 ```text
 Rewrite the CultivaTrace documentation so it matches the actual product and architecture. Update README files, document dashboard sections, workflows, bootstrap behavior, catalog synchronization, security model, and operational setup. Keep the result concise but contractual.
 ```
+
+Acceptance criteria:
+- Backend and frontend READMEs are aligned with the current shipped product.
+- Architecture, security, bootstrap, and dashboard behavior are documented once and consistently.
+- Documentation drift identified in the audit is removed.
+- The audit roadmap remains traceable to GitHub issues.
 
 ## GitHub Issue Mapping
 
