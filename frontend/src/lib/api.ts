@@ -1,5 +1,30 @@
-import type { AnalyticsResponse, HydraCollection } from '../types/api'
+import type { AnalyticsResponse, AuthTokenResponse, HydraCollection, RegistrationResponse } from '../types/api'
 import { useUserStore } from '../stores/useUserStore'
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message)
+  }
+}
+
+interface ApiFetchOptions {
+  accept?: string
+  authenticate?: boolean
+  contentType?: string
+  redirectOnUnauthorized?: boolean
+}
+
+function redirectToAuth() {
+  if (window.location.pathname.startsWith('/auth')) {
+    return
+  }
+
+  const redirect = encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+  window.location.assign(`/auth?redirect=${redirect}`)
+}
 
 async function parseError(response: Response): Promise<string> {
   try {
@@ -11,26 +36,39 @@ async function parseError(response: Response): Promise<string> {
   }
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit = {},
+  options: ApiFetchOptions = {},
+): Promise<T> {
   const userStore = useUserStore()
   const baseUrl = userStore.normalizedApiBase
   const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
   const headers = new Headers(init.headers)
+  const authenticate = options.authenticate ?? true
+  const redirectOnUnauthorized = options.redirectOnUnauthorized ?? true
 
-  headers.set('Accept', 'application/ld+json, application/json')
+  headers.set('Accept', options.accept ?? 'application/ld+json, application/json')
 
   if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/ld+json')
+    headers.set('Content-Type', options.contentType ?? 'application/ld+json')
   }
 
-  if (userStore.token) {
+  if (authenticate && userStore.token) {
     headers.set('Authorization', `Bearer ${userStore.token}`)
   }
 
   const response = await fetch(url, { ...init, headers })
 
   if (!response.ok) {
-    throw new Error(await parseError(response))
+    const message = await parseError(response)
+
+    if (response.status === 401 && redirectOnUnauthorized) {
+      userStore.clearSession()
+      redirectToAuth()
+    }
+
+    throw new ApiError(message, response.status)
   }
 
   if (response.status === 204) {
@@ -47,5 +85,37 @@ export async function loadHydraCollection<T>(path: string): Promise<T[]> {
 }
 
 export async function loadAnalytics(path: string): Promise<AnalyticsResponse> {
-  return apiFetch<AnalyticsResponse>(path, { headers: { Accept: 'application/json' } })
+  return apiFetch<AnalyticsResponse>(path, {}, { accept: 'application/json' })
+}
+
+export async function login(email: string, password: string): Promise<AuthTokenResponse> {
+  return apiFetch<AuthTokenResponse>(
+    '/login',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    },
+    {
+      accept: 'application/json',
+      authenticate: false,
+      contentType: 'application/json',
+      redirectOnUnauthorized: false,
+    },
+  )
+}
+
+export async function register(email: string, password: string): Promise<RegistrationResponse> {
+  return apiFetch<RegistrationResponse>(
+    '/register',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    },
+    {
+      accept: 'application/json',
+      authenticate: false,
+      contentType: 'application/json',
+      redirectOnUnauthorized: false,
+    },
+  )
 }
