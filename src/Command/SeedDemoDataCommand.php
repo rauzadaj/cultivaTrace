@@ -11,6 +11,7 @@ use App\Domain\Cultivation\Model\Genetic;
 use App\Domain\Cultivation\Model\JournalEntry;
 use App\Domain\Cultivation\ValueObject\NutrientConcentration;
 use App\Domain\Cultivation\ValueObject\PhLevel;
+use App\Domain\Operations\Model\OperationalService;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -58,6 +59,9 @@ final class SeedDemoDataCommand extends Command
             vendor: 'Cultiva Labs',
             metadata: ['lineage' => 'Indica', 'thc' => '24%'],
         );
+        $this->upsertOperationalService('Genetics', 'Cultivation', 'Top performing genetic lines visible in realtime.', 'mdi-leaf', 'primary', 'CT-ALP', 10);
+        $this->upsertOperationalService('Chemistry', 'Environment', 'Average pH and nutrient concentration controls.', 'mdi-flask-outline', 'warning', '6.14 pH', 20);
+        $this->upsertOperationalService('Journal', 'Compliance', 'Append-only field event log with immutable history.', 'mdi-book-lock-outline', 'success', '5 events', 30);
 
         $this->upsertCrop(
             batchCode: 'ALP-2401-A',
@@ -139,6 +143,33 @@ final class SeedDemoDataCommand extends Command
         ));
 
         return Command::SUCCESS;
+    }
+
+    private function upsertOperationalService(
+        string $name,
+        string $category,
+        string $description,
+        string $icon,
+        string $tone,
+        string $statusLabel,
+        int $position,
+    ): void {
+        /** @var OperationalService|null $service */
+        $service = $this->entityManager->getRepository(OperationalService::class)->findOneBy(['name' => $name]);
+
+        if (!$service instanceof OperationalService) {
+            $service = new OperationalService();
+            $this->entityManager->persist($service);
+        }
+
+        $service
+            ->setName($name)
+            ->setCategory($category)
+            ->setDescription($description)
+            ->setIcon($icon)
+            ->setTone($tone)
+            ->setStatusLabel($statusLabel)
+            ->setPosition($position);
     }
 
     private function upsertDemoUser(): User

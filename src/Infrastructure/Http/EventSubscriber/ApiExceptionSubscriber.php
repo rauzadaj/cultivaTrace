@@ -2,6 +2,8 @@
 
 namespace App\Infrastructure\Http\EventSubscriber;
 
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use DomainException;
 use InvalidArgumentException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -31,6 +33,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
         $exception = $event->getThrowable();
         $status = match (true) {
             $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
+            $exception instanceof UniqueConstraintViolationException, $exception instanceof ForeignKeyConstraintViolationException => Response::HTTP_CONFLICT,
             $exception instanceof InvalidArgumentException => Response::HTTP_BAD_REQUEST,
             $exception instanceof DomainException => Response::HTTP_UNPROCESSABLE_ENTITY,
             default => Response::HTTP_INTERNAL_SERVER_ERROR,
