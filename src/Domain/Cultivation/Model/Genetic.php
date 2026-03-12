@@ -3,6 +3,7 @@
 namespace App\Domain\Cultivation\Model;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
@@ -26,6 +27,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Get(),
         new Post(),
         new Patch(),
+        new Delete(),
     ],
     normalizationContext: ['groups' => ['genetic:read']],
     denormalizationContext: ['groups' => ['genetic:write']],
