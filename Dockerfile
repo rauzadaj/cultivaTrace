@@ -24,7 +24,7 @@ COPY docker/app/entrypoint.sh /usr/local/bin/app-entrypoint
 
 RUN git config --global --add safe.directory /var/www/html
 RUN composer install --no-interaction --prefer-dist --no-scripts
-RUN chmod +x /usr/local/bin/app-entrypoint
+RUN sed -i 's/\r$//' /usr/local/bin/app-entrypoint && chmod +x /usr/local/bin/app-entrypoint
 
 ENTRYPOINT ["app-entrypoint"]
 CMD ["php-fpm"]

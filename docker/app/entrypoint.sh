@@ -67,6 +67,11 @@ bootstrap_app() {
     echo "Seeding demo dataset..."
     php bin/console app:seed-demo-data --no-interaction
   fi
+
+  if [ "${APP_BOOTSTRAP_SEED_CATALOG:-0}" = "1" ]; then
+    echo "Synchronizing verified seed catalog..."
+    php bin/console app:sync-seed-catalog
+  fi
 }
 
 if [ "${1:-}" = "php-fpm" ]; then
