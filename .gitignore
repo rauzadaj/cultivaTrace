@@ -35,3 +35,7 @@ pnpm-debug.log*
 /data/
 /.symfony*
 ###< symfony local runtime ###
+
+###> local assets ###
+/public/Logo/
+###< local assets ###
