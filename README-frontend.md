@@ -64,3 +64,4 @@ npm run build
 - Le menu latéral route maintenant vers `Overview`, `Lots`, `Services`, `Analytics` et `Catalog`
 - Chaque route du menu est maintenant exploitable avec des écrans de création, mise à jour et suppression adaptés au domaine métier
 - `Catalog` expose les graines synchronisées depuis le catalogue vérifié Humboldt avec cartes image + lineage + description
+- si `Catalog` affiche `0 entries`, il faut que la sync graines ait été exécutée; en Docker local, cette étape est maintenant bootstrapée automatiquement
