@@ -97,9 +97,19 @@ export async function apiFetch<T>(
 }
 
 export async function loadHydraCollection<T>(path: string): Promise<T[]> {
-  const payload = await apiFetch<HydraCollection<T>>(path)
+  const items: T[] = []
+  const visited = new Set<string>()
+  let nextPath: string | null = path
 
-  return payload['hydra:member'] ?? []
+  while (nextPath && !visited.has(nextPath)) {
+    visited.add(nextPath)
+
+    const payload = await apiFetch<HydraCollection<T>>(nextPath)
+    items.push(...(payload['hydra:member'] ?? payload.member ?? []))
+    nextPath = payload['hydra:view']?.['hydra:next'] ?? payload.view?.next ?? null
+  }
+
+  return items
 }
 
 export async function loadAnalytics(path: string): Promise<AnalyticsResponse> {
