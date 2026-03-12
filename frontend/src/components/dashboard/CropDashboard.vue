@@ -24,7 +24,7 @@
           :subtitle="item.subtitle"
           :to="{ name: item.to }"
           rounded="lg"
-          active-color="white"
+          color="white"
         />
       </v-list>
 
