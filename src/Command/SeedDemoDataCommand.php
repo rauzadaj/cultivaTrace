@@ -12,7 +12,10 @@ use App\Domain\Cultivation\Model\JournalEntry;
 use App\Domain\Cultivation\ValueObject\NutrientConcentration;
 use App\Domain\Cultivation\ValueObject\PhLevel;
 use App\Domain\Operations\Model\OperationalService;
+use App\Entity\Organization;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
+use App\Enum\SubscriptionPlan;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -174,6 +177,8 @@ final class SeedDemoDataCommand extends Command
 
     private function upsertDemoUser(): User
     {
+        $organization = $this->upsertDemoOrganization();
+
         /** @var User|null $user */
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'demo@cultivatrace.local']);
 
@@ -186,9 +191,31 @@ final class SeedDemoDataCommand extends Command
 
         $user
             ->setRoles(['ROLE_ADMIN'])
+            ->setRole('ROLE_ADMIN')
+            ->setOrganization($organization)
             ->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
 
         return $user;
+    }
+
+    private function upsertDemoOrganization(): Organization
+    {
+        /** @var Organization|null $organization */
+        $organization = $this->entityManager->getRepository(Organization::class)->findOneBy(['name' => 'CultivaTrace Demo']);
+
+        if (!$organization instanceof Organization) {
+            $organization = (new Organization())
+                ->setName('CultivaTrace Demo');
+
+            $this->entityManager->persist($organization);
+        }
+
+        $organization
+            ->setCountry('FR')
+            ->setPlan(SubscriptionPlan::PRO)
+            ->setLicenseStatus(LicenseStatus::ACTIVE);
+
+        return $organization;
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace App\Tests\Doctrine;
 
 use App\Entity\Farm;
-use App\Entity\Organization;
+use App\Tests\Fixture\TenantIsolationFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,45 +38,41 @@ final class TenantFilterTest extends KernelTestCase
 
     public function testTenantFilterIsolatesDataBetweenOrganizations(): void
     {
-        $organizationA = (new Organization())
-            ->setName('Org A')
-            ->setCountry('FR');
-        $organizationB = (new Organization())
-            ->setName('Org B')
-            ->setCountry('DE');
-
-        $this->entityManager->persist($organizationA);
-        $this->entityManager->persist($organizationB);
-        $this->entityManager->flush();
-
-        $farmA = (new Farm())
-            ->setOrganization($organizationA)
-            ->setTenantId($organizationA->getId())
-            ->setName('Farm A');
-        $farmB = (new Farm())
-            ->setOrganization($organizationB)
-            ->setTenantId($organizationB->getId())
-            ->setName('Farm B');
-
-        $this->entityManager->persist($farmA);
-        $this->entityManager->persist($farmB);
-        $this->entityManager->flush();
-        $this->entityManager->clear();
+        $fixtureSet = TenantIsolationFixtures::load($this->entityManager);
 
         $filter = $this->entityManager->getFilters()->enable('tenant_filter');
-        $filter->setParameter('tenantId', (string) $organizationA->getId());
+        $filter->setParameter('tenantId', (string) $fixtureSet->organizationA->getId());
 
-        $visibleFarms = $this->entityManager->getRepository(Farm::class)->findAll();
+        $visibleForUserA = $this->entityManager->getRepository(Farm::class)->findAll();
 
-        self::assertCount(1, $visibleFarms);
-        self::assertSame('Farm A', $visibleFarms[0]->getName());
+        self::assertCount(1, $visibleForUserA);
+        self::assertSame('Farm A', $visibleForUserA[0]->getName());
         self::assertSame(
-            (string) $organizationA->getId(),
-            (string) $visibleFarms[0]->getTenantId(),
+            (string) $fixtureSet->organizationA->getId(),
+            (string) $visibleForUserA[0]->getTenantId(),
         );
         self::assertNotContains('Farm B', array_map(
             static fn (Farm $farm): string => $farm->getName(),
-            $visibleFarms,
+            $visibleForUserA,
+        ));
+
+        $this->entityManager->clear();
+        $this->entityManager->getFilters()->disable('tenant_filter');
+
+        $filter = $this->entityManager->getFilters()->enable('tenant_filter');
+        $filter->setParameter('tenantId', (string) $fixtureSet->organizationB->getId());
+
+        $visibleForUserB = $this->entityManager->getRepository(Farm::class)->findAll();
+
+        self::assertCount(1, $visibleForUserB);
+        self::assertSame('Farm B', $visibleForUserB[0]->getName());
+        self::assertSame(
+            (string) $fixtureSet->organizationB->getId(),
+            (string) $visibleForUserB[0]->getTenantId(),
+        );
+        self::assertNotContains('Farm A', array_map(
+            static fn (Farm $farm): string => $farm->getName(),
+            $visibleForUserB,
         ));
     }
 
@@ -84,7 +80,8 @@ final class TenantFilterTest extends KernelTestCase
     {
         $schemaTool = new SchemaTool($this->entityManager);
         $metadata = [
-            $this->entityManager->getClassMetadata(Organization::class),
+            $this->entityManager->getClassMetadata(\App\Entity\Organization::class),
+            $this->entityManager->getClassMetadata(\App\Entity\User::class),
             $this->entityManager->getClassMetadata(Farm::class),
         ];
 

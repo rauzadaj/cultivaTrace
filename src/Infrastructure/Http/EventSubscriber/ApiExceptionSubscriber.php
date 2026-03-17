@@ -12,9 +12,15 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Psr\Log\LoggerInterface;
 
 final class ApiExceptionSubscriber implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {
+    }
+
     public static function getSubscribedEvents(): array
     {
         return [
@@ -38,6 +44,15 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
             $exception instanceof DomainException => Response::HTTP_UNPROCESSABLE_ENTITY,
             default => Response::HTTP_INTERNAL_SERVER_ERROR,
         };
+
+        if (Response::HTTP_INTERNAL_SERVER_ERROR === $status) {
+            $this->logger->error(sprintf(
+                'Unhandled API exception on %s: %s: %s',
+                $request->getPathInfo(),
+                $exception::class,
+                $exception->getMessage(),
+            ));
+        }
 
         $event->setResponse(new JsonResponse([
             'title' => Response::$statusTexts[$status] ?? 'Application Error',
