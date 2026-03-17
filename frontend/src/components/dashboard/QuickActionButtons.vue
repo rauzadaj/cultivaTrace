@@ -5,9 +5,9 @@
       :key="action.type"
       class="quick-action"
       :class="`quick-action--${action.type}`"
+      no-caps
       rounded
       unelevated
-      :color="action.color"
       :loading="pendingType === action.type"
       :disabled="disabled"
       @click="trigger(action.type, action.label)"
@@ -69,18 +69,21 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
 .quick-action {
   flex: 1 1 132px;
   justify-content: flex-start;
+  align-items: stretch;
   min-width: 0;
   min-height: 44px;
-  text-transform: none;
+  padding: 0 12px;
   letter-spacing: 0;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid #d8e2e8;
+  border-radius: 12px;
+  background: #f7fafc;
   box-shadow: none;
 }
 
 .quick-action__content {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   width: 100%;
 }
@@ -112,15 +115,30 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
 }
 
 .quick-action--irrigation {
-  background: rgba(3, 169, 244, 0.12);
+  background: #edf6ff;
+  border-color: #d6e8f7;
+  color: #2b6cb0;
 }
 
 .quick-action--fertilization {
-  background: rgba(255, 152, 0, 0.12);
+  background: #fff5e7;
+  border-color: #f0ddbd;
+  color: #b7791f;
 }
 
 .quick-action--environment_check {
-  background: rgba(76, 175, 80, 0.12);
+  background: #eef7f0;
+  border-color: #d8e7db;
+  color: #2f855a;
+}
+
+.quick-action :deep(.q-btn__content) {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.quick-action :deep(.q-icon) {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 1600px) {
