@@ -17,7 +17,7 @@
  */
 
 import { ref, onMounted, onUnmounted } from 'vue'
-import http from '@/services/api'
+import http from '../services/api'
 
 interface QueuedAction {
   id: string

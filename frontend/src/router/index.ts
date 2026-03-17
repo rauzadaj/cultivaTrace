@@ -1,8 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { pinia } from '../plugins/pinia'
+import AppLayout from '../layouts/AppLayout.vue'
 import { useUserStore } from '../stores/useUserStore'
 import AuthView from '../views/AuthView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import MoreView from '../views/MoreView.vue'
+import SensorsView from '../views/SensorsView.vue'
+import PlantDetailView from '../views/plants/PlantDetailView.vue'
+import PlantListView from '../views/plants/PlantListView.vue'
+import RoomDashboard from '../views/rooms/RoomDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,48 +26,59 @@ const router = createRouter({
       },
     },
     {
-      path: '/dashboard',
-      redirect: '/dashboard/overview',
-    },
-    {
-      path: '/dashboard/overview',
-      name: 'dashboard-overview',
-      component: DashboardView,
+      path: '/',
+      component: AppLayout,
       meta: {
         requiresAuth: true,
       },
-    },
-    {
-      path: '/dashboard/lots',
-      name: 'dashboard-lots',
-      component: DashboardView,
-      meta: {
-        requiresAuth: true,
-      },
-    },
-    {
-      path: '/dashboard/services',
-      name: 'dashboard-services',
-      component: DashboardView,
-      meta: {
-        requiresAuth: true,
-      },
-    },
-    {
-      path: '/dashboard/analytics',
-      name: 'dashboard-analytics',
-      component: DashboardView,
-      meta: {
-        requiresAuth: true,
-      },
-    },
-    {
-      path: '/dashboard/catalog',
-      name: 'dashboard-catalog',
-      component: DashboardView,
-      meta: {
-        requiresAuth: true,
-      },
+      children: [
+        {
+          path: 'dashboard/overview',
+          name: 'dashboard-overview',
+          component: DashboardView,
+        },
+        {
+          path: 'plants',
+          name: 'plants-list',
+          component: PlantListView,
+        },
+        {
+          path: 'plants/:id',
+          name: 'plant-detail',
+          component: PlantDetailView,
+        },
+        {
+          path: 'rooms',
+          name: 'rooms-dashboard',
+          component: RoomDashboard,
+        },
+        {
+          path: 'sensors',
+          name: 'sensors-dashboard',
+          component: SensorsView,
+        },
+        {
+          path: 'more',
+          name: 'more',
+          component: MoreView,
+        },
+        {
+          path: 'dashboard/lots',
+          redirect: '/plants',
+        },
+        {
+          path: 'dashboard/services',
+          redirect: '/rooms',
+        },
+        {
+          path: 'dashboard/analytics',
+          redirect: '/sensors',
+        },
+        {
+          path: 'dashboard/catalog',
+          redirect: '/more',
+        },
+      ],
     },
     {
       path: '/:pathMatch(.*)*',
