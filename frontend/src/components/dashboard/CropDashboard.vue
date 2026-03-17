@@ -1,11 +1,12 @@
 <template>
-  <v-app class="material-shell">
-    <v-navigation-drawer
+  <q-layout view="lHh Lpr lFf" class="material-shell">
+    <q-drawer
       v-model="drawer"
-      :permanent="mdAndUp"
-      :temporary="!mdAndUp"
-      width="288"
+      :persistent="mdAndUp"
+      :overlay="!mdAndUp"
+      :width="288"
       class="dashboard-drawer"
+      show-if-above
     >
       <div class="drawer-brand">
         <img src="/cultivatrace.png" alt="CultivaTrace" class="drawer-brand__logo">
@@ -15,18 +16,21 @@
         </div>
       </div>
 
-      <v-list nav density="compact" class="nav-list">
-        <v-list-item
+      <nav class="nav-list">
+        <RouterLink
           v-for="item in navigationItems"
           :key="item.title"
-          :prepend-icon="item.icon"
-          :title="item.title"
-          :subtitle="item.subtitle"
           :to="{ name: item.to }"
-          rounded="lg"
-          color="white"
-        />
-      </v-list>
+          class="nav-item"
+          active-class="nav-item--active"
+        >
+          <q-icon :name="item.icon" size="22px" />
+          <span class="nav-item__content">
+            <span class="nav-item__title">{{ item.title }}</span>
+            <span class="nav-item__subtitle">{{ item.subtitle }}</span>
+          </span>
+        </RouterLink>
+      </nav>
 
       <div class="drawer-panel">
         <p class="drawer-panel__title">Fleet snapshot</p>
@@ -54,55 +58,60 @@
           <small>{{ syncLabel }}</small>
         </div>
       </div>
-    </v-navigation-drawer>
+    </q-drawer>
 
-    <v-app-bar flat color="#2b3237" density="comfortable" class="dashboard-appbar">
-      <v-app-bar-nav-icon v-if="!mdAndUp" color="white" @click="drawer = !drawer" />
+    <q-header class="dashboard-appbar">
+      <q-toolbar class="dashboard-toolbar">
+        <q-btn v-if="!mdAndUp" flat round dense color="white" icon="menu" @click="drawer = !drawer" />
 
-      <div class="appbar-title">
-        <img src="/cultivatrace.png" alt="CultivaTrace" class="appbar-title__logo">
-        <div>
-          <span class="appbar-title__eyebrow">{{ pageKicker }}</span>
-          <strong>{{ pageTitle }}</strong>
+        <div class="appbar-title">
+          <img src="/cultivatrace.png" alt="CultivaTrace" class="appbar-title__logo">
+          <div>
+            <span class="appbar-title__eyebrow">{{ pageKicker }}</span>
+            <strong>{{ pageTitle }}</strong>
+          </div>
         </div>
-      </div>
 
-      <div class="appbar-search">
-        <v-icon icon="mdi-magnify" size="18" />
-        <input
+        <q-input
           v-model.trim="search"
-          type="text"
+          dark
+          dense
+          borderless
+          class="appbar-search"
           placeholder="Find lot, service or seed line"
-          aria-label="Search workspace"
         >
-      </div>
+          <template #prepend>
+            <q-icon name="mdi-magnify" size="18px" />
+          </template>
+        </q-input>
 
-      <v-spacer />
-      <v-chip size="small" variant="flat" color="primary" class="mr-2">{{ activeMenuLabel }}</v-chip>
-      <v-chip size="small" variant="outlined" color="white" class="mr-2">{{ userStore.operatorLabel }}</v-chip>
-      <v-btn size="small" variant="text" color="white" @click="logout">Logout</v-btn>
-    </v-app-bar>
+        <q-space />
+        <q-chip dense color="primary" text-color="white">{{ activeMenuLabel }}</q-chip>
+        <q-chip dense outline color="white" text-color="white">{{ userStore.operatorLabel }}</q-chip>
+        <q-btn flat color="white" label="Logout" @click="logout" />
+      </q-toolbar>
+    </q-header>
 
-    <v-main class="dashboard-main">
-      <v-container fluid class="pa-4">
+    <q-page-container class="dashboard-main">
+      <div class="dashboard-container">
         <OverviewSection v-if="route.name === 'dashboard-overview'" :search="search" />
         <LotsSection v-else-if="route.name === 'dashboard-lots'" :search="search" />
         <ServicesSection v-else-if="route.name === 'dashboard-services'" :search="search" />
         <AnalyticsSection v-else-if="route.name === 'dashboard-analytics'" :search="search" />
         <CatalogSection v-else :search="search" />
 
-        <v-alert v-if="cropStore.error" type="error" variant="tonal" class="mt-4">
+        <q-banner v-if="cropStore.error" rounded class="dashboard-error">
           {{ cropStore.error }}
-        </v-alert>
-      </v-container>
-    </v-main>
-  </v-app>
+        </q-banner>
+      </div>
+    </q-page-container>
+  </q-layout>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useDisplay } from 'vuetify'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useDisplay } from '../../composables/useDisplay'
 import AnalyticsSection from './AnalyticsSection.vue'
 import CatalogSection from './CatalogSection.vue'
 import LotsSection from './LotsSection.vue'
@@ -237,7 +246,35 @@ async function logout() {
 }
 
 .nav-list {
+  display: grid;
+  gap: 4px;
   padding: 0 12px 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.18s ease;
+}
+
+.nav-item--active,
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-item__content {
+  display: grid;
+  gap: 2px;
+}
+
+.nav-item__subtitle {
+  color: rgba(236, 242, 245, 0.72);
+  font-size: 0.92rem;
 }
 
 .drawer-panel {
@@ -315,8 +352,13 @@ async function logout() {
 }
 
 .dashboard-appbar {
-  gap: 16px;
+  background: #2b3237;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-toolbar {
+  gap: 16px;
+  min-height: 64px;
 }
 
 .appbar-title {
@@ -343,28 +385,20 @@ async function logout() {
 }
 
 .appbar-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   width: min(420px, 100%);
-  min-height: 40px;
-  padding: 0 14px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.74);
 }
 
-.appbar-search input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: white;
-  font: inherit;
+.dashboard-container {
+  padding: 16px;
 }
 
-.appbar-search input::placeholder {
-  color: rgba(255, 255, 255, 0.62);
+.dashboard-error {
+  margin-top: 16px;
+  color: #8c2f39;
+  background: #fdecec;
+  border: 1px solid #f3c9cf;
 }
 
 @media (max-width: 640px) {

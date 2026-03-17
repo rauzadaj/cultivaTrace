@@ -1,5 +1,5 @@
 <template>
-  <v-card flat class="surface-card services-card">
+  <q-card flat class="surface-card services-card">
     <div class="section-header section-header--compact">
       <div>
         <p class="section-header__eyebrow">Services</p>
@@ -11,7 +11,7 @@
       <article v-for="service in items" :key="service.title" :class="dense ? 'service-panel' : 'service-item'">
         <div :class="dense ? 'service-panel__header' : 'service-item__header'">
           <div class="service-item__icon" :class="`service-item__icon--${service.tone}`">
-            <v-icon :icon="service.icon" size="20" />
+            <q-icon :name="service.icon" size="20px" />
           </div>
           <div>
             <strong>{{ service.title }}</strong>
@@ -24,7 +24,7 @@
         </div>
       </article>
     </div>
-  </v-card>
+  </q-card>
 </template>
 
 <script setup lang="ts">

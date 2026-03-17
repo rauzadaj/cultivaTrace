@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
+import { Quasar, Notify, Loading } from 'quasar'
+import '@quasar/extras/material-icons/material-icons.css'
+import 'quasar/src/css/index.sass'
 import App from './App.vue'
-import vuetify from './plugins/vuetify'
 import { pinia } from './plugins/pinia'
 import router from './router'
 
@@ -8,5 +10,15 @@ const app = createApp(App)
 
 app.use(pinia)
 app.use(router)
-app.use(vuetify)
+app.use(Quasar, {
+  plugins: {
+    Notify,
+    Loading,
+  },
+  config: {
+    brand: {
+      primary: '#1B6B3A',
+    },
+  },
+})
 app.mount('#app')

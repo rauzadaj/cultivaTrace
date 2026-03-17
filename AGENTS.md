@@ -5,7 +5,7 @@
 ## Stack
 
 - Backend : Symfony 6.4 LTS + API Platform 3 + Doctrine ORM
-- Frontend : Vue 3 (Composition API) + Vuetify 3 + Pinia + Axios
+- Frontend : Vue 3 (Composition API) + Quasar Framework + Pinia + Axios
 - DB : PostgreSQL 16 + TimescaleDB (IoT)
 - Auth : LexikJWTAuthenticationBundle — JWT stateless
 - PDF : Gotenberg (service Docker)
@@ -85,5 +85,13 @@ Exemples :
 | Agent | Stack | Dossier | Ne touche pas à |
 |---|---|---|---|
 | BACKEND | Symfony / Doctrine | `apps/backend/src/` | `apps/frontend/` |
-| FRONTEND | Vue / Vuetify / Pinia | `apps/frontend/src/` | `apps/backend/` |
+| FRONTEND | Vue / Quasar / Pinia | `apps/frontend/src/` | `apps/backend/` |
+
+## Frontend UI
+
+- Les composants UI utilisent le prefixe `Q` (`QBtn`, `QInput`, `QCard`, `QPage`, `QLayout`, etc.)
+- Layout principal : `QLayout` + `QHeader` + `QDrawer` + `QPageContainer` + `QFooter`
+- Navigation mobile : `QTabsBar` en bas (`bottom tabs`)
+- Touch targets minimum `48px` sur mobile
+- Ne jamais utiliser de composants UI hors Quasar (`v-btn`, `v-card`, etc.)
 | INFRA | Docker / Terraform | `infra/` | `apps/` |

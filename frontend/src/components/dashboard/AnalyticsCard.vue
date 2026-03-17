@@ -1,5 +1,5 @@
 <template>
-  <v-card flat class="surface-card analytics-card">
+  <q-card flat class="surface-card analytics-card">
     <div class="section-header section-header--compact">
       <div>
         <p class="section-header__eyebrow">Analytics</p>
@@ -24,7 +24,7 @@
         </div>
       </article>
     </div>
-  </v-card>
+  </q-card>
 </template>
 
 <script setup lang="ts">

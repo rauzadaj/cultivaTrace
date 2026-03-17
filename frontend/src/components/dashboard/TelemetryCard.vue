@@ -1,5 +1,5 @@
 <template>
-  <v-card flat class="surface-card telemetry-card">
+  <q-card flat class="surface-card telemetry-card">
     <div class="section-header section-header--compact">
       <div>
         <p class="section-header__eyebrow">Telemetry</p>
@@ -25,7 +25,7 @@
         <span>active lots</span>
       </div>
     </div>
-  </v-card>
+  </q-card>
 </template>
 
 <script setup lang="ts">

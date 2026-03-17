@@ -1,27 +1,25 @@
 <template>
   <div>
-    <v-row dense class="mb-1">
-      <v-col v-for="card in overviewMetrics" :key="card.label" cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+    <div class="metrics-grid mb-1">
+      <q-card v-for="card in overviewMetrics" :key="card.label" flat class="surface-card metric-card">
           <span class="metric-card__label">{{ card.label }}</span>
           <strong>{{ card.value }}</strong>
           <small>{{ card.hint }}</small>
-        </v-card>
-      </v-col>
-    </v-row>
+      </q-card>
+    </div>
 
-    <v-row dense>
-      <v-col cols="12" xl="8">
-        <v-card flat class="surface-card panel-card">
+    <div class="dashboard-grid">
+      <div class="dashboard-grid__main">
+        <q-card flat class="surface-card panel-card">
           <div class="section-header">
             <div>
               <p class="section-header__eyebrow">Overview</p>
               <h2>Live operations deck</h2>
             </div>
             <div class="section-actions">
-              <v-btn color="primary" variant="flat" rounded="lg" @click="goTo('dashboard-lots')">Add lot</v-btn>
-              <v-btn color="secondary" variant="tonal" rounded="lg" @click="goTo('dashboard-services')">Manage services</v-btn>
-              <v-btn color="info" variant="tonal" rounded="lg" @click="goTo('dashboard-analytics')">Manage genetics</v-btn>
+              <q-btn color="primary" unelevated rounded @click="goTo('dashboard-lots')">Add lot</q-btn>
+              <q-btn color="secondary" outline rounded @click="goTo('dashboard-services')">Manage services</q-btn>
+              <q-btn color="info" outline rounded @click="goTo('dashboard-analytics')">Manage genetics</q-btn>
             </div>
           </div>
 
@@ -35,15 +33,14 @@
               </header>
 
               <article v-for="crop in visibleCrops" :key="crop.id" class="table-row">
-                <div class="table-row__primary">
-                  <span class="lot-indicator" :class="`lot-indicator--${crop.currentStage}`" />
+                <div class="table-row__primary" :class="`table-row__primary--${normalizeStage(crop.currentStage)}`">
                   <div>
                     <strong>{{ crop.displayName }}</strong>
                     <p>{{ crop.batchCode }} · {{ crop.genetic.code }}</p>
                   </div>
                 </div>
                 <div>
-                  <span class="lot-chip" :class="`lot-chip--${crop.currentStage}`">{{ stageLabel(crop.currentStage) }}</span>
+                  <span class="lot-chip" :class="`lot-chip--${normalizeStage(crop.currentStage)}`">{{ stageLabel(crop.currentStage) }}</span>
                 </div>
                 <div>
                   <strong>{{ formatDate(crop.seededAt) }}</strong>
@@ -54,23 +51,14 @@
                 </div>
               </article>
             </div>
-
-            <div class="overview-side">
-              <WorkspaceCard
-                :api-base-url="userStore.apiBaseUrl"
-                :operator-label="userStore.operatorLabel"
-                :user-email="userStore.userEmail"
-                @update:api-base-url="userStore.setApiBaseUrl"
-                @update:operator-label="userStore.setOperatorLabel"
-              />
-              <ServicesCard :items="serviceItems" class="mt-4" />
-            </div>
           </div>
-        </v-card>
-      </v-col>
+        </q-card>
 
-      <v-col cols="12" xl="4">
-        <v-card flat class="surface-card panel-card">
+        <AnalyticsCard :items="cropStore.cycleAverages" :analytics-width="analyticsWidth" />
+      </div>
+
+      <div class="dashboard-grid__side">
+        <q-card flat class="surface-card panel-card">
           <div class="section-header section-header--compact">
             <div>
               <p class="section-header__eyebrow">Journal</p>
@@ -79,64 +67,58 @@
           </div>
 
           <form class="form-grid" @submit.prevent="submitJournal">
-            <v-select
+            <q-select
               v-model="journalForm.crop"
               label="Lot"
               :items="cropOptions"
-              item-title="label"
-              item-value="value"
-              variant="outlined"
-              density="comfortable"
+              option-label="label"
+              option-value="value"
+              outlined
+              emit-value
+              map-options
               :disabled="!cropOptions.length || savingJournal"
             />
-            <v-select
+            <q-select
               v-model="journalForm.type"
               label="Event type"
               :items="journalTypeOptions"
-              item-title="label"
-              item-value="value"
-              variant="outlined"
-              density="comfortable"
+              option-label="label"
+              option-value="value"
+              outlined
+              emit-value
+              map-options
               :disabled="savingJournal"
             />
-            <v-text-field
+            <q-input
               v-model="journalForm.occurredAt"
               label="Occurred at"
               type="datetime-local"
-              variant="outlined"
-              density="comfortable"
+              outlined
               :disabled="savingJournal"
             />
-            <v-textarea
+            <q-input
               v-model="journalForm.notes"
               label="Note"
-              rows="4"
-              variant="outlined"
-              density="comfortable"
+              type="textarea"
+              autogrow
+              outlined
               :disabled="savingJournal"
             />
-            <v-btn type="submit" color="primary" variant="flat" rounded="lg" block :loading="savingJournal" :disabled="!cropOptions.length">
+            <q-btn type="submit" color="primary" unelevated rounded class="full-width" :loading="savingJournal" :disabled="!cropOptions.length">
               Add journal entry
-            </v-btn>
+            </q-btn>
           </form>
-        </v-card>
+        </q-card>
 
         <CommentsCard :entries="cropStore.latestEntries" class="mt-4" />
-      </v-col>
-    </v-row>
 
-    <v-row dense class="mt-1">
-      <v-col cols="12" xl="8">
-        <AnalyticsCard :items="cropStore.cycleAverages" :analytics-width="analyticsWidth" />
-      </v-col>
-      <v-col cols="12" xl="4">
-        <v-card flat class="surface-card panel-card">
+        <q-card flat class="surface-card panel-card">
           <div class="section-header section-header--compact">
             <div>
               <p class="section-header__eyebrow">Library</p>
               <h2>Genetic catalog</h2>
             </div>
-            <v-chip size="small" variant="tonal" color="primary">{{ cropStore.genetics.length }} genetics</v-chip>
+            <q-chip size="sm" outline color="primary">{{ cropStore.genetics.length }} genetics</q-chip>
           </div>
 
           <div class="catalog-list">
@@ -148,24 +130,20 @@
               <small>{{ genetic.vendor || 'Internal catalog' }}</small>
             </article>
           </div>
-        </v-card>
-      </v-col>
-    </v-row>
+        </q-card>
+      </div>
+    </div>
 
-    <v-snackbar v-model="snackbar.visible" color="success" timeout="3000">
-      {{ snackbar.message }}
-    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import AnalyticsCard from './AnalyticsCard.vue'
 import CommentsCard from './CommentsCard.vue'
 import QuickActionButtons from './QuickActionButtons.vue'
-import ServicesCard from './ServicesCard.vue'
-import WorkspaceCard from './WorkspaceCard.vue'
 import { useCropStore } from '../../stores/useCropStore'
 import { useUserStore } from '../../stores/useUserStore'
 import type { JournalEntryDto } from '../../types/api'
@@ -177,8 +155,8 @@ const props = defineProps<{
 const cropStore = useCropStore()
 const userStore = useUserStore()
 const router = useRouter()
+const $q = useQuasar()
 const savingJournal = ref(false)
-const snackbar = reactive({ visible: false, message: '' })
 const journalForm = reactive({
   crop: '',
   type: 'observation' as JournalEntryDto['type'],
@@ -213,14 +191,6 @@ const visibleCrops = computed(() => {
     crop.currentStage,
   ].join(' ').toLowerCase().includes(needle)).slice(0, 6)
 })
-const serviceItems = computed(() => cropStore.services.map((service) => ({
-  title: service.name,
-  description: service.description,
-  icon: service.icon,
-  tone: service.tone,
-  status: service.statusLabel,
-})))
-
 const totalCompletedCycles = computed(() => cropStore.cycleAverages.reduce((sum, item) => sum + item.completedCycles, 0))
 const averagePhLabel = computed(() => {
   const values = cropStore.latestEntries.map((entry) => entry.phLevel?.value).filter((value): value is number => typeof value === 'number')
@@ -271,10 +241,21 @@ function currentDateTimeInput() {
 
 function stageLabel(stage: string) {
   return {
+    germination: 'Seedling',
     seedling: 'Seedling',
+    vegetation: 'Veg',
     veg: 'Veg',
+    flowering: 'Flower',
     flower: 'Flower',
     harvest: 'Harvest',
+  }[stage] ?? stage
+}
+
+function normalizeStage(stage: string) {
+  return {
+    germination: 'seedling',
+    vegetation: 'veg',
+    flowering: 'flower',
   }[stage] ?? stage
 }
 
@@ -312,8 +293,19 @@ async function submitJournal() {
 
     journalForm.notes = ''
     journalForm.occurredAt = currentDateTimeInput()
-    snackbar.message = 'Journal entry appended.'
-    snackbar.visible = true
+    $q.notify({
+      type: 'positive',
+      message: 'Journal entry appended.',
+      position: 'top-right',
+      timeout: 3000,
+    })
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Unable to append the journal entry.',
+      position: 'top-right',
+      timeout: 4000,
+    })
   } finally {
     savingJournal.value = false
   }
@@ -359,6 +351,26 @@ function goTo(name: 'dashboard-lots' | 'dashboard-services' | 'dashboard-analyti
   padding: 18px;
 }
 
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.dashboard-grid__main,
+.dashboard-grid__side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
 .section-header {
   display: flex;
   align-items: flex-start;
@@ -394,25 +406,19 @@ function goTo(name: 'dashboard-lots' | 'dashboard-services' | 'dashboard-analyti
 
 .overview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.8fr);
-  gap: 18px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.overview-side,
 .catalog-list {
   display: grid;
   gap: 12px;
 }
 
-.overview-list {
-  display: grid;
-  gap: 10px;
-}
-
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) 100px 140px minmax(220px, 1.2fr);
+  grid-template-columns: minmax(180px, 1.35fr) 96px 136px minmax(180px, 1fr);
   gap: 12px;
   align-items: center;
 }
@@ -433,10 +439,26 @@ function goTo(name: 'dashboard-lots' | 'dashboard-services' | 'dashboard-analyti
   background: #fafbfc;
 }
 
+.table-row > div {
+  min-width: 0;
+}
+
 .table-row__primary {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.table-row__primary::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 50%;
+  align-self: flex-start;
+  margin-top: 4px;
+  background: #cfd8dc;
 }
 
 .table-row strong,
@@ -453,25 +475,19 @@ function goTo(name: 'dashboard-lots' | 'dashboard-services' | 'dashboard-analyti
   color: #78909c;
 }
 
-.lot-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.lot-indicator--seedling {
+.table-row__primary--seedling::before {
   background: #8bc34a;
 }
 
-.lot-indicator--veg {
+.table-row__primary--veg::before {
   background: #00acc1;
 }
 
-.lot-indicator--flower {
+.table-row__primary--flower::before {
   background: #ffb300;
 }
 
-.lot-indicator--harvest {
+.table-row__primary--harvest::before {
   background: #7cb342;
 }
 
@@ -522,13 +538,15 @@ function goTo(name: 'dashboard-lots' | 'dashboard-services' | 'dashboard-analyti
   background: #fafbfc;
 }
 
-@media (max-width: 1499px) {
-  .overview-grid {
+@media (max-width: 1279px) {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 1279px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .table-head {
     display: none;
   }
@@ -539,6 +557,10 @@ function goTo(name: 'dashboard-lots' | 'dashboard-services' | 'dashboard-analyti
 }
 
 @media (max-width: 640px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
