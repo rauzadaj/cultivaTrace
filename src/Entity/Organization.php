@@ -49,9 +49,6 @@ class Organization
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'organization')]
-    private Collection $users;
-
     #[ORM\OneToMany(targetEntity: Farm::class, mappedBy: 'organization')]
     private Collection $farms;
 
@@ -59,7 +56,6 @@ class Organization
     {
         $this->id = Uuid::v4();
         $this->createdAt = new \DateTimeImmutable();
-        $this->users = new ArrayCollection();
         $this->farms = new ArrayCollection();
     }
 
@@ -75,7 +71,6 @@ class Organization
     public function getLicenseExpiresAt(): ?\DateTimeImmutable { return $this->licenseExpiresAt; }
     public function setLicenseExpiresAt(?\DateTimeImmutable $date): self { $this->licenseExpiresAt = $date; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
-    public function getUsers(): Collection { return $this->users; }
     public function getFarms(): Collection { return $this->farms; }
 
     public function isSuspended(): bool

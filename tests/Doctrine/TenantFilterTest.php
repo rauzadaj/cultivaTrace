@@ -45,6 +45,10 @@ final class TenantFilterTest extends KernelTestCase
             ->setName('Org B')
             ->setCountry('DE');
 
+        $this->entityManager->persist($organizationA);
+        $this->entityManager->persist($organizationB);
+        $this->entityManager->flush();
+
         $farmA = (new Farm())
             ->setOrganization($organizationA)
             ->setTenantId($organizationA->getId())
@@ -54,8 +58,6 @@ final class TenantFilterTest extends KernelTestCase
             ->setTenantId($organizationB->getId())
             ->setName('Farm B');
 
-        $this->entityManager->persist($organizationA);
-        $this->entityManager->persist($organizationB);
         $this->entityManager->persist($farmA);
         $this->entityManager->persist($farmB);
         $this->entityManager->flush();
