@@ -231,6 +231,165 @@ export interface JwtPayload {
   iat?: number
 }
 
+// ── Dashboard / Crop workspace ───────────────────────────────────────────
+
+export type CropStage =
+  | 'seedling'
+  | 'veg'
+  | 'flower'
+  | 'harvest'
+
+export type LifecycleStage =
+  | PlantStage
+  | CropStage
+
+export type JournalEntryType =
+  | 'observation'
+  | 'irrigation'
+  | 'fertilization'
+  | 'environment_check'
+
+export interface GeneticDto {
+  '@id': string
+  id: string
+  code: string
+  name: string
+  vendor?: string | null
+  metadata: Record<string, unknown>
+}
+
+export interface CropDto {
+  '@id': string
+  id: string
+  displayName: string
+  batchCode: string
+  currentStage: CropStage
+  seededAt: string
+  harvestedAt?: string | null
+  finalYieldGrams?: number | null
+  genetic: GeneticDto
+}
+
+export interface JournalEntryDto {
+  '@id': string
+  id: string
+  crop?: string | null
+  type: JournalEntryType
+  occurredAt: string
+  notes?: string | null
+  metadata: Record<string, unknown>
+  phLevel?: {
+    value: number
+  } | null
+  nutrientConcentration?: {
+    ppm: number
+  } | null
+}
+
+export interface GeneticCycleAverageDto {
+  geneticId: string
+  geneticCode: string
+  geneticName: string
+  averageCycleDays: number
+  completedCycles: number
+}
+
+export interface OperationalServiceDto {
+  '@id': string
+  id: string
+  name: string
+  category: string
+  description: string
+  icon: string
+  tone: 'primary' | 'warning' | 'success'
+  statusLabel: string
+  position: number
+  updatedAt: string
+}
+
+export interface CropWritePayload {
+  displayName: string
+  batchCode: string
+  genetic: string
+  seededAt: string
+}
+
+export interface JournalEntryWritePayload {
+  crop: string
+  type: JournalEntryType
+  occurredAt: string
+  notes?: string | null
+  metadata: Record<string, unknown>
+}
+
+export interface GeneticWritePayload {
+  code: string
+  name: string
+  vendor?: string | null
+  metadata: Record<string, unknown>
+}
+
+export interface OperationalServiceWritePayload {
+  name: string
+  category: string
+  description: string
+  icon: string
+  tone: OperationalServiceDto['tone']
+  statusLabel: string
+  position: number
+}
+
+export interface AnalyticsResponse {
+  data: GeneticCycleAverageDto[]
+}
+
+// ── Design System / UI ───────────────────────────────────────────────────
+
+export type CBtnVariant =
+  | 'primary'
+  | 'secondary'
+  | 'danger'
+  | 'ghost'
+
+export type AlertSeverity =
+  | 'warning'
+  | 'critical'
+  | 'healthy'
+
+export interface AlertItem {
+  id: string
+  title: string
+  message: string
+  severity: AlertSeverity
+  context?: string
+}
+
+export interface DashboardStatChip {
+  id: string
+  label: string
+  value: string
+  tone: 'default' | 'positive' | 'warning' | 'critical'
+}
+
+export interface PlantCardSummary {
+  id: string
+  name: string
+  strain: string
+  room: string
+  stage: LifecycleStage
+  ageInDays: number
+  batchCode?: string
+}
+
+export interface SensorMetricCard {
+  id: string
+  label: string
+  value: string
+  unit: string
+  status: 'ok' | 'warning' | 'critical'
+  detail: string
+}
+
 // ── Utilitaires ───────────────────────────────────────────────────────────
 
 export type ApiError = {
