@@ -217,6 +217,10 @@ async function logout() {
 
 .dashboard-drawer {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ecf2f5;
+}
+
+.dashboard-drawer :deep(.q-drawer) {
   background: linear-gradient(180deg, #304149 0%, #26343b 100%);
   color: #ecf2f5;
 }
@@ -255,6 +259,7 @@ async function logout() {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 48px;
   padding: 10px 12px;
   border-radius: 12px;
   color: inherit;
@@ -392,6 +397,12 @@ async function logout() {
 
 .dashboard-container {
   padding: 16px;
+}
+
+.dashboard-drawer :deep(.q-item),
+.dashboard-drawer :deep(.q-item__label),
+.dashboard-drawer :deep(.q-icon) {
+  color: inherit;
 }
 
 .dashboard-error {
