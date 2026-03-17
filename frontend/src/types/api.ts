@@ -218,6 +218,19 @@ export interface JwtResponse {
   refresh_token?: string
 }
 
+export type AuthTokenResponse = JwtResponse
+
+export interface RegistrationResponse {
+  message?: string
+}
+
+export interface JwtPayload {
+  username?: string
+  roles?: UserRole[]
+  exp?: number
+  iat?: number
+}
+
 // ── Utilitaires ───────────────────────────────────────────────────────────
 
 export type ApiError = {

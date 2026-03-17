@@ -144,7 +144,7 @@ export async function deleteResource(path: string): Promise<void> {
 
 export async function login(email: string, password: string): Promise<AuthTokenResponse> {
   return apiFetch<AuthTokenResponse>(
-    '/login',
+    '/auth/login',
     {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -159,17 +159,8 @@ export async function login(email: string, password: string): Promise<AuthTokenR
 }
 
 export async function register(email: string, password: string): Promise<RegistrationResponse> {
-  return apiFetch<RegistrationResponse>(
-    '/register',
-    {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    },
-    {
-      accept: 'application/json',
-      authenticate: false,
-      contentType: 'application/json',
-      redirectOnUnauthorized: false,
-    },
-  )
+  void email
+  void password
+
+  throw new ApiError('Account registration is not available in this environment.', 404)
 }

@@ -1,47 +1,39 @@
 <template>
   <div>
-    <v-row dense class="mb-1">
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+    <div class="section-grid section-grid--metrics mb-1">
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Genetics</span>
           <strong>{{ filteredGenetics.length }}</strong>
           <small>Available lines in the catalog</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Analytics rows</span>
           <strong>{{ cropStore.cycleAverages.length }}</strong>
           <small>Computed mean cycle durations</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Completed cycles</span>
           <strong>{{ totalCompletedCycles }}</strong>
           <small>Included in aggregation</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Top line</span>
           <strong>{{ topGeneticLabel }}</strong>
           <small>Most observed genetic code</small>
-        </v-card>
-      </v-col>
-    </v-row>
+      </q-card>
+    </div>
 
-    <v-row dense>
-      <v-col cols="12" xl="8">
+    <div class="section-grid section-grid--content">
+      <div>
         <AnalyticsCard :items="cropStore.cycleAverages" :analytics-width="analyticsWidth" />
 
-        <v-card flat class="surface-card panel-card mt-4">
+        <q-card flat class="surface-card panel-card mt-4">
           <div class="section-header">
             <div>
               <p class="section-header__eyebrow">Genetics</p>
               <h2>Genetic registry</h2>
             </div>
-            <v-chip size="small" variant="tonal" color="primary">{{ filteredGenetics.length }} genetics</v-chip>
+            <q-chip size="sm" outline color="primary">{{ filteredGenetics.length }} genetics</q-chip>
           </div>
 
           <div v-if="!filteredGenetics.length" class="empty-state">No genetic line matches the current filter.</div>
@@ -68,54 +60,52 @@
                 <p class="metadata-preview">{{ summarizeMetadata(genetic.metadata) }}</p>
               </div>
               <div class="action-stack">
-                <v-btn size="small" variant="tonal" color="primary" @click="startEdit(genetic)">Edit</v-btn>
-                <v-btn size="small" variant="text" color="error" @click="removeGenetic(genetic)">Delete</v-btn>
+                <q-btn size="sm" outline color="primary" @click="startEdit(genetic)">Edit</q-btn>
+                <q-btn size="sm" flat color="negative" @click="removeGenetic(genetic)">Delete</q-btn>
               </div>
             </article>
           </div>
-        </v-card>
-      </v-col>
+        </q-card>
+      </div>
 
-      <v-col cols="12" xl="4">
-        <v-card flat class="surface-card panel-card">
+      <div>
+        <q-card flat class="surface-card panel-card">
           <div class="section-header section-header--compact">
             <div>
               <p class="section-header__eyebrow">Genetic editor</p>
               <h2>{{ mode === 'create' ? 'Create genetic' : 'Update genetic' }}</h2>
             </div>
-            <v-btn v-if="mode === 'edit'" variant="text" color="primary" @click="resetForm">New</v-btn>
+            <q-btn v-if="mode === 'edit'" flat color="primary" @click="resetForm">New</q-btn>
           </div>
 
           <form class="form-grid" @submit.prevent="submitGenetic">
-            <v-text-field v-model="form.code" label="Code" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-text-field v-model="form.name" label="Name" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-text-field v-model="form.vendor" label="Vendor" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-textarea
+            <q-input v-model="form.code" label="Code" outlined :disabled="saving" />
+            <q-input v-model="form.name" label="Name" outlined :disabled="saving" />
+            <q-input v-model="form.vendor" label="Vendor" outlined :disabled="saving" />
+            <q-input
               v-model="form.metadata"
               label="Metadata JSON"
-              rows="7"
-              variant="outlined"
-              density="comfortable"
+              type="textarea"
+              autogrow
+              outlined
               :disabled="saving"
             />
-            <v-btn type="submit" color="primary" variant="flat" rounded="lg" block :loading="saving">
+            <q-btn type="submit" color="primary" unelevated rounded class="full-width" :loading="saving">
               {{ mode === 'create' ? 'Create genetic' : 'Save changes' }}
-            </v-btn>
+            </q-btn>
           </form>
-        </v-card>
+        </q-card>
 
         <CommentsCard :entries="cropStore.latestEntries" class="mt-4" />
-      </v-col>
-    </v-row>
+      </div>
+    </div>
 
-    <v-snackbar v-model="snackbar.visible" color="success" timeout="3000">
-      {{ snackbar.message }}
-    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import AnalyticsCard from './AnalyticsCard.vue'
 import CommentsCard from './CommentsCard.vue'
 import { useCropStore } from '../../stores/useCropStore'
@@ -125,10 +115,10 @@ const props = defineProps<{
   search: string
 }>()
 
+const $q = useQuasar()
 const cropStore = useCropStore()
 const saving = ref(false)
 const mode = ref<'create' | 'edit'>('create')
-const snackbar = reactive({ visible: false, message: '' })
 const form = reactive({
   iri: '',
   code: '',
@@ -212,14 +202,20 @@ async function submitGenetic() {
 
     if (mode.value === 'create') {
       await cropStore.createGenetic(payload)
-      snackbar.message = 'Genetic created.'
+      $q.notify({ type: 'positive', message: 'Genetic created.', position: 'top-right', timeout: 3000 })
     } else {
       await cropStore.updateGenetic(form.iri, payload)
-      snackbar.message = 'Genetic updated.'
+      $q.notify({ type: 'positive', message: 'Genetic updated.', position: 'top-right', timeout: 3000 })
     }
 
-    snackbar.visible = true
     resetForm()
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Unable to save the genetic.',
+      position: 'top-right',
+      timeout: 4000,
+    })
   } finally {
     saving.value = false
   }
@@ -231,8 +227,7 @@ async function removeGenetic(genetic: GeneticDto) {
   }
 
   await cropStore.deleteGenetic(genetic['@id'])
-  snackbar.message = 'Genetic deleted.'
-  snackbar.visible = true
+  $q.notify({ type: 'positive', message: 'Genetic deleted.', position: 'top-right', timeout: 3000 })
 
   if (form.iri === genetic['@id']) {
     resetForm()
@@ -256,6 +251,20 @@ async function removeGenetic(genetic: GeneticDto) {
 .metric-card {
   display: grid;
   gap: 4px;
+}
+
+.section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.section-grid--metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.section-grid--content {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  align-items: start;
 }
 
 .metric-card__label {
@@ -370,9 +379,23 @@ async function removeGenetic(genetic: GeneticDto) {
   .table-row {
     grid-template-columns: 1fr;
   }
+
+  .section-grid--content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 959px) {
+  .section-grid--metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
+  .section-grid--metrics {
+    grid-template-columns: 1fr;
+  }
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;

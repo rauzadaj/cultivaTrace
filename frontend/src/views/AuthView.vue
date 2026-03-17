@@ -1,5 +1,5 @@
 <template>
-  <v-app class="auth-shell">
+  <div class="auth-shell">
     <div class="auth-layout">
       <section class="auth-hero">
         <div class="auth-hero__brand">
@@ -19,97 +19,72 @@
         </div>
       </section>
 
-      <v-card class="auth-card" rounded="xl" elevation="8">
+      <q-card flat class="auth-card">
         <div class="auth-card__header">
           <div>
             <p class="auth-card__eyebrow">Access gateway</p>
-            <h2>{{ mode === 'login' ? 'Connexion' : 'Creation de compte' }}</h2>
+            <h2>Connexion</h2>
           </div>
-
-          <v-btn-toggle v-model="mode" mandatory color="primary" density="comfortable">
-            <v-btn value="login">Login</v-btn>
-            <v-btn value="signup">Sign up</v-btn>
-          </v-btn-toggle>
         </div>
 
         <form class="auth-form" @submit.prevent="submit">
-          <v-text-field
+          <q-input
             v-model="apiBaseUrl"
             label="API base URL"
-            variant="outlined"
-            density="comfortable"
-            hide-details
+            outlined
           />
-          <v-text-field
+          <q-input
             v-model="email"
             label="Email"
             type="email"
             autocomplete="email"
-            variant="outlined"
-            density="comfortable"
-            hide-details
+            outlined
           />
-          <v-text-field
+          <q-input
             v-model="password"
-            :label="mode === 'login' ? 'Mot de passe' : 'Mot de passe (8+ caracteres)'"
+            label="Mot de passe"
             type="password"
-            :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-          />
-          <v-text-field
-            v-if="mode === 'signup'"
-            v-model="confirmPassword"
-            label="Confirmer le mot de passe"
-            type="password"
-            autocomplete="new-password"
-            variant="outlined"
-            density="comfortable"
-            hide-details
+            autocomplete="current-password"
+            outlined
           />
 
-          <v-alert v-if="error" type="error" variant="tonal">
+          <q-banner v-if="error" inline-actions rounded class="auth-error">
             {{ error }}
-          </v-alert>
+          </q-banner>
 
-          <v-btn
+          <q-btn
             type="submit"
             color="primary"
-            size="large"
-            variant="flat"
-            block
+            size="lg"
+            unelevated
+            class="full-width"
             :loading="loading"
           >
-            {{ mode === 'login' ? 'Se connecter' : 'Creer le compte' }}
-          </v-btn>
+            Se connecter
+          </q-btn>
         </form>
 
         <div class="auth-footer">
           <span>Compte de demo local:</span>
           <strong>demo@cultivatrace.local / demo123</strong>
         </div>
-      </v-card>
+      </q-card>
     </div>
-  </v-app>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ApiError, login, register } from '../lib/api'
+import { ApiError, login } from '../lib/api'
 import { useUserStore } from '../stores/useUserStore'
-
-type AuthMode = 'login' | 'signup'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const mode = ref<AuthMode>('login')
 const email = ref(userStore.userEmail)
 const password = ref('')
-const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref('')
 const apiBaseUrl = computed({
@@ -130,14 +105,6 @@ async function submit() {
 
     if (!password.value.trim()) {
       throw new Error('Mot de passe requis.')
-    }
-
-    if (mode.value === 'signup') {
-      if (password.value !== confirmPassword.value) {
-        throw new Error('Les mots de passe ne correspondent pas.')
-      }
-
-      await register(normalizedEmail, password.value)
     }
 
     const payload = await login(normalizedEmail, password.value)
@@ -264,6 +231,12 @@ function resolveRedirectTarget() {
 .auth-form {
   display: grid;
   gap: 14px;
+}
+
+.auth-error {
+  color: #8c2f39;
+  background: #fdecec;
+  border: 1px solid #f3c9cf;
 }
 
 .auth-footer {

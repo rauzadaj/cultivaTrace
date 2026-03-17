@@ -1,5 +1,5 @@
 <template>
-  <v-card flat class="surface-card comments-card">
+  <q-card flat class="surface-card comments-card">
     <div class="section-header section-header--compact">
       <div>
         <p class="section-header__eyebrow">Comments</p>
@@ -13,7 +13,7 @@
     <div v-else class="stream-list">
       <article v-for="entry in entries" :key="entry.id" class="stream-item">
         <div class="stream-item__icon">
-          <v-icon :icon="entryIcon(entry.type)" size="18" />
+          <q-icon :name="entryIcon(entry.type)" size="18px" />
         </div>
         <div>
           <strong>{{ entryLabel(entry.type) }}</strong>
@@ -22,7 +22,7 @@
         </div>
       </article>
     </div>
-  </v-card>
+  </q-card>
 </template>
 
 <script setup lang="ts">

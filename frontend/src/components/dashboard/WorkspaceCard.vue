@@ -1,5 +1,5 @@
 <template>
-  <v-card flat class="surface-card session-card mb-4">
+  <q-card flat class="surface-card session-card mb-4">
     <div class="section-header section-header--compact">
       <div>
         <p class="section-header__eyebrow">Console</p>
@@ -8,32 +8,26 @@
     </div>
 
     <form class="session-form" @submit.prevent>
-      <v-text-field
+      <q-input
         :model-value="apiBaseUrl"
         label="API base URL"
-        variant="outlined"
-        density="comfortable"
-        hide-details
+        outlined
         @update:model-value="$emit('update:apiBaseUrl', String($event))"
       />
-      <v-text-field
+      <q-input
         :model-value="operatorLabel"
         label="Operateur"
-        variant="outlined"
-        density="comfortable"
-        hide-details
+        outlined
         @update:model-value="$emit('update:operatorLabel', String($event))"
       />
-      <v-text-field
+      <q-input
         :model-value="userEmail"
         label="Compte"
-        variant="outlined"
-        density="comfortable"
-        hide-details
+        outlined
         readonly
       />
     </form>
-  </v-card>
+  </q-card>
 </template>
 
 <script setup lang="ts">

@@ -43,7 +43,7 @@ http.interceptors.response.use(
       localStorage.removeItem('jwt_token')
       localStorage.removeItem('refresh_token')
       // Redirection vers login sans import circulaire
-      window.location.href = '/login'
+      window.location.href = '/auth'
     }
     return Promise.reject(error)
   }
