@@ -21,6 +21,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private array $roles = [];
 
+    #[ORM\Column(length: 50)]
+    private string $role = 'ROLE_OPERATOR';
+
+    #[ORM\ManyToOne(targetEntity: Organization::class, inversedBy: 'users')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Organization $organization = null;
+
     #[ORM\Column]
     private ?string $password = null;
 
@@ -49,6 +56,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoles(): array
     {
         $roles = $this->roles;
+        $roles[] = $this->role;
         $roles[] = 'ROLE_USER';
 
         return array_values(array_unique($roles));
@@ -57,6 +65,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): self
     {
         $this->roles = $roles;
+
+        return $this;
+    }
+
+    public function getRole(): string
+    {
+        return $this->role;
+    }
+
+    public function setRole(string $role): self
+    {
+        $this->role = $role;
+
+        return $this;
+    }
+
+    public function getOrganization(): ?Organization
+    {
+        return $this->organization;
+    }
+
+    public function setOrganization(?Organization $org): self
+    {
+        $this->organization = $org;
 
         return $this;
     }

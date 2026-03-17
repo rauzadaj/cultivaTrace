@@ -14,10 +14,10 @@ security:
             security: false
 
         login:
-            pattern:  ^/api/login
+            pattern:  ^/api/auth/login
             stateless: true
             json_login:
-                check_path: api_login
+                check_path: api_auth_login
                 username_path: email
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
@@ -34,6 +34,6 @@ security:
             provider: app_user_provider
 
     access_control:
-        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }

@@ -6,6 +6,7 @@ use App\Command\SeedDemoDataCommand;
 use App\Domain\Cultivation\Model\Crop;
 use App\Domain\Cultivation\Model\Genetic;
 use App\Domain\Operations\Model\OperationalService;
+use App\Entity\Organization;
 use App\Entity\User;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -48,6 +49,15 @@ final class SeedDemoDataCommandTest extends TestCase
             ->with(['email' => 'demo@cultivatrace.local'])
             ->willReturn(null);
 
+        $organizationRepository = $this->getMockBuilder(EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $organizationRepository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['name' => 'CultivaTrace Demo'])
+            ->willReturn(null);
+
         $geneticRepository = $this->getMockBuilder(EntityRepository::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['findOneBy'])
@@ -75,12 +85,13 @@ final class SeedDemoDataCommandTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->method('getRepository')
             ->willReturnMap([
+                [Organization::class, $organizationRepository],
                 [User::class, $userRepository],
                 [Genetic::class, $geneticRepository],
                 [Crop::class, $cropRepository],
                 [OperationalService::class, $serviceRepository],
             ]);
-        $entityManager->expects(self::exactly(9))->method('persist');
+        $entityManager->expects(self::exactly(10))->method('persist');
         $entityManager->expects(self::once())->method('flush');
 
         $passwordHasher = $this->createMock(UserPasswordHasherInterface::class);
@@ -117,6 +128,15 @@ final class SeedDemoDataCommandTest extends TestCase
             ->with(['email' => 'demo@cultivatrace.local'])
             ->willReturn($existingUser);
 
+        $organizationRepository = $this->getMockBuilder(EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $organizationRepository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['name' => 'CultivaTrace Demo'])
+            ->willReturn(null);
+
         $geneticRepository = $this->getMockBuilder(EntityRepository::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['findOneBy'])
@@ -144,12 +164,13 @@ final class SeedDemoDataCommandTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->method('getRepository')
             ->willReturnMap([
+                [Organization::class, $organizationRepository],
                 [User::class, $userRepository],
                 [Genetic::class, $geneticRepository],
                 [Crop::class, $cropRepository],
                 [OperationalService::class, $serviceRepository],
             ]);
-        $entityManager->expects(self::exactly(8))->method('persist');
+        $entityManager->expects(self::exactly(9))->method('persist');
         $entityManager->expects(self::once())->method('flush');
 
         $passwordHasher = $this->createMock(UserPasswordHasherInterface::class);

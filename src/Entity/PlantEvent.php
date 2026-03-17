@@ -35,10 +35,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'plant_event')]
 #[ApiResource(operations: [
-    new GetCollection(
-        uriTemplate: '/plants/{plantId}/events',
-        uriVariables: ['plantId' => ['class' => Plant::class, 'identifiers' => ['id']]],
-    ),
+    new GetCollection(),
     new Post(), // append uniquement — le repository interdit les updates
 ])]
 #[ApiFilter(SearchFilter::class, properties: [

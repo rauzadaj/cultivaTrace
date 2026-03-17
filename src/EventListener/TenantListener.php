@@ -32,29 +32,48 @@ class TenantListener
             return;
         }
 
+        $filters = $this->em->getFilters();
+
         $token = $this->tokenStorage->getToken();
         if ($token === null) {
+            if ($filters->isEnabled('tenant_filter')) {
+                $filters->disable('tenant_filter');
+            }
+
             return;
         }
 
         $user = $token->getUser();
         if (!$user instanceof User) {
+            if ($filters->isEnabled('tenant_filter')) {
+                $filters->disable('tenant_filter');
+            }
+
             return;
         }
 
         $organization = $user->getOrganization();
         if ($organization === null) {
+            if ($filters->isEnabled('tenant_filter')) {
+                $filters->disable('tenant_filter');
+            }
+
             return;
         }
 
         // Vérifier que l'organisation n'est pas suspendue
         if ($organization->isSuspended()) {
             // Ne pas activer le filtre — les requêtes retourneront 403 via le Voter
+            if ($filters->isEnabled('tenant_filter')) {
+                $filters->disable('tenant_filter');
+            }
+
             return;
         }
 
-        $filters = $this->em->getFilters();
-        $filter = $filters->enable('tenant_filter');
+        $filter = $filters->isEnabled('tenant_filter')
+            ? $filters->getFilter('tenant_filter')
+            : $filters->enable('tenant_filter');
         $filter->setParameter('tenantId', (string) $organization->getId());
     }
 }
