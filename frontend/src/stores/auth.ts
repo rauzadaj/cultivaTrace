@@ -8,7 +8,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
-import type { User, UserRole } from '@/types/api'
+import type { JwtPayload, User, UserRole } from '@/types/api'
 
 export const useAuthStore = defineStore('auth', () => {
   // ── State ────────────────────────────────────────────────────────────────
@@ -41,15 +41,19 @@ export const useAuthStore = defineStore('auth', () => {
       if (data.refresh_token) {
         localStorage.setItem('refresh_token', data.refresh_token)
       }
-      await fetchMe()
+      user.value = buildUserFromToken(data.token)
     } finally {
       loading.value = false
     }
   }
 
   async function fetchMe(): Promise<void> {
-    const { data } = await authApi.me()
-    user.value = data
+    if (!token.value) {
+      user.value = null
+      return
+    }
+
+    user.value = buildUserFromToken(token.value)
   }
 
   function logout(): void {
@@ -61,6 +65,31 @@ export const useAuthStore = defineStore('auth', () => {
 
   function hasRole(role: UserRole): boolean {
     return user.value?.roles.includes(role) ?? false
+  }
+
+  function buildUserFromToken(jwt: string): User {
+    const payload = parseJwtPayload(jwt)
+
+    return {
+      id: '',
+      email: payload.username ?? '',
+      roles: payload.roles ?? [],
+      mfaEnabled: false,
+    }
+  }
+
+  function parseJwtPayload(jwt: string): JwtPayload {
+    const [, rawPayload = ''] = jwt.split('.')
+    const normalizedPayload = rawPayload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(rawPayload.length / 4) * 4, '=')
+
+    try {
+      return JSON.parse(window.atob(normalizedPayload)) as JwtPayload
+    } catch {
+      return {}
+    }
   }
 
   // Restore session on app load

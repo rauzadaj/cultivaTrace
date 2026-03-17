@@ -1,47 +1,39 @@
 <template>
   <div>
-    <v-row dense class="mb-1">
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+    <div class="section-grid section-grid--metrics mb-1">
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Visible lots</span>
           <strong>{{ filteredCrops.length }}</strong>
           <small>Filtered from the current workspace</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Active ratio</span>
           <strong>{{ activeRatioLabel }}</strong>
           <small>Lots not yet harvested</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Journal events</span>
           <strong>{{ cropStore.journalEntries.length }}</strong>
           <small>Append-only field captures</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Avg yield</span>
           <strong>{{ cropStore.averageYield ?? '—' }}</strong>
           <small>Across harvested cycles</small>
-        </v-card>
-      </v-col>
-    </v-row>
+      </q-card>
+    </div>
 
-    <v-row dense>
-      <v-col cols="12" xl="8">
-        <v-card flat class="surface-card panel-card">
+    <div class="section-grid section-grid--content">
+      <div>
+        <q-card flat class="surface-card panel-card">
           <div class="section-header">
             <div>
               <p class="section-header__eyebrow">Lots</p>
               <h2>Lot registry</h2>
             </div>
             <div class="section-actions">
-              <v-chip size="small" variant="tonal" color="primary">{{ filteredCrops.length }} visible</v-chip>
-              <v-btn color="primary" variant="flat" rounded="lg" :loading="cropStore.loading" @click="cropStore.loadDashboard">Refresh</v-btn>
+              <q-chip size="sm" outline color="primary">{{ filteredCrops.length }} visible</q-chip>
+              <q-btn color="primary" unelevated rounded :loading="cropStore.loading" @click="cropStore.loadDashboard">Refresh</q-btn>
             </div>
           </div>
 
@@ -76,62 +68,62 @@
                 <p>{{ crop.harvestedAt ? `Harvest ${formatDate(crop.harvestedAt)}` : 'In progress' }}</p>
               </div>
               <div class="action-stack">
-                <v-btn size="small" variant="tonal" color="primary" @click="startEdit(crop)">Edit</v-btn>
-                <v-btn
+                <q-btn size="sm" outline color="primary" @click="startEdit(crop)">Edit</q-btn>
+                <q-btn
                   v-if="nextTransitionFor(crop)"
-                  size="small"
-                  variant="tonal"
+                  size="sm"
+                  outline
                   color="secondary"
                   @click="handleTransition(crop)"
                 >
                   {{ nextTransitionFor(crop)?.label }}
-                </v-btn>
-                <v-btn size="small" variant="text" color="error" @click="removeCrop(crop)">Delete</v-btn>
+                </q-btn>
+                <q-btn size="sm" flat color="negative" @click="removeCrop(crop)">Delete</q-btn>
               </div>
               <div>
                 <QuickActionButtons :crop-iri="crop['@id']" :disabled="cropStore.loading" />
               </div>
             </article>
           </div>
-        </v-card>
-      </v-col>
+        </q-card>
+      </div>
 
-      <v-col cols="12" xl="4">
-        <v-card flat class="surface-card panel-card">
+      <div>
+        <q-card flat class="surface-card panel-card">
           <div class="section-header section-header--compact">
             <div>
               <p class="section-header__eyebrow">Lot editor</p>
               <h2>{{ mode === 'create' ? 'Create lot' : 'Update lot' }}</h2>
             </div>
-            <v-btn v-if="mode === 'edit'" variant="text" color="primary" @click="resetForm">New</v-btn>
+            <q-btn v-if="mode === 'edit'" flat color="primary" @click="resetForm">New</q-btn>
           </div>
 
           <form class="form-grid" @submit.prevent="submitCrop">
-            <v-text-field v-model="form.displayName" label="Display name" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-text-field v-model="form.batchCode" label="Batch code" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-select
+            <q-input v-model="form.displayName" label="Display name" outlined :disabled="saving" />
+            <q-input v-model="form.batchCode" label="Batch code" outlined :disabled="saving" />
+            <q-select
               v-model="form.genetic"
               label="Genetic"
               :items="geneticOptions"
-              item-title="label"
-              item-value="value"
-              variant="outlined"
-              density="comfortable"
+              option-label="label"
+              option-value="value"
+              outlined
+              emit-value
+              map-options
               :disabled="saving || !geneticOptions.length"
             />
-            <v-text-field
+            <q-input
               v-model="form.seededAt"
               label="Seeded at"
               type="datetime-local"
-              variant="outlined"
-              density="comfortable"
+              outlined
               :disabled="saving"
             />
-            <v-btn type="submit" color="primary" variant="flat" rounded="lg" block :loading="saving" :disabled="!geneticOptions.length">
+            <q-btn type="submit" color="primary" unelevated rounded class="full-width" :loading="saving" :disabled="!geneticOptions.length">
               {{ mode === 'create' ? 'Create lot' : 'Save changes' }}
-            </v-btn>
+            </q-btn>
           </form>
-        </v-card>
+        </q-card>
 
         <TelemetryCard
           class="mt-4"
@@ -140,47 +132,44 @@
           :average-ph-label="averagePhLabel"
           :active-ratio-label="activeRatioLabel"
         />
-      </v-col>
-    </v-row>
+      </div>
+    </div>
 
-    <v-dialog v-model="harvestDialog" max-width="420">
-      <v-card rounded="xl">
-        <v-card-title class="text-h6">Harvest lot</v-card-title>
-        <v-card-text>
+    <q-dialog v-model="harvestDialog">
+      <q-card class="harvest-dialog">
+        <q-card-section>
+          <div class="text-h6">Harvest lot</div>
+        </q-card-section>
+        <q-card-section>
           <div class="form-grid">
-            <v-text-field
+            <q-input
               v-model="harvestForm.finalYieldGrams"
               label="Final yield (g)"
               type="number"
               min="0"
-              variant="outlined"
-              density="comfortable"
+              outlined
             />
-            <v-text-field
+            <q-input
               v-model="harvestForm.harvestedAt"
               label="Harvested at"
               type="datetime-local"
-              variant="outlined"
-              density="comfortable"
+              outlined
             />
           </div>
-        </v-card-text>
-        <v-card-actions class="px-6 pb-6">
-          <v-spacer />
-          <v-btn variant="text" @click="harvestDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" :loading="transitionPending" @click="submitHarvest">Harvest</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </q-card-section>
+        <q-card-actions align="right" class="q-px-lg q-pb-lg">
+          <q-btn flat @click="harvestDialog = false">Cancel</q-btn>
+          <q-btn color="primary" unelevated :loading="transitionPending" @click="submitHarvest">Harvest</q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
-    <v-snackbar v-model="snackbar.visible" color="success" timeout="3000">
-      {{ snackbar.message }}
-    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import QuickActionButtons from './QuickActionButtons.vue'
 import TelemetryCard from './TelemetryCard.vue'
 import { useCropStore } from '../../stores/useCropStore'
@@ -190,12 +179,12 @@ const props = defineProps<{
   search: string
 }>()
 
+const $q = useQuasar()
 const cropStore = useCropStore()
 const saving = ref(false)
 const transitionPending = ref(false)
 const harvestDialog = ref(false)
 const mode = ref<'create' | 'edit'>('create')
-const snackbar = reactive({ visible: false, message: '' })
 const form = reactive({
   iri: '',
   displayName: '',
@@ -336,14 +325,20 @@ async function submitCrop() {
 
     if (mode.value === 'create') {
       await cropStore.createCrop(payload)
-      snackbar.message = 'Lot created.'
+      $q.notify({ type: 'positive', message: 'Lot created.', position: 'top-right', timeout: 3000 })
     } else {
       await cropStore.updateCrop(form.iri, payload)
-      snackbar.message = 'Lot updated.'
+      $q.notify({ type: 'positive', message: 'Lot updated.', position: 'top-right', timeout: 3000 })
     }
 
-    snackbar.visible = true
     resetForm()
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Unable to save the lot.',
+      position: 'top-right',
+      timeout: 4000,
+    })
   } finally {
     saving.value = false
   }
@@ -355,8 +350,7 @@ async function removeCrop(crop: CropDto) {
   }
 
   await cropStore.deleteCrop(crop['@id'])
-  snackbar.message = 'Lot deleted.'
-  snackbar.visible = true
+  $q.notify({ type: 'positive', message: 'Lot deleted.', position: 'top-right', timeout: 3000 })
 
   if (form.iri === crop['@id']) {
     resetForm()
@@ -383,8 +377,19 @@ async function handleTransition(crop: CropDto) {
 
   try {
     await cropStore.applyTransition(crop.id, nextTransition.transition)
-    snackbar.message = `Lot moved to ${nextTransition.label.replace('Move to ', '')}.`
-    snackbar.visible = true
+    $q.notify({
+      type: 'positive',
+      message: `Lot moved to ${nextTransition.label.replace('Move to ', '')}.`,
+      position: 'top-right',
+      timeout: 3000,
+    })
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Unable to apply the transition.',
+      position: 'top-right',
+      timeout: 4000,
+    })
   } finally {
     transitionPending.value = false
   }
@@ -405,8 +410,14 @@ async function submitHarvest() {
 
     await cropStore.applyTransition(harvestForm.cropId, 'harvest', payload)
     harvestDialog.value = false
-    snackbar.message = 'Lot harvested.'
-    snackbar.visible = true
+    $q.notify({ type: 'positive', message: 'Lot harvested.', position: 'top-right', timeout: 3000 })
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Unable to harvest the lot.',
+      position: 'top-right',
+      timeout: 4000,
+    })
   } finally {
     transitionPending.value = false
   }
@@ -429,6 +440,20 @@ async function submitHarvest() {
 .metric-card {
   display: grid;
   gap: 4px;
+}
+
+.section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.section-grid--metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.section-grid--content {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  align-items: start;
 }
 
 .metric-card__label {
@@ -595,6 +620,11 @@ async function submitHarvest() {
   text-align: center;
 }
 
+.harvest-dialog {
+  width: min(420px, calc(100vw - 32px));
+  border-radius: 16px;
+}
+
 @media (max-width: 1279px) {
   .table-head {
     display: none;
@@ -603,9 +633,23 @@ async function submitHarvest() {
   .table-row {
     grid-template-columns: 1fr;
   }
+
+  .section-grid--content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 959px) {
+  .section-grid--metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
+  .section-grid--metrics {
+    grid-template-columns: 1fr;
+  }
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;

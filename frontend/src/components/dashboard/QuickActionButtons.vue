@@ -1,25 +1,25 @@
 <template>
   <div class="quick-actions">
-    <v-btn
+    <q-btn
       v-for="action in actions"
       :key="action.type"
       class="quick-action"
       :class="`quick-action--${action.type}`"
-      rounded="lg"
-      variant="tonal"
+      rounded
+      unelevated
       :color="action.color"
       :loading="pendingType === action.type"
       :disabled="disabled"
       @click="trigger(action.type, action.label)"
     >
       <span class="quick-action__content">
-        <v-icon :icon="action.icon" size="18" />
+        <q-icon :name="action.icon" size="18px" />
         <span class="quick-action__text">
           <strong>{{ action.label }}</strong>
           <small>{{ action.hint }}</small>
         </span>
       </span>
-    </v-btn>
+    </q-btn>
   </div>
 </template>
 
@@ -61,13 +61,14 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
 
 <style scoped>
 .quick-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .quick-action {
-  justify-content: center;
+  flex: 1 1 132px;
+  justify-content: flex-start;
   min-width: 0;
   min-height: 44px;
   text-transform: none;
@@ -88,12 +89,16 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
   display: grid;
   text-align: left;
   line-height: 1.05;
+  min-width: 0;
 }
 
 .quick-action__text strong {
   font-size: 0.82rem;
   font-weight: 600;
   color: #455a64;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .quick-action__text small {
@@ -101,25 +106,30 @@ async function trigger(type: JournalEntryDto['type'], label: string) {
   font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.quick-action--irrigation :deep(.v-btn__underlay) {
+.quick-action--irrigation {
   background: rgba(3, 169, 244, 0.12);
 }
 
-.quick-action--fertilization :deep(.v-btn__underlay) {
+.quick-action--fertilization {
   background: rgba(255, 152, 0, 0.12);
 }
 
-.quick-action--environment_check :deep(.v-btn__underlay) {
+.quick-action--environment_check {
   background: rgba(76, 175, 80, 0.12);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1600px) {
   .quick-actions {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
+}
 
+@media (max-width: 640px) {
   .quick-action {
     justify-content: flex-start;
   }

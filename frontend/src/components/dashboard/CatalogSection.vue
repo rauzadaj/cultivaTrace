@@ -1,43 +1,35 @@
 <template>
   <div>
-    <v-row dense class="mb-1">
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+    <div class="section-grid section-grid--metrics mb-1">
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Catalog lines</span>
           <strong>{{ filteredSeeds.length }}</strong>
           <small>Imported seed cards with media</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">California-ready</span>
           <strong>{{ californiaCount }}</strong>
           <small>Tagged for California workflows</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Canada-ready</span>
           <strong>{{ canadaCount }}</strong>
           <small>Tagged for Canadian workflows</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Primary source</span>
           <strong>{{ primaryVendor }}</strong>
           <small>Single-source verified catalog</small>
-        </v-card>
-      </v-col>
-    </v-row>
+      </q-card>
+    </div>
 
-    <v-card flat class="surface-card panel-card">
+    <q-card flat class="surface-card panel-card">
       <div class="section-header">
         <div>
           <p class="section-header__eyebrow">Seed catalog</p>
           <h2>California + Canada seed library</h2>
         </div>
-        <v-chip size="small" variant="tonal" color="primary">{{ filteredSeeds.length }} entries</v-chip>
+        <q-chip size="sm" outline color="primary">{{ filteredSeeds.length }} entries</q-chip>
       </div>
 
       <div v-if="!filteredSeeds.length" class="empty-state">
@@ -47,20 +39,20 @@
       <div v-else class="catalog-grid">
         <article v-for="seed in filteredSeeds" :key="seed.id" class="catalog-card">
           <div class="catalog-card__media">
-            <v-img
+            <q-img
               :src="seed.imageUrl"
               :alt="seed.name"
-              cover
-              height="220"
+              fit="cover"
+              height="220px"
               class="catalog-card__image"
             >
               <template #placeholder>
                 <div class="catalog-card__placeholder">Loading image</div>
               </template>
-            </v-img>
+            </q-img>
             <div class="catalog-card__overlay">
-              <v-chip size="x-small" color="white" variant="flat">{{ seed.code }}</v-chip>
-              <v-chip size="x-small" color="primary" variant="flat">{{ seed.typeLabel }}</v-chip>
+              <q-chip size="sm" color="white" text-color="dark">{{ seed.code }}</q-chip>
+              <q-chip size="sm" color="primary" text-color="white">{{ seed.typeLabel }}</q-chip>
             </div>
           </div>
 
@@ -70,10 +62,10 @@
                 <h3>{{ seed.name }}</h3>
                 <p>{{ seed.vendor }}</p>
               </div>
-              <v-btn
+              <q-btn
                 icon="mdi-open-in-new"
-                size="small"
-                variant="text"
+                size="sm"
+                flat
                 color="primary"
                 :href="seed.sourceUrl"
                 target="_blank"
@@ -82,15 +74,15 @@
             </div>
 
             <div class="catalog-card__chips">
-              <v-chip
+              <q-chip
                 v-for="market in seed.markets"
                 :key="`${seed.id}-${market}`"
-                size="small"
-                variant="outlined"
+                size="sm"
+                outline
                 color="secondary"
               >
                 {{ market }}
-              </v-chip>
+              </q-chip>
             </div>
 
             <dl class="catalog-card__facts">
@@ -116,7 +108,7 @@
           </div>
         </article>
       </div>
-    </v-card>
+    </q-card>
   </div>
 </template>
 
@@ -246,6 +238,15 @@ function formatDate(value: string | null): string | null {
 .metric-card {
   display: grid;
   gap: 4px;
+}
+
+.section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.section-grid--metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .metric-card__label {
@@ -398,6 +399,10 @@ function formatDate(value: string | null): string | null {
   .section-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .section-grid--metrics {
+    grid-template-columns: 1fr;
   }
 
   .catalog-grid {

@@ -1,45 +1,37 @@
 <template>
   <div>
-    <v-row dense class="mb-1">
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+    <div class="section-grid section-grid--metrics mb-1">
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Services</span>
           <strong>{{ filteredServices.length }}</strong>
           <small>Published operational modules</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Primary tone</span>
           <strong>{{ countByTone('primary') }}</strong>
           <small>Monitoring and catalog services</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Warning tone</span>
           <strong>{{ countByTone('warning') }}</strong>
           <small>Chemistry and alerts</small>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6" xl="3">
-        <v-card flat class="surface-card metric-card">
+      </q-card>
+      <q-card flat class="surface-card metric-card">
           <span class="metric-card__label">Success tone</span>
           <strong>{{ countByTone('success') }}</strong>
           <small>Compliant or healthy services</small>
-        </v-card>
-      </v-col>
-    </v-row>
+      </q-card>
+    </div>
 
-    <v-row dense>
-      <v-col cols="12" xl="8">
-        <v-card flat class="surface-card panel-card">
+    <div class="section-grid section-grid--content">
+      <div>
+        <q-card flat class="surface-card panel-card">
           <div class="section-header">
             <div>
               <p class="section-header__eyebrow">Services</p>
               <h2>Operational services</h2>
             </div>
-            <v-chip size="small" variant="tonal" color="primary">{{ filteredServices.length }} services</v-chip>
+            <q-chip size="sm" outline color="primary">{{ filteredServices.length }} services</q-chip>
           </div>
 
           <div v-if="!filteredServices.length" class="empty-state">No service available for this filter.</div>
@@ -55,7 +47,7 @@
             <article v-for="service in filteredServices" :key="service.id" class="table-row">
               <div class="table-row__primary">
                 <span class="service-icon" :class="`service-icon--${service.tone}`">
-                  <v-icon :icon="service.icon" size="18" />
+                  <q-icon :name="service.icon" size="18px" />
                 </span>
                 <div>
                   <strong>{{ service.name }}</strong>
@@ -74,59 +66,58 @@
                 <strong>#{{ service.position }}</strong>
               </div>
               <div class="action-stack">
-                <v-btn size="small" variant="tonal" color="primary" @click="startEdit(service)">Edit</v-btn>
-                <v-btn size="small" variant="text" color="error" @click="removeService(service)">Delete</v-btn>
+                <q-btn size="sm" outline color="primary" @click="startEdit(service)">Edit</q-btn>
+                <q-btn size="sm" flat color="negative" @click="removeService(service)">Delete</q-btn>
               </div>
             </article>
           </div>
-        </v-card>
-      </v-col>
+        </q-card>
+      </div>
 
-      <v-col cols="12" xl="4">
-        <v-card flat class="surface-card panel-card">
+      <div>
+        <q-card flat class="surface-card panel-card">
           <div class="section-header section-header--compact">
             <div>
               <p class="section-header__eyebrow">Service editor</p>
               <h2>{{ mode === 'create' ? 'Create service' : 'Update service' }}</h2>
             </div>
-            <v-btn v-if="mode === 'edit'" variant="text" color="primary" @click="resetForm">New</v-btn>
+            <q-btn v-if="mode === 'edit'" flat color="primary" @click="resetForm">New</q-btn>
           </div>
 
           <form class="form-grid" @submit.prevent="submitService">
-            <v-text-field v-model="form.name" label="Name" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-text-field v-model="form.category" label="Category" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-text-field v-model="form.icon" label="Material icon" hint="Example: mdi-flask-outline" persistent-hint variant="outlined" density="comfortable" :disabled="saving" />
-            <v-select
+            <q-input v-model="form.name" label="Name" outlined :disabled="saving" />
+            <q-input v-model="form.category" label="Category" outlined :disabled="saving" />
+            <q-input v-model="form.icon" label="Material icon" hint="Example: mdi-flask-outline" outlined :disabled="saving" />
+            <q-select
               v-model="form.tone"
               label="Tone"
               :items="toneOptions"
-              item-title="label"
-              item-value="value"
-              variant="outlined"
-              density="comfortable"
+              option-label="label"
+              option-value="value"
+              outlined
+              emit-value
+              map-options
               :disabled="saving"
             />
-            <v-text-field v-model="form.statusLabel" label="Status label" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-text-field v-model="form.position" label="Position" type="number" min="0" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-textarea v-model="form.description" label="Description" rows="4" variant="outlined" density="comfortable" :disabled="saving" />
-            <v-btn type="submit" color="primary" variant="flat" rounded="lg" block :loading="saving">
+            <q-input v-model="form.statusLabel" label="Status label" outlined :disabled="saving" />
+            <q-input v-model="form.position" label="Position" type="number" min="0" outlined :disabled="saving" />
+            <q-input v-model="form.description" label="Description" type="textarea" autogrow outlined :disabled="saving" />
+            <q-btn type="submit" color="primary" unelevated rounded class="full-width" :loading="saving">
               {{ mode === 'create' ? 'Create service' : 'Save changes' }}
-            </v-btn>
+            </q-btn>
           </form>
-        </v-card>
+        </q-card>
 
         <ServicesCard title="Published services" dense :items="serviceCards" class="mt-4" />
-      </v-col>
-    </v-row>
+      </div>
+    </div>
 
-    <v-snackbar v-model="snackbar.visible" color="success" timeout="3000">
-      {{ snackbar.message }}
-    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import ServicesCard from './ServicesCard.vue'
 import { useCropStore } from '../../stores/useCropStore'
 import type { OperationalServiceDto } from '../../types/api'
@@ -135,10 +126,10 @@ const props = defineProps<{
   search: string
 }>()
 
+const $q = useQuasar()
 const cropStore = useCropStore()
 const saving = ref(false)
 const mode = ref<'create' | 'edit'>('create')
-const snackbar = reactive({ visible: false, message: '' })
 const form = reactive({
   iri: '',
   name: '',
@@ -240,14 +231,20 @@ async function submitService() {
 
     if (mode.value === 'create') {
       await cropStore.createService(payload)
-      snackbar.message = 'Service created.'
+      $q.notify({ type: 'positive', message: 'Service created.', position: 'top-right', timeout: 3000 })
     } else {
       await cropStore.updateService(form.iri, payload)
-      snackbar.message = 'Service updated.'
+      $q.notify({ type: 'positive', message: 'Service updated.', position: 'top-right', timeout: 3000 })
     }
 
-    snackbar.visible = true
     resetForm()
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Unable to save the service.',
+      position: 'top-right',
+      timeout: 4000,
+    })
   } finally {
     saving.value = false
   }
@@ -259,8 +256,7 @@ async function removeService(service: OperationalServiceDto) {
   }
 
   await cropStore.deleteService(service['@id'])
-  snackbar.message = 'Service deleted.'
-  snackbar.visible = true
+  $q.notify({ type: 'positive', message: 'Service deleted.', position: 'top-right', timeout: 3000 })
 
   if (form.iri === service['@id']) {
     resetForm()
@@ -284,6 +280,20 @@ async function removeService(service: OperationalServiceDto) {
 .metric-card {
   display: grid;
   gap: 4px;
+}
+
+.section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.section-grid--metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.section-grid--content {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  align-items: start;
 }
 
 .metric-card__label {
@@ -427,9 +437,23 @@ async function removeService(service: OperationalServiceDto) {
   .table-row {
     grid-template-columns: 1fr;
   }
+
+  .section-grid--content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 959px) {
+  .section-grid--metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
+  .section-grid--metrics {
+    grid-template-columns: 1fr;
+  }
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
