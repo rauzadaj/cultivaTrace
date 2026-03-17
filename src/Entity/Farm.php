@@ -8,27 +8,34 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\State\FarmStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'farm')]
-#[ApiResource(operations: [
-    new GetCollection(),
-    new Get(),
-    new Post(),
-    new Patch(),
-    // pas de Delete — soft delete uniquement
-])]
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+        new Post(processor: FarmStateProcessor::class),
+        new Patch(processor: FarmStateProcessor::class),
+        // pas de Delete — soft delete uniquement
+    ],
+    normalizationContext: ['groups' => ['farm:read']],
+    denormalizationContext: ['groups' => ['farm:write']],
+)]
 class Farm
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    #[Groups(['farm:read'])]
     private Uuid $id;
 
     /**
@@ -43,12 +50,15 @@ class Farm
     private Organization $organization;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['farm:read', 'farm:write'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['farm:read', 'farm:write'])]
     private ?string $address = null;
 
     #[ORM\Column(type: 'float', nullable: true)]
+    #[Groups(['farm:read', 'farm:write'])]
     private ?float $surfaceM2 = null;
 
     #[ORM\OneToMany(targetEntity: Room::class, mappedBy: 'farm')]

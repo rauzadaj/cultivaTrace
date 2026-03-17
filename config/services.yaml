@@ -29,7 +29,11 @@ services:
 
     App\EventListener\TenantListener:
         tags:
-            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: 10 }
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: -10 }
+
+    App\Infrastructure\Persistence\Doctrine\EventSubscriber\FarmTenantSubscriber:
+        tags:
+            - { name: doctrine.event_subscriber }
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
