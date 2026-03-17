@@ -27,6 +27,10 @@ services:
         resource: '../src/Infrastructure/Http/Controller/'
         tags: ['controller.service_arguments']
 
+    App\EventListener\TenantListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: 10 }
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
