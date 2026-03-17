@@ -56,7 +56,7 @@
                   <p>{{ crop.batchCode }}</p>
                 </div>
               </div>
-              <div>
+              <div class="genetic-cell">
                 <strong>{{ crop.genetic.code }}</strong>
                 <p>{{ crop.genetic.name }}</p>
               </div>
@@ -107,6 +107,7 @@
               :items="geneticOptions"
               option-label="label"
               option-value="value"
+              :display-value="selectedGeneticLabel"
               outlined
               emit-value
               map-options
@@ -218,6 +219,7 @@ const geneticOptions = computed(() => cropStore.genetics.map((genetic) => ({
   label: `${genetic.code} · ${genetic.name}`,
   value: genetic['@id'],
 })))
+const selectedGeneticLabel = computed(() => geneticOptions.value.find((option) => option.value === form.genetic)?.label ?? '')
 
 const activeRatioLabel = computed(() => cropStore.crops.length ? `${Math.round((cropStore.activeCrops.length / cropStore.crops.length) * 100)}%` : '0%')
 const averagePhLabel = computed(() => {
@@ -505,19 +507,22 @@ async function submitHarvest() {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
 }
 
 .table-shell {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) minmax(140px, 1fr) 100px 140px minmax(180px, 1fr) minmax(240px, 1.2fr);
+  grid-template-columns: minmax(170px, 1.2fr) minmax(120px, 0.95fr) 92px 132px minmax(140px, 0.9fr) minmax(190px, 0.95fr);
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .table-head {
@@ -534,12 +539,18 @@ async function submitHarvest() {
   border: 1px solid #e4e8ec;
   border-radius: 10px;
   background: #fafbfc;
+  overflow: hidden;
 }
 
 .table-row__primary {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.table-row > div {
+  min-width: 0;
 }
 
 .table-row strong {
@@ -551,6 +562,12 @@ async function submitHarvest() {
 .table-row p {
   margin: 0;
   color: #78909c;
+}
+
+.genetic-cell strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
 }
 
 .lot-indicator {
