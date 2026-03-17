@@ -1,0 +1,197 @@
+/**
+ * apps/frontend/src/services/api.ts
+ *
+ * Service HTTP centralisé.
+ * TOUS les appels API passent par ici — jamais d'Axios direct dans les composants.
+ *
+ * Le JWT est injecté automatiquement via l'intercepteur.
+ * Un 401 déclenche le logout automatique.
+ */
+
+import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
+import type {
+  HydraCollection,
+  Plant, PlantEvent, Farm, Room, Strain,
+  InputRecord, HarvestRecord, Sensor, SensorReading,
+  User, Organization, JwtResponse, LoginCredentials, ApiError,
+} from '@/types/api'
+
+// ── Instance Axios ────────────────────────────────────────────────────────
+
+const http: AxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  headers: {
+    'Content-Type': 'application/ld+json',
+    'Accept': 'application/ld+json',
+  },
+})
+
+// Injecteur JWT — ajoute le token sur chaque requête
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('jwt_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Handler 401 — logout automatique
+http.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('jwt_token')
+      localStorage.removeItem('refresh_token')
+      // Redirection vers login sans import circulaire
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+
+export const authApi = {
+  login: (credentials: LoginCredentials) =>
+    http.post<JwtResponse>('/auth/login', credentials, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  refresh: (refreshToken: string) =>
+    http.post<JwtResponse>('/auth/token/refresh', { refresh_token: refreshToken }, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  me: () =>
+    http.get<User>('/me'),
+}
+
+// ── Plants ────────────────────────────────────────────────────────────────
+
+export const plantsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<HydraCollection<Plant>>('/plants', { params }),
+
+  get: (id: string) =>
+    http.get<Plant>(`/plants/${id}`),
+
+  create: (data: Partial<Plant>) =>
+    http.post<Plant>('/plants', data),
+
+  update: (id: string, data: Partial<Pick<Plant, 'stage' | 'room' | 'rfidTag'>>) =>
+    http.patch<Plant>(`/plants/${id}`, data, {
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+    }),
+
+  harvest: (id: string, data: { grossWeightG: number; netWeightG: number; notes?: string; harvestedAt: string }) =>
+    http.post<HarvestRecord>(`/plants/${id}/harvest`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  downloadReport: async (id: string): Promise<void> => {
+    const response = await http.get(`/plants/${id}/report`, { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-plant-${id}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+
+  initiateDestruction: (id: string, data: { reason: string }) =>
+    http.post(`/plants/${id}/destroy`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+}
+
+// ── Plant Events ──────────────────────────────────────────────────────────
+
+export const plantEventsApi = {
+  list: (plantId: string, params?: Record<string, unknown>) =>
+    http.get<HydraCollection<PlantEvent>>(`/plants/${plantId}/events`, { params }),
+
+  append: (data: {
+    plant: string  // IRI : /api/plants/{id}
+    eventType: string
+    notes?: string
+    payload?: Record<string, unknown>
+    photoUrls?: string[]
+  }) =>
+    http.post<PlantEvent>('/plant-events', data),
+}
+
+// ── Rooms ─────────────────────────────────────────────────────────────────
+
+export const roomsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<HydraCollection<Room>>('/rooms', { params }),
+
+  get: (id: string) =>
+    http.get<Room>(`/rooms/${id}`),
+
+  create: (data: Partial<Room>) =>
+    http.post<Room>('/rooms', data),
+
+  update: (id: string, data: Partial<Room>) =>
+    http.patch<Room>(`/rooms/${id}`, data, {
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+    }),
+}
+
+// ── Strains ───────────────────────────────────────────────────────────────
+
+export const strainsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<HydraCollection<Strain>>('/strains', { params }),
+
+  create: (data: Partial<Strain>) =>
+    http.post<Strain>('/strains', data),
+}
+
+// ── Sensors ───────────────────────────────────────────────────────────────
+
+export const sensorsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<HydraCollection<Sensor>>('/sensors', { params }),
+
+  get: (id: string) =>
+    http.get<Sensor>(`/sensors/${id}`),
+
+  create: (data: Partial<Sensor>) =>
+    http.post<Sensor>('/sensors', data),
+
+  update: (id: string, data: Partial<Sensor>) =>
+    http.patch<Sensor>(`/sensors/${id}`, data, {
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+    }),
+
+  readings: (id: string, period: '7d' | '30d' | '90d' | '365d') =>
+    http.get<SensorReading[]>(`/sensors/${id}/readings`, { params: { period } }),
+}
+
+// ── Compliance ────────────────────────────────────────────────────────────
+
+export const complianceApi = {
+  ctsReport: async (month: string): Promise<void> => {
+    // month format: YYYY-MM
+    const response = await http.get('/compliance/ctsreport', {
+      params: { month },
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cts-report-${month}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+
+  verifyAuditTrail: (plantId: string) =>
+    http.get<{ valid: boolean; brokenAt: string | null; checked: number }>('/audit/verify', {
+      params: { plantId },
+    }),
+}
+
+// ── Export par défaut ─────────────────────────────────────────────────────
+
+export default http
