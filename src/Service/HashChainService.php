@@ -3,7 +3,7 @@
 namespace App\Service;
 
 use App\Entity\PlantEvent;
-use App\Repository\PlantEventRepository;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -21,7 +21,7 @@ use Symfony\Component\Uid\Uuid;
 class HashChainService
 {
     public function __construct(
-        private PlantEventRepository $plantEventRepository,
+        private readonly ManagerRegistry $registry,
     ) {}
 
     /**
@@ -47,7 +47,9 @@ class HashChainService
      */
     public function verify(Uuid $plantId): array
     {
-        $events = $this->plantEventRepository->findByPlantOrderedAsc($plantId);
+        $events = $this->registry
+            ->getRepository(PlantEvent::class)
+            ->findByPlantOrderedAsc($plantId);
 
         $previousHash = str_repeat('0', 64);
         $checked = 0;
