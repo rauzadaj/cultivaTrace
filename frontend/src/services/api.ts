@@ -8,13 +8,16 @@
  * Un 401 déclenche le logout automatique.
  */
 
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
+import axios, { type AxiosInstance } from 'axios'
 import type {
   HydraCollection,
   Plant, PlantEvent, Farm, Room, Strain,
   InputRecord, HarvestRecord, Sensor, SensorReading,
   User, Organization, JwtResponse, LoginCredentials, ApiError,
 } from '@/types/api'
+
+const TOKEN_KEY = 'cultivatrace_token'
+const USER_EMAIL_KEY = 'cultivatrace_user_email'
 
 // ── Instance Axios ────────────────────────────────────────────────────────
 
@@ -28,7 +31,7 @@ const http: AxiosInstance = axios.create({
 
 // Injecteur JWT — ajoute le token sur chaque requête
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('jwt_token')
+  const token = localStorage.getItem(TOKEN_KEY)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -40,8 +43,9 @@ http.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('jwt_token')
+      localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem('refresh_token')
+      localStorage.removeItem(USER_EMAIL_KEY)
       // Redirection vers login sans import circulaire
       window.location.href = '/auth'
     }
@@ -108,16 +112,21 @@ export const plantsApi = {
 
 export const plantEventsApi = {
   list: (plantId: string, params?: Record<string, unknown>) =>
-    http.get<HydraCollection<PlantEvent>>(`/plants/${plantId}/events`, { params }),
+    http.get<HydraCollection<PlantEvent>>('/plant_events', {
+      params: {
+        'plant.id': plantId,
+        'order[occurredAt]': 'desc',
+        ...params,
+      },
+    }),
 
-  append: (data: {
-    plant: string  // IRI : /api/plants/{id}
-    eventType: string
-    notes?: string
-    payload?: Record<string, unknown>
-    photoUrls?: string[]
-  }) =>
-    http.post<PlantEvent>('/plant-events', data),
+  listAll: (params?: Record<string, unknown>) =>
+    http.get<HydraCollection<PlantEvent>>('/plant_events', {
+      params: {
+        'order[occurredAt]': 'desc',
+        ...params,
+      },
+    }),
 }
 
 // ── Rooms ─────────────────────────────────────────────────────────────────

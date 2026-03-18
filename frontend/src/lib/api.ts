@@ -1,4 +1,4 @@
-import type { AnalyticsResponse, AuthTokenResponse, HydraCollection, RegistrationResponse } from '../types/api'
+import type { AuthTokenResponse, HydraCollection, RegistrationResponse } from '../types/api'
 import { useUserStore } from '../stores/useUserStore'
 
 export class ApiError extends Error {
@@ -110,10 +110,6 @@ export async function loadHydraCollection<T>(path: string): Promise<T[]> {
   }
 
   return items
-}
-
-export async function loadAnalytics(path: string): Promise<AnalyticsResponse> {
-  return apiFetch<AnalyticsResponse>(path, {}, { accept: 'application/json' })
 }
 
 export async function createResource<T>(path: string, payload: Record<string, unknown>): Promise<T> {

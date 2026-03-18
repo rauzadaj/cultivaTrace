@@ -6,19 +6,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { LifecycleStage } from '../../types/api'
+import type { PlantStage } from '../../types/api'
 
 const props = defineProps<{
-  stage: LifecycleStage
+  stage: PlantStage
 }>()
 
-const normalizedStage = computed(() => {
-  if (props.stage === 'germination' || props.stage === 'seedling') return 'germination'
-  if (props.stage === 'vegetation' || props.stage === 'veg') return 'vegetation'
-  if (props.stage === 'flowering' || props.stage === 'flower') return 'flowering'
-
-  return props.stage
-})
+const normalizedStage = computed(() => props.stage)
 
 const label = computed(() => {
   return {
