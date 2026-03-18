@@ -8,6 +8,10 @@
         <server name="APP_DEBUG" value="1" force="true"/>
         <server name="KERNEL_CLASS" value="App\Kernel"/>
         <server name="DATABASE_URL" value="sqlite:///%kernel.project_dir%/var/test.db" force="true"/>
+        <server name="GOTENBERG_URL" value="http://gotenberg:3000" force="true"/>
+        <server name="JWT_SECRET_KEY" value="%kernel.project_dir%/config/jwt/private.pem" force="true"/>
+        <server name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/config/jwt/public.pem" force="true"/>
+        <server name="JWT_PASSPHRASE" value="705a2ee932c4d5010e89eb6603bcb502cddb51cc7a0fd69d47ac27f5da32cc92" force="true"/>
     </php>
     <testsuites>
         <testsuite name="Project Test Suite">
