@@ -13,10 +13,12 @@ use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
+use App\State\PlantStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
@@ -29,13 +31,17 @@ use Symfony\Component\Uid\Uuid;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'plant')]
-#[ApiResource(operations: [
-    new GetCollection(),
-    new Get(),
-    new Post(),
-    new Patch(), // uniquement stage, room, rfidTag — pas les données de création
-    // pas de Delete — archivage uniquement via PATCH status=archived
-])]
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+        new Post(processor: PlantStateProcessor::class),
+        new Patch(processor: PlantStateProcessor::class), // uniquement stage, room, rfidTag — pas les données de création
+        // pas de Delete — archivage uniquement via PATCH status=archived
+    ],
+    normalizationContext: ['groups' => ['plant:read']],
+    denormalizationContext: ['groups' => ['plant:write']],
+)]
 #[ApiFilter(SearchFilter::class, properties: [
     'room.id' => 'exact',
     'strain.id' => 'exact',
@@ -50,6 +56,7 @@ class Plant
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    #[Groups(['plant:read'])]
     private Uuid $id;
 
     #[ORM\Column(type: UuidType::NAME)]
@@ -57,25 +64,32 @@ class Plant
 
     #[ORM\ManyToOne(targetEntity: Room::class, inversedBy: 'plants')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['plant:read', 'plant:write'])]
     private Room $room;
 
     #[ORM\ManyToOne(targetEntity: Strain::class)]
     #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['plant:read', 'plant:write'])]
     private ?Strain $strain = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['plant:read', 'plant:write'])]
     private ?string $rfidTag = null;
 
     #[ORM\Column(length: 50, enumType: PlantStage::class)]
+    #[Groups(['plant:read', 'plant:write'])]
     private PlantStage $stage = PlantStage::GERMINATION;
 
     #[ORM\Column(length: 50, enumType: PlantStatus::class)]
+    #[Groups(['plant:read', 'plant:write'])]
     private PlantStatus $status = PlantStatus::ACTIVE;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Groups(['plant:read', 'plant:write'])]
     private \DateTimeImmutable $germinatedAt;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Groups(['plant:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
@@ -116,7 +130,7 @@ class Plant
     public function setCreatedBy(User $user): self { $this->createdBy = $user; return $this; }
     public function getEvents(): Collection { return $this->events; }
     public function getHarvestRecord(): ?HarvestRecord { return $this->harvestRecord; }
-
+    #[Groups(['plant:read'])]
     public function getAgeInDays(): int
     {
         return (int) $this->germinatedAt->diff(new \DateTimeImmutable())->days;

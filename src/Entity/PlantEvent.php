@@ -3,8 +3,8 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
@@ -12,6 +12,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -32,12 +33,15 @@ use Symfony\Component\Uid\Uuid;
  *   avec payload = {"original_type": "...", "migrated": true}
  *   MAIS elles doivent d'abord être liées à un Plant (créer les Plants manquants si besoin)
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: \App\Repository\PlantEventRepository::class)]
 #[ORM\Table(name: 'plant_event')]
-#[ApiResource(operations: [
-    new GetCollection(),
-    new Post(), // append uniquement — le repository interdit les updates
-])]
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['plant_event:read']],
+)]
 #[ApiFilter(SearchFilter::class, properties: [
     'plant.id' => 'exact',
     'eventType' => 'exact',
@@ -49,8 +53,7 @@ class PlantEvent
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    #[Groups(['plant_event:read'])]
     private Uuid $id;
 
     #[ORM\Column(type: UuidType::NAME)]
@@ -58,10 +61,12 @@ class PlantEvent
 
     #[ORM\ManyToOne(targetEntity: Plant::class, inversedBy: 'events')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['plant_event:read'])]
     private Plant $plant;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['plant_event:read'])]
     private User $user;
 
     /**
@@ -70,6 +75,7 @@ class PlantEvent
      * room_move | legacy_activity
      */
     #[ORM\Column(length: 100)]
+    #[Groups(['plant_event:read'])]
     private string $eventType;
 
     /**
@@ -81,24 +87,31 @@ class PlantEvent
      * - destruction_confirmed: {"gross_weight_g": 100, "non_cannabis_ratio": 0.55}
      */
     #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Groups(['plant_event:read'])]
     private ?array $payload = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['plant_event:read'])]
     private ?string $notes = null;
 
     #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Groups(['plant_event:read'])]
     private ?array $photoUrls = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Groups(['plant_event:read'])]
     private \DateTimeImmutable $occurredAt;
 
     #[ORM\Column(length: 64)]
+    #[Groups(['plant_event:read'])]
     private string $hashPrevious = '0000000000000000000000000000000000000000000000000000000000000000';
 
     #[ORM\Column(length: 64)]
+    #[Groups(['plant_event:read'])]
     private string $hashSelf;
 
     #[ORM\Column(length: 45)]
+    #[Groups(['plant_event:read'])]
     private string $ipAddress;
 
     public function __construct()
