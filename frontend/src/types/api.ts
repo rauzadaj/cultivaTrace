@@ -62,6 +62,7 @@ export type RoomType =
 // ── Entités principales ───────────────────────────────────────────────────
 
 export interface Organization {
+  '@id'?: string
   id: string
   name: string
   country: string
@@ -72,47 +73,53 @@ export interface Organization {
 }
 
 export interface Farm {
+  '@id'?: string
   id: string
   name: string
   address?: string
   surfaceM2?: number
-  organization: Pick<Organization, 'id' | 'name'>
+  organization: string | Pick<Organization, 'id' | 'name'>
 }
 
 export interface Room {
+  '@id'?: string
   id: string
   name: string
   type: RoomType
   description?: string
   capacityMax: number
-  farm: Pick<Farm, 'id' | 'name'>
+  farm: string | Pick<Farm, 'id' | 'name'>
   // computed (non stocké en DB — calculé par le backend)
   activePlantCount?: number
   occupancyRate?: number
 }
 
 export interface Strain {
+  '@id'?: string
   id: string
   name: string
   genetics: 'indica' | 'sativa' | 'hybrid'
+  cannabisType?: 'hemp' | 'marijuana'
   floweringDays?: number
   notes?: string
 }
 
 export interface Plant {
+  '@id'?: string
   id: string
   stage: PlantStage
   status: PlantStatus
-  room: Pick<Room, 'id' | 'name'>
-  strain?: Pick<Strain, 'id' | 'name' | 'genetics'>
+  room: string | Pick<Room, 'id' | 'name'>
+  strain?: string | Pick<Strain, 'id' | 'name' | 'genetics'>
   rfidTag?: string
   germinatedAt: string   // ISO 8601 date
   createdAt: string      // ISO 8601 datetime
-  createdBy: Pick<User, 'id' | 'email'>
+  createdBy?: string | Pick<User, 'id' | 'email'>
   ageInDays?: number     // computed
 }
 
 export interface PlantEvent {
+  '@id'?: string
   id: string
   eventType:
     | 'germination'
@@ -128,7 +135,10 @@ export interface PlantEvent {
   notes?: string
   photoUrls?: string[]
   occurredAt: string
-  user: Pick<User, 'id' | 'email'>
+  user: string | Pick<User, 'id' | 'email'>
+  plant?: string | Pick<Plant, 'id'>
+  hashPrevious?: string
+  hashSelf?: string
   payload?: PlantEventPayload
 }
 
@@ -142,25 +152,28 @@ export type PlantEventPayload =
   | Record<string, unknown>                                      // autres
 
 export interface HarvestRecord {
+  '@id'?: string
   id: string
   grossWeightG: string   // decimal en string (précision Doctrine)
   netWeightG: string
   harvestedAt: string
   notes?: string
-  harvestedBy: Pick<User, 'id' | 'email'>
+  harvestedBy?: string | Pick<User, 'id' | 'email'>
 }
 
 export interface InputRecord {
+  '@id'?: string
   id: string
   inputType: 'nutrient' | 'pesticide' | 'water' | 'energy'
   productName: string
   quantity: string
   unit: string
   appliedAt: string
-  appliedBy: Pick<User, 'id' | 'email'>
+  appliedBy?: string | Pick<User, 'id' | 'email'>
 }
 
 export interface Sensor {
+  '@id'?: string
   id: string
   type: SensorType
   deviceId: string
@@ -171,7 +184,7 @@ export interface Sensor {
     max: number
     unit: string
   }
-  room: Pick<Room, 'id' | 'name'>
+  room: string | Pick<Room, 'id' | 'name'>
 }
 
 export interface SensorReading {
@@ -181,6 +194,7 @@ export interface SensorReading {
 }
 
 export interface User {
+  '@id'?: string
   id: string
   email: string
   roles: UserRole[]
@@ -196,6 +210,8 @@ export interface HydraCollection<T> {
   '@type': 'hydra:Collection'
   'hydra:totalItems': number
   'hydra:member': T[]
+  totalItems?: number
+  member?: T[]
   'hydra:view'?: {
     '@id': string
     '@type': 'hydra:PartialCollectionView'
@@ -203,6 +219,12 @@ export interface HydraCollection<T> {
     'hydra:last'?: string
     'hydra:next'?: string
     'hydra:previous'?: string
+  }
+  view?: {
+    first?: string
+    last?: string
+    next?: string
+    previous?: string
   }
 }
 
@@ -229,118 +251,6 @@ export interface JwtPayload {
   roles?: UserRole[]
   exp?: number
   iat?: number
-}
-
-// ── Dashboard / Crop workspace ───────────────────────────────────────────
-
-export type CropStage =
-  | 'seedling'
-  | 'veg'
-  | 'flower'
-  | 'harvest'
-
-export type LifecycleStage =
-  | PlantStage
-  | CropStage
-
-export type JournalEntryType =
-  | 'observation'
-  | 'irrigation'
-  | 'fertilization'
-  | 'environment_check'
-
-export interface GeneticDto {
-  '@id': string
-  id: string
-  code: string
-  name: string
-  vendor?: string | null
-  metadata: Record<string, unknown>
-}
-
-export interface CropDto {
-  '@id': string
-  id: string
-  displayName: string
-  batchCode: string
-  currentStage: CropStage
-  seededAt: string
-  harvestedAt?: string | null
-  finalYieldGrams?: number | null
-  genetic: GeneticDto
-}
-
-export interface JournalEntryDto {
-  '@id': string
-  id: string
-  crop?: string | null
-  type: JournalEntryType
-  occurredAt: string
-  notes?: string | null
-  metadata: Record<string, unknown>
-  phLevel?: {
-    value: number
-  } | null
-  nutrientConcentration?: {
-    ppm: number
-  } | null
-}
-
-export interface GeneticCycleAverageDto {
-  geneticId: string
-  geneticCode: string
-  geneticName: string
-  averageCycleDays: number
-  completedCycles: number
-}
-
-export interface OperationalServiceDto {
-  '@id': string
-  id: string
-  name: string
-  category: string
-  description: string
-  icon: string
-  tone: 'primary' | 'warning' | 'success'
-  statusLabel: string
-  position: number
-  updatedAt: string
-}
-
-export interface CropWritePayload {
-  displayName: string
-  batchCode: string
-  genetic: string
-  seededAt: string
-}
-
-export interface JournalEntryWritePayload {
-  crop: string
-  type: JournalEntryType
-  occurredAt: string
-  notes?: string | null
-  metadata: Record<string, unknown>
-}
-
-export interface GeneticWritePayload {
-  code: string
-  name: string
-  vendor?: string | null
-  metadata: Record<string, unknown>
-}
-
-export interface OperationalServiceWritePayload {
-  name: string
-  category: string
-  description: string
-  icon: string
-  tone: OperationalServiceDto['tone']
-  statusLabel: string
-  position: number
-}
-
-export interface AnalyticsResponse {
-  data: GeneticCycleAverageDto[]
 }
 
 // ── Design System / UI ───────────────────────────────────────────────────
@@ -373,12 +283,14 @@ export interface DashboardStatChip {
 
 export interface PlantCardSummary {
   id: string
+  iri?: string
   name: string
   strain: string
   room: string
-  stage: LifecycleStage
+  stage: PlantStage
   ageInDays: number
   batchCode?: string
+  status?: PlantStatus
 }
 
 export interface SensorMetricCard {
