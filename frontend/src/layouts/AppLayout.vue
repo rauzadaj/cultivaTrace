@@ -4,6 +4,16 @@
       Hors ligne — {{ offlineState.pendingCount }} actions en attente de synchronisation
     </div>
 
+    <q-banner v-if="showLicenseBanner" inline-actions class="license-banner">
+      <div>
+        Licence {{ authStore.organization?.licenseStatus === 'pending' ? 'en attente de verification' : 'suspendue' }}.
+        Completez votre dossier KYB pour conserver l'acces complet.
+      </div>
+      <template #action>
+        <q-btn flat color="primary" label="Verifier ma licence" to="/kyb" />
+      </template>
+    </q-banner>
+
     <q-header class="app-header">
       <q-toolbar class="app-header__toolbar" :class="{ 'app-header__toolbar--landscape': isMobile && isLandscape }">
         <q-btn
@@ -256,6 +266,7 @@ import { useQuasar } from 'quasar'
 import CBtn from '../components/ui/CBtn.vue'
 import CInput from '../components/ui/CInput.vue'
 import { useOfflineQueue } from '../composables/useOfflineQueue'
+import { useAuthStore } from '../stores/auth'
 import { usePlantsStore } from '../stores/plants'
 import { useUserStore } from '../stores/useUserStore'
 import type { AlertItem, Plant, PlantStage } from '../types/api'
@@ -264,6 +275,7 @@ const route = useRoute()
 const router = useRouter()
 const $q = useQuasar()
 const plantsStore = usePlantsStore()
+const authStore = useAuthStore()
 const userStore = useUserStore()
 const offlineState = useOfflineQueue()
 
@@ -305,6 +317,10 @@ const showDrawerLabels = computed(() => {
   return !drawerMini.value || drawerHover.value
 })
 const alertCount = computed(() => appAlerts.value.length)
+const showLicenseBanner = computed(() => {
+  const status = authStore.organization?.licenseStatus
+  return status === 'pending' || status === 'suspended'
+})
 const currentPlant = computed<Plant | null>(() => {
   const routeId = String(route.params.id || '')
 
@@ -362,13 +378,19 @@ const mobileNavigation = [
   { label: 'Plus', icon: 'mdi-dots-horizontal', to: '/more' },
 ] as const
 
-const desktopNavigation = mobileNavigation
+const desktopNavigation = [
+  ...mobileNavigation.slice(0, 4),
+  { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing' },
+  mobileNavigation[4],
+] as const
 
 const headerTitle = computed(() => {
   if (route.name === 'plants-list') return 'Plants'
   if (route.name === 'plant-detail') return 'Plant detail'
   if (route.name === 'rooms-dashboard') return 'Rooms'
   if (route.name === 'sensors-dashboard') return 'Sensors'
+  if (route.name === 'kyb') return 'KYB'
+  if (route.name === 'billing' || route.name === 'billing-success') return 'Billing'
   if (route.name === 'more') return 'More'
 
   return 'Dashboard'
@@ -378,6 +400,8 @@ const breadcrumb = computed(() => {
   if (route.name === 'plant-detail') return 'Plants / Detail'
   if (route.name === 'rooms-dashboard') return 'Operations / Rooms'
   if (route.name === 'sensors-dashboard') return 'Operations / Sensors'
+  if (route.name === 'kyb') return 'Compliance / KYB'
+  if (route.name === 'billing' || route.name === 'billing-success') return 'Settings / Billing'
 
   return 'Operations / Overview'
 })
@@ -387,6 +411,8 @@ const mobileKicker = computed(() => {
   if (route.name === 'plant-detail') return 'Suivi plant'
   if (route.name === 'rooms-dashboard') return 'Monitoring'
   if (route.name === 'sensors-dashboard') return 'Capteurs'
+  if (route.name === 'kyb') return 'Conformite'
+  if (route.name === 'billing' || route.name === 'billing-success') return 'Abonnement'
 
   return 'Cultivation'
 })
@@ -432,6 +458,7 @@ function openStageDialog() {
 
 onMounted(async () => {
   try {
+    await authStore.fetchMe()
     await plantsStore.bootstrap()
     if (route.name === 'plant-detail' && typeof route.params.id === 'string') {
       await Promise.all([plantsStore.fetchPlant(route.params.id), plantsStore.fetchEvents(route.params.id)])
@@ -481,6 +508,7 @@ function closeConfirmDialog() {
 }
 
 async function logout() {
+  authStore.logout()
   userStore.clearSession()
   await router.push({ name: 'auth' })
 }
@@ -566,6 +594,12 @@ async function runConfirmedAction() {
   color: #8a5a08;
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.license-banner {
+  border-bottom: 1px solid #f6e05e;
+  background: #fff8db;
+  color: #744210;
 }
 
 .app-header {
