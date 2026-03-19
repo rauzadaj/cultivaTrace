@@ -1,124 +1,125 @@
-# CannaSaaS — Instructions Agents (Jalon 2)
+# CannaSaaS — Instructions Agents (Jalon 3)
 
 **Lis ce fichier en entier avant de coder quoi que ce soit.**
 
 ## Stack (définitif)
 
-- Backend : **Symfony 6.4 LTS + API Platform 3** — pas NestJS, pas Node.js
-- Frontend : **Vue 3 + Quasar Framework** — pas Vuetify, pas Next.js
-- DB : PostgreSQL 16 + TimescaleDB (Jalon 3)
-- Auth : LexikJWTAuthenticationBundle (JWT stateless)
-- PDF : **GotenbergBundle** (sensiolabs/gotenberg-bundle) — pas wkhtmltopdf, pas dompdf
-- Temps réel : Mercure Hub SSE (Jalon 3)
+- Backend : **Symfony 6.4 LTS + API Platform 3**
+- Frontend : **Vue 3 + Quasar Framework**
+- DB : PostgreSQL 16
+- Séries temporelles IoT : table `sensor_reading` (TimescaleDB ou PG classique)
+- Auth : LexikJWTAuthenticationBundle
+- PDF : GotenbergBundle (sensiolabs/gotenberg-bundle)
+- Temps réel : **Mercure Hub SSE** (symfony/mercure-bundle)
 - Queue : Symfony Messenger
-- Monorepo : `apps/backend/` + `apps/frontend/` + `infra/`
+- Monorepo : `src/` (backend) + `frontend/src/` (frontend)
 
-## Jalon actuel : Jalon 2 — Cœur du produit
+## Jalons complétés
 
-### Fichiers livrés dans ce jalon
+- **Jalon 1** ✅ — Multi-tenant, entités de base, SYNC-01 validé
+- **Jalon 2** ✅ — Plant CRUD, audit trail, harvest, destruction, PDF, CTS
+- **Jalon 3** 🔄 — IoT capteurs, Mercure SSE, VPD, alertes
+
+## Fichiers livrés dans ce jalon
 
 Backend :
-- `Entity/Strain.php` — génétiques avec cannabisType (hemp|marijuana) + THC%
-- `Entity/InputRecord.php` — intrants avec LoQ Health Canada + quarantaine auto
-- `Entity/HarvestRecord.php` — données de récolte (1-to-1 avec Plant)
-- `Entity/DestructionIntent.php` — workflow destruction 7j + ratio 50%
-- `Repository/PlantEventRepository.php` — APPEND-ONLY + hash-chain auto
-- `Controller/HarvestController.php` — transaction atomique harvest
-- `Controller/DestructionController.php` — workflow destruction 2 étapes
-- `Controller/PlantReportController.php` — PDF via GotenbergBundle
-- `Controller/CTSReportController.php` — CSV Health Canada CTS
-- `Security/Voter/PlantVoter.php` — RBAC plants
-- `templates/pdf/plant_report.html.twig` — template PDF
+- `src/Entity/Sensor.php` — capteur IoT (temperature, humidity, co2, ph, ec)
+- `src/Repository/SensorReadingRepository.php` — DBAL natif, pas ORM
+- `src/Service/VpdService.php` — calcul VPD côté serveur
+- `src/Service/AlertService.php` — alertes seuils avec déduplication Redis
+- `src/Controller/SensorReadingController.php` — POST /api/sensors/{id}/reading
+- `src/Controller/SensorHistoryController.php` — GET /api/sensors/{id}/readings
+- `src/DataFixtures/SensorFixtures.php` — 90j données simulées
+- `config/packages/mercure.yaml`
+
+Frontend :
+- `frontend/src/composables/useMercure.ts` — SSE temps réel
+- `frontend/src/stores/sensors.ts` — store Pinia capteurs
+
+Scripts :
+- `scripts/simulate_sensors.py` — simulateur capteurs (remplace vrais capteurs)
 
 ## Règle #1 — Multi-tenant (SYNC-01 validé ✅)
 
-**TenantListener priority = -10** (après le firewall JWT en priorité 8)
-
-- Toute entité métier a un champ `tenantId` (UUID)
-- Le `TenantFilter` est activé automatiquement sur chaque requête authentifiée
-- Le `tenantId` vient du JWT — jamais du body de la requête
-- Ne jamais exposer `tenantId` dans les réponses API
+**TenantListener priority = -10**
+Toute entité métier a un champ `tenantId`. TenantFilter actif sur toutes les requêtes.
 
 ## Règle #2 — Audit Trail APPEND-ONLY
 
-- Jamais de `UPDATE` ni de `DELETE` sur `PlantEvent`
-- Toujours utiliser `PlantEventRepository::appendEvent()`
-- Le hash-chaining est calculé automatiquement dans `appendEvent()`
+Jamais de UPDATE ni DELETE sur PlantEvent.
+Toujours utiliser PlantEventRepository::appendEvent().
 
-## Règle #3 — Transactions obligatoires
+## Règle #3 — sensor_reading est une table DBAL, pas une entité ORM
 
-Ces opérations doivent être dans une transaction `beginTransaction/commit/rollback` :
-- `POST /api/plants/{id}/harvest` — HarvestRecord + Plant update + PlantEvent
-- `POST /api/destructions/{id}/confirm` — DestructionIntent + Plant update + PlantEvent
+Ne jamais créer d'entité Doctrine pour sensor_reading.
+Toujours utiliser SensorReadingRepository (DBAL natif).
 
-## Règle #4 — Règles réglementaires non-contournables
+## Règle #4 — Mercure SSE
 
-- Destruction : délai légal minimum 7 jours (`canBeConfirmed()`)
-- Destruction : ratio non-cannabis >= 50% (`isNonCannabisRatioValid()`)
-- Destruction : photos obligatoires
-- LoQ pesticides : `computeTestResult()` appelé automatiquement après saisie
-- LoQ fail → quarantaine automatique (`quarantinedAt = now`)
-- Règle 7 jours Health Canada : si testResult = fail, alerte à J0, J3, J6, rapport à J7
+Topic format : `cannas/{tenantId}/sensors` et `cannas/{tenantId}/rooms/{roomId}`
+Ne jamais publier des données d'un autre tenant sur le même topic.
+Utiliser HubInterface injecté dans les controllers — pas de client HTTP direct.
 
-## Règle #5 — PDF
+## Règle #5 — VPD
 
-Utiliser **GotenbergBundle** (sensiolabs/gotenberg-bundle) — pas de client HTTP custom.
+VpdService::compute() prend température (°C) et humidité (%).
+Le calcul est fait côté serveur dans SensorReadingController.
+Ne jamais calculer le VPD côté frontend.
 
-```php
-// Injection dans le controller :
-public function __construct(private readonly GotenbergPdfInterface $gotenberg) {}
+## Règle #6 — Alertes
 
-// Génération :
-$pdf = $this->gotenberg->html()->content('pdf/template.html.twig', $context)->generate();
-```
+AlertService utilise le cache Symfony (Redis en prod) pour la déduplication.
+1 alerte max par capteur par cooldown (défaut 60 min).
+Ne jamais envoyer d'email directement depuis un controller — passer par AlertService.
 
-## Règle #6 — Types TypeScript
+## Règle #7 — Types TypeScript
 
-Un seul fichier : `apps/frontend/src/types/api.ts`
-Ne jamais définir de types inline dans les composants.
+Un seul fichier : `frontend/src/types/api.ts`
+SensorUpdate est défini dans useMercure.ts — ne pas le dupliquer.
 
-## Règle #7 — Appels API Frontend
+## Règle #8 — Ce que tu ne fais JAMAIS sans validation humaine
 
-Tous les appels HTTP passent par `apps/frontend/src/services/api.ts`.
-Un 401 déclenche le logout automatique.
+- Modifier TenantFilter, TenantListener, Voters RBAC
+- Changer la logique hash-chaining
+- Publier sur un topic Mercure sans le prefixe cannas/{tenantId}/
+- Modifier le format des rapports réglementaires
 
-## Règle #8 — UI Framework
-
-**Quasar** (pas Vuetify). Composants préfixe Q. Touch targets >= 48px.
-
-## Règle #9 — Ce que tu ne fais JAMAIS sans validation humaine
-
-- Modifier le schéma d'une entité existante (Plot→Room, CropActivity, User)
-- Changer la logique de hash-chaining dans `HashChainService`
-- Modifier `TenantFilter`, `TenantListener`, ou les Voters RBAC
-- Décider du format des rapports réglementaires (CTS, BfArM)
-- Contourner les règles de destruction (7j, 50%, photos)
-- Contourner la logique LoQ et la quarantaine automatique
-
-## Règle #10 — Commits
+## Règle #9 — Commits
 
 Format : `feat(TICKET-ID): description courte`
 
 ## Points de synchronisation
 
-- **SYNC-01** ✅ Validé — Isolation multi-tenant vérifiée
-- **SYNC-02** — Après migrations jalon 2 : valider les 4 nouvelles tables et colonnes LoQ
-- **SYNC-03** — Après rapport PDF : validation par contact BfArM ou Health Canada
-- **SYNC-04** — Après IoT Mercure (Jalon 3) : valider en staging
+- **SYNC-01** ✅ Validé
+- **SYNC-02** ✅ Validé
+- **SYNC-03** ✅ Premier PDF généré (validation réglementaire externe à faire en beta)
+- **SYNC-04** 🔄 Après IoT : dashboard temps réel < 5s en staging
 
-## Services Docker requis (Jalon 2)
-
-Ajouter dans `docker-compose.yml` :
+## Services Docker requis (Jalon 3)
 
 ```yaml
-gotenberg:
-  image: gotenberg/gotenberg:8
+mercure:
+  image: dunglas/mercure
+  environment:
+    SERVER_NAME: ':80'
+    MERCURE_PUBLISHER_JWT_KEY: '${MERCURE_JWT_SECRET}'
+    MERCURE_SUBSCRIBER_JWT_KEY: '${MERCURE_JWT_SECRET}'
+  command: /usr/bin/caddy run --config /etc/caddy/Caddyfile.dev
   ports:
-    - "3000:3000"
-  restart: unless-stopped
+    - "80:80"
+
+mosquitto:
+  image: eclipse-mosquitto:2
+  ports:
+    - "1883:1883"
+  volumes:
+    - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
 ```
 
-Variable `.env` :
+Variables `.env` à ajouter :
 ```
-GOTENBERG_URL=http://gotenberg:3000
+MERCURE_URL=http://mercure/.well-known/mercure
+MERCURE_PUBLIC_URL=http://localhost/.well-known/mercure
+MERCURE_JWT_SECRET=cannas_mercure_secret_change_in_prod
+VITE_MERCURE_PUBLIC_URL=http://localhost/.well-known/mercure
 ```
