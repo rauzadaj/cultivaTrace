@@ -40,6 +40,11 @@ services:
     ports:
       - "5432:5432"
 
+###> sensiolabs/gotenberg-bundle ###
+  gotenberg:
+    image: 'gotenberg/gotenberg:8'
+###< sensiolabs/gotenberg-bundle ###
+
 volumes:
   pgdata:
   vendor:
