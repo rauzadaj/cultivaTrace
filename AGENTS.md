@@ -1,97 +1,124 @@
-# CannaSaaS — Instructions Agents
+# CannaSaaS — Instructions Agents (Jalon 2)
 
 **Lis ce fichier en entier avant de coder quoi que ce soit.**
 
-## Stack
+## Stack (définitif)
 
-- Backend : Symfony 6.4 LTS + API Platform 3 + Doctrine ORM
-- Frontend : Vue 3 (Composition API) + Quasar Framework + Pinia + Axios
-- DB : PostgreSQL 16 + TimescaleDB (IoT)
-- Auth : LexikJWTAuthenticationBundle — JWT stateless
-- PDF : Gotenberg (service Docker)
-- Temps réel : Mercure Hub (SSE) — pas de WebSocket
+- Backend : **Symfony 6.4 LTS + API Platform 3** — pas NestJS, pas Node.js
+- Frontend : **Vue 3 + Quasar Framework** — pas Vuetify, pas Next.js
+- DB : PostgreSQL 16 + TimescaleDB (Jalon 3)
+- Auth : LexikJWTAuthenticationBundle (JWT stateless)
+- PDF : **GotenbergBundle** (sensiolabs/gotenberg-bundle) — pas wkhtmltopdf, pas dompdf
+- Temps réel : Mercure Hub SSE (Jalon 3)
 - Queue : Symfony Messenger
-- Structure : monorepo — `apps/backend/` + `apps/frontend/` + `infra/`
+- Monorepo : `apps/backend/` + `apps/frontend/` + `infra/`
 
-## Règle #1 — Multi-tenant
+## Jalon actuel : Jalon 2 — Cœur du produit
 
-**Toute entité métier a un champ `tenantId` (UUID).** Aucune exception.
+### Fichiers livrés dans ce jalon
 
-- Le `TenantFilter` Doctrine est activé automatiquement sur chaque requête authentifiée
+Backend :
+- `Entity/Strain.php` — génétiques avec cannabisType (hemp|marijuana) + THC%
+- `Entity/InputRecord.php` — intrants avec LoQ Health Canada + quarantaine auto
+- `Entity/HarvestRecord.php` — données de récolte (1-to-1 avec Plant)
+- `Entity/DestructionIntent.php` — workflow destruction 7j + ratio 50%
+- `Repository/PlantEventRepository.php` — APPEND-ONLY + hash-chain auto
+- `Controller/HarvestController.php` — transaction atomique harvest
+- `Controller/DestructionController.php` — workflow destruction 2 étapes
+- `Controller/PlantReportController.php` — PDF via GotenbergBundle
+- `Controller/CTSReportController.php` — CSV Health Canada CTS
+- `Security/Voter/PlantVoter.php` — RBAC plants
+- `templates/pdf/plant_report.html.twig` — template PDF
+
+## Règle #1 — Multi-tenant (SYNC-01 validé ✅)
+
+**TenantListener priority = -10** (après le firewall JWT en priorité 8)
+
+- Toute entité métier a un champ `tenantId` (UUID)
+- Le `TenantFilter` est activé automatiquement sur chaque requête authentifiée
 - Le `tenantId` vient du JWT — jamais du body de la requête
 - Ne jamais exposer `tenantId` dans les réponses API
-- Ne jamais faire de `findAll()` sans filtre tenant
-- Fichier : `apps/backend/src/Doctrine/TenantFilter.php`
 
-## Règle #2 — Audit Trail (PlantEvent)
-
-**La table `plant_event` est APPEND-ONLY.**
+## Règle #2 — Audit Trail APPEND-ONLY
 
 - Jamais de `UPDATE` ni de `DELETE` sur `PlantEvent`
-- Chaque event a un `hashSelf` = SHA-256(id + payload + occurredAt + hashPrevious)
-- Utiliser `PlantEventRepository::appendEvent()` — jamais `EntityManager::persist()` direct
-- Fichier : `apps/backend/src/Entity/PlantEvent.php`
+- Toujours utiliser `PlantEventRepository::appendEvent()`
+- Le hash-chaining est calculé automatiquement dans `appendEvent()`
 
-## Règle #3 — Types TypeScript
+## Règle #3 — Transactions obligatoires
 
-**Un seul fichier de types : `apps/frontend/src/types/api.ts`**
+Ces opérations doivent être dans une transaction `beginTransaction/commit/rollback` :
+- `POST /api/plants/{id}/harvest` — HarvestRecord + Plant update + PlantEvent
+- `POST /api/destructions/{id}/confirm` — DestructionIntent + Plant update + PlantEvent
 
-- Ne jamais définir de types inline dans les composants
-- Ne jamais dupliquer un type qui existe déjà dans ce fichier
-- Si un type manque, l'ajouter dans `api.ts` et signaler la modification
+## Règle #4 — Règles réglementaires non-contournables
 
-## Règle #4 — Appels API Frontend
+- Destruction : délai légal minimum 7 jours (`canBeConfirmed()`)
+- Destruction : ratio non-cannabis >= 50% (`isNonCannabisRatioValid()`)
+- Destruction : photos obligatoires
+- LoQ pesticides : `computeTestResult()` appelé automatiquement après saisie
+- LoQ fail → quarantaine automatique (`quarantinedAt = now`)
+- Règle 7 jours Health Canada : si testResult = fail, alerte à J0, J3, J6, rapport à J7
 
-**Tous les appels HTTP passent par `apps/frontend/src/services/api.ts`**
+## Règle #5 — PDF
 
-- Jamais d'Axios direct dans un composant ou un store
-- Le service injecte le JWT automatiquement via intercepteur
-- Un 401 déclenche le logout automatique via `useAuthStore`
+Utiliser **GotenbergBundle** (sensiolabs/gotenberg-bundle) — pas de client HTTP custom.
 
-## Règle #5 — Ce que tu ne fais JAMAIS sans validation humaine
+```php
+// Injection dans le controller :
+public function __construct(private readonly GotenbergPdfInterface $gotenberg) {}
 
-- Modifier le schéma d'une entité existante (`Plot`, `CropActivity`, `User`)
+// Génération :
+$pdf = $this->gotenberg->html()->content('pdf/template.html.twig', $context)->generate();
+```
+
+## Règle #6 — Types TypeScript
+
+Un seul fichier : `apps/frontend/src/types/api.ts`
+Ne jamais définir de types inline dans les composants.
+
+## Règle #7 — Appels API Frontend
+
+Tous les appels HTTP passent par `apps/frontend/src/services/api.ts`.
+Un 401 déclenche le logout automatique.
+
+## Règle #8 — UI Framework
+
+**Quasar** (pas Vuetify). Composants préfixe Q. Touch targets >= 48px.
+
+## Règle #9 — Ce que tu ne fais JAMAIS sans validation humaine
+
+- Modifier le schéma d'une entité existante (Plot→Room, CropActivity, User)
 - Changer la logique de hash-chaining dans `HashChainService`
-- Modifier `TenantFilter` ou les Voters RBAC
-- Décider du format des rapports réglementaires (CTS, BfArM, ANSM)
-- Intégrer une API tierce non listée dans ce fichier
+- Modifier `TenantFilter`, `TenantListener`, ou les Voters RBAC
+- Décider du format des rapports réglementaires (CTS, BfArM)
+- Contourner les règles de destruction (7j, 50%, photos)
+- Contourner la logique LoQ et la quarantaine automatique
 
-## Règle #6 — Commits
+## Règle #10 — Commits
 
-Format obligatoire : `feat(TICKET-ID): description courte`
+Format : `feat(TICKET-ID): description courte`
 
-Exemples :
-- `feat(BE-001): add Organization entity and TenantFilter`
-- `feat(FE-003): add plant list view with grid and filters`
-- `fix(BE-003): correct hash chain on first event (no previous)`
+## Points de synchronisation
 
-## Entités existantes — ne pas supprimer
+- **SYNC-01** ✅ Validé — Isolation multi-tenant vérifiée
+- **SYNC-02** — Après migrations jalon 2 : valider les 4 nouvelles tables et colonnes LoQ
+- **SYNC-03** — Après rapport PDF : validation par contact BfArM ou Health Canada
+- **SYNC-04** — Après IoT Mercure (Jalon 3) : valider en staging
 
-| Fichier actuel | Nouveau nom | Action |
-|---|---|---|
-| `Plot.php` | → `Room.php` | Migrer (ajouter tenantId, capacityMax, type, farmId) |
-| `CropActivity.php` | → `PlantEvent.php` | Migrer (lier à Plant, pas à Plot) |
-| `User.php` | Inchangé | Ajouter tenantId + roles |
+## Services Docker requis (Jalon 2)
 
-## Points de synchronisation — STOP et attendre validation humaine
+Ajouter dans `docker-compose.yml` :
 
-- **SYNC-01** : Après `BE-001` (TenantFilter) — tester isolation avant tout développement métier
-- **SYNC-02** : Après `BE-003` (Plant + PlantEvent) — valider schéma avant les rapports PDF
-- **SYNC-03** : Après `BE-006` (rapport PDF) — validation par contact réglementaire externe
-- **SYNC-04** : Après `INF-003` (IoT Mercure) — valider en staging avant beta
+```yaml
+gotenberg:
+  image: gotenberg/gotenberg:8
+  ports:
+    - "3000:3000"
+  restart: unless-stopped
+```
 
-## Agents et périmètres
-
-| Agent | Stack | Dossier | Ne touche pas à |
-|---|---|---|---|
-| BACKEND | Symfony / Doctrine | `apps/backend/src/` | `apps/frontend/` |
-| FRONTEND | Vue / Quasar / Pinia | `apps/frontend/src/` | `apps/backend/` |
-
-## Frontend UI
-
-- Les composants UI utilisent le prefixe `Q` (`QBtn`, `QInput`, `QCard`, `QPage`, `QLayout`, etc.)
-- Layout principal : `QLayout` + `QHeader` + `QDrawer` + `QPageContainer` + `QFooter`
-- Navigation mobile : `QTabsBar` en bas (`bottom tabs`)
-- Touch targets minimum `48px` sur mobile
-- Ne jamais utiliser de composants UI hors Quasar (`v-btn`, `v-card`, etc.)
-| INFRA | Docker / Terraform | `infra/` | `apps/` |
+Variable `.env` :
+```
+GOTENBERG_URL=http://gotenberg:3000
+```
