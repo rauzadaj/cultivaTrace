@@ -41,3 +41,4 @@ pnpm-debug.log*
 ###> local assets ###
 /public/Logo/
 ###< local assets ###
+.env
