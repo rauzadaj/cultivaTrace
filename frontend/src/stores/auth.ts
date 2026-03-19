@@ -10,10 +10,13 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
 import type { JwtPayload, User, UserRole } from '@/types/api'
 
+const TOKEN_KEY = 'cultivatrace_token'
+const LEGACY_TOKEN_KEY = 'jwt_token'
+
 export const useAuthStore = defineStore('auth', () => {
   // ── State ────────────────────────────────────────────────────────────────
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('jwt_token'))
+  const token = ref<string | null>(localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY))
   const loading = ref(false)
 
   // ── Getters ──────────────────────────────────────────────────────────────
@@ -37,11 +40,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data } = await authApi.login({ email, password })
       token.value = data.token
-      localStorage.setItem('jwt_token', data.token)
+      localStorage.setItem(TOKEN_KEY, data.token)
+      localStorage.removeItem(LEGACY_TOKEN_KEY)
       if (data.refresh_token) {
         localStorage.setItem('refresh_token', data.refresh_token)
       }
-      user.value = buildUserFromToken(data.token)
+      await fetchMe()
     } finally {
       loading.value = false
     }
@@ -53,13 +57,19 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
-    user.value = buildUserFromToken(token.value)
+    try {
+      const { data } = await authApi.me()
+      user.value = data
+    } catch {
+      user.value = buildUserFromToken(token.value)
+    }
   }
 
   function logout(): void {
     user.value = null
     token.value = null
-    localStorage.removeItem('jwt_token')
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
     localStorage.removeItem('refresh_token')
   }
 
