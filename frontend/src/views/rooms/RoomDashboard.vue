@@ -264,6 +264,10 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
 .room-dashboard {
   display: grid;
   gap: 16px;
+  height: auto;
+  min-height: auto;
+  overflow-y: visible;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
 }
 
 .room-dashboard__header {
@@ -390,6 +394,10 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
 }
 
 @include bp.mobile {
+  .room-dashboard {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
   .room-dashboard__header {
     flex-direction: column;
   }
@@ -410,6 +418,10 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
 }
 
 @include bp.desktop {
+  .room-dashboard {
+    padding-bottom: 32px;
+  }
+
   .sensor-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
