@@ -1,0 +1,240 @@
+<template>
+  <q-page class="billing-page">
+    <div class="billing-container">
+
+      <div class="text-h5 text-weight-bold q-mb-xs">Facturation</div>
+      <div class="text-body2 text-grey-6 q-mb-xl">Gérez votre abonnement CannaSaaS</div>
+
+      <!-- Plan actuel -->
+      <q-card flat bordered class="q-mb-lg current-plan-card">
+        <q-card-section>
+          <div class="row items-center justify-between">
+            <div>
+              <div class="text-caption text-grey-6 text-uppercase">Plan actuel</div>
+              <div class="text-h6 text-weight-bold text-primary q-mt-xs">
+                {{ planLabel }}
+              </div>
+            </div>
+            <q-chip
+              :color="licenseStatusColor"
+              text-color="white"
+              :label="licenseStatusLabel"
+              size="md"
+            />
+          </div>
+
+          <!-- Limites -->
+          <div v-if="limits" class="q-mt-md">
+            <div class="row q-col-gutter-md">
+              <div class="col-4" v-for="limit in displayLimits" :key="limit.key">
+                <div class="text-caption text-grey-6">{{ limit.label }}</div>
+                <div class="text-body1 text-weight-medium">
+                  {{ limit.current }}
+                  <span class="text-grey-5 text-caption">/ {{ limit.max ?? '∞' }}</span>
+                </div>
+                <q-linear-progress
+                  v-if="limit.max"
+                  :value="limit.current / limit.max"
+                  :color="limit.current / limit.max > 0.8 ? 'negative' : 'primary'"
+                  size="4px"
+                  class="q-mt-xs"
+                />
+              </div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions v-if="hasStripeSubscription">
+          <q-btn
+            label="Gérer mon abonnement"
+            color="primary"
+            outline
+            :loading="loadingPortal"
+            @click="openPortal"
+          />
+        </q-card-actions>
+      </q-card>
+
+      <!-- Plans disponibles -->
+      <div class="text-subtitle1 text-weight-medium q-mb-md">Changer de plan</div>
+
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-4" v-for="plan in plans" :key="plan.id">
+          <q-card
+            flat
+            bordered
+            :class="['plan-card', { 'plan-card--current': plan.id === currentPlan, 'plan-card--recommended': plan.id === 'pro' }]"
+          >
+            <q-badge
+              v-if="plan.id === 'pro'"
+              color="primary"
+              label="Recommandé"
+              class="plan-badge"
+              floating
+            />
+
+            <q-card-section>
+              <div class="text-subtitle1 text-weight-bold">{{ plan.name }}</div>
+              <div class="text-h4 text-weight-bold text-primary q-my-sm">
+                {{ plan.price }}
+                <span class="text-caption text-grey-6 text-weight-regular">/mois</span>
+              </div>
+
+              <q-separator class="q-my-md" />
+
+              <div v-for="feature in plan.features" :key="feature" class="row items-start q-mb-sm">
+                <q-icon name="check" color="positive" size="sm" class="q-mr-sm q-mt-xs" />
+                <span class="text-body2">{{ feature }}</span>
+              </div>
+            </q-card-section>
+
+            <q-card-actions class="q-px-md q-pb-md">
+              <q-btn
+                v-if="plan.id !== currentPlan"
+                :label="plan.id === 'enterprise' ? 'Nous contacter' : 'Choisir ce plan'"
+                color="primary"
+                :outline="plan.id !== 'pro'"
+                :unelevated="plan.id === 'pro'"
+                :loading="loadingCheckout === plan.id"
+                class="full-width"
+                style="height: 48px"
+                @click="plan.id === 'enterprise' ? contactSales() : startCheckout(plan.id)"
+              />
+              <q-btn
+                v-else
+                label="Plan actuel"
+                color="grey-4"
+                text-color="grey-7"
+                unelevated
+                disable
+                class="full-width"
+                style="height: 48px"
+              />
+            </q-card-actions>
+          </q-card>
+        </div>
+      </div>
+
+    </div>
+  </q-page>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
+import { useAuthStore } from '@/stores/auth'
+import { billingApi } from '@/services/api'
+
+const $q       = useQuasar()
+const auth     = useAuthStore()
+
+const limits         = ref<any>(null)
+const loadingPortal  = ref(false)
+const loadingCheckout = ref<string | null>(null)
+const hasStripeSubscription = ref(false)
+
+const currentPlan = computed(() => auth.organization?.plan ?? 'starter')
+
+const planLabel = computed(() => {
+  const labels: Record<string, string> = {
+    starter: 'Starter — 79 €/mois',
+    pro: 'Pro — 249 €/mois',
+    business: 'Business — 599 €/mois',
+    enterprise: 'Enterprise',
+  }
+  return labels[currentPlan.value] ?? currentPlan.value
+})
+
+const licenseStatusColor = computed(() => {
+  const map: Record<string, string> = {
+    active: 'positive', pending: 'warning',
+    rejected: 'negative', expired: 'negative', suspended: 'negative',
+  }
+  return map[auth.organization?.licenseStatus ?? ''] ?? 'grey'
+})
+
+const licenseStatusLabel = computed(() => {
+  const map: Record<string, string> = {
+    active: 'Licence active', pending: 'En attente',
+    rejected: 'Rejetée', expired: 'Expirée', suspended: 'Suspendue',
+  }
+  return map[auth.organization?.licenseStatus ?? ''] ?? 'Inconnu'
+})
+
+const displayLimits = computed(() => {
+  if (!limits.value) return []
+  return [
+    { key: 'plants', label: 'Plants', current: limits.value.plants.current, max: limits.value.plants.max },
+    { key: 'rooms',  label: 'Salles', current: limits.value.rooms.current,  max: limits.value.rooms.max  },
+    { key: 'users',  label: 'Users',  current: limits.value.users.current,  max: limits.value.users.max  },
+  ]
+})
+
+const plans = [
+  {
+    id: 'starter', name: 'Starter', price: '79 €',
+    features: ['200 plants', '2 salles', '3 utilisateurs', 'Rapports PDF', 'Audit trail'],
+  },
+  {
+    id: 'pro', name: 'Pro', price: '249 €',
+    features: ['1 500 plants', '10 salles', '15 utilisateurs', 'IoT capteurs', 'VPD temps réel', 'METRC (USA)'],
+  },
+  {
+    id: 'business', name: 'Business', price: '599 €',
+    features: ['Plants illimités', 'Salles illimitées', 'Users illimités', 'Multi-sites', 'API access', 'Support prioritaire'],
+  },
+  {
+    id: 'enterprise', name: 'Enterprise', price: 'Sur devis',
+    features: ['Tout Business inclus', 'SLA dédié', 'CSM dédié', 'Intégrations custom', 'Formation équipe'],
+  },
+]
+
+async function loadBillingStatus(): Promise<void> {
+  try {
+    const { data } = await billingApi.status()
+    hasStripeSubscription.value = data.hasActiveSubscription
+    limits.value = data.limits
+  } catch { /* silencieux */ }
+}
+
+async function startCheckout(planId: string): Promise<void> {
+  loadingCheckout.value = planId
+  try {
+    const { data } = await billingApi.checkout(planId)
+    window.location.href = data.checkoutUrl
+  } catch (e: any) {
+    $q.notify({ type: 'negative', message: 'Erreur lors de la création du checkout' })
+  } finally {
+    loadingCheckout.value = null
+  }
+}
+
+async function openPortal(): Promise<void> {
+  loadingPortal.value = true
+  try {
+    const { data } = await billingApi.portal()
+    window.open(data.portalUrl, '_blank')
+  } catch {
+    $q.notify({ type: 'negative', message: 'Impossible d\'accéder au portail de facturation' })
+  } finally {
+    loadingPortal.value = false
+  }
+}
+
+function contactSales(): void {
+  window.location.href = 'mailto:sales@cannas.app?subject=Enterprise CannaSaaS'
+}
+
+onMounted(loadBillingStatus)
+</script>
+
+<style scoped>
+.billing-page { background: var(--q-color-grey-1, #f7f8fa); }
+.billing-container { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+.current-plan-card { border-radius: 12px; }
+.plan-card { border-radius: 12px; position: relative; transition: box-shadow 0.2s; }
+.plan-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.plan-card--current { border-color: var(--q-primary) !important; }
+.plan-card--recommended { border-color: var(--q-primary) !important; }
+.plan-badge { top: 12px; right: 12px; }
+</style>
