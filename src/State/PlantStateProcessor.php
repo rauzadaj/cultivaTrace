@@ -7,8 +7,11 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Plant;
 use App\Entity\User;
 use App\Repository\PlantEventRepository;
+use App\Service\PlanLimitExceededException;
+use App\Service\PlanLimitsService;
 use InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class PlantStateProcessor implements ProcessorInterface
@@ -18,6 +21,7 @@ final class PlantStateProcessor implements ProcessorInterface
         private readonly ProcessorInterface $persistProcessor,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly PlantEventRepository $plantEventRepository,
+        private readonly PlanLimitsService $planLimits,
     ) {
     }
 
@@ -45,6 +49,15 @@ final class PlantStateProcessor implements ProcessorInterface
 
             if (!isset($context['previous_data']) || !$context['previous_data'] instanceof Plant) {
                 $isCreate = true;
+                try {
+                    $this->planLimits->checkPlantLimit($organization);
+                } catch (PlanLimitExceededException $exception) {
+                    throw new HttpException(
+                        402,
+                        json_encode($exception->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $exception->getMessage(),
+                        $exception,
+                    );
+                }
                 $data->setCreatedBy($user);
             } else {
                 /** @var Plant $previousPlant */
