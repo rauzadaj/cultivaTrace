@@ -6,8 +6,10 @@ import 'quasar/src/css/index.sass'
 import App from './App.vue'
 import { pinia } from './plugins/pinia'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
+const authStore = useAuthStore(pinia)
 
 app.use(pinia)
 app.use(router)
@@ -22,4 +24,7 @@ app.use(Quasar, {
     },
   },
 })
+
+void authStore.init()
+
 app.mount('#app')
