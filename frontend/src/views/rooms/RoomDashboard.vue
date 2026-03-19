@@ -17,6 +17,21 @@
       </q-chip>
     </header>
 
+    <div v-if="roomTabs.length > 1" class="room-dashboard__switcher">
+      <q-btn
+        v-for="room in roomTabs"
+        :key="room.id"
+        unelevated
+        no-caps
+        class="room-dashboard__switch-btn"
+        :class="{ 'room-dashboard__switch-btn--active': room.id === currentRoomId }"
+        @click="selectRoom(room.id)"
+      >
+        <span>{{ room.name }}</span>
+        <small>{{ room.type }}</small>
+      </q-btn>
+    </div>
+
     <div v-if="loading" class="room-skeleton">
       <q-skeleton v-for="index in 4" :key="index" height="220px" class="room-skeleton__item" />
     </div>
@@ -64,7 +79,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SensorCard from '@/components/sensors/SensorCard.vue'
 import CCard from '@/components/ui/CCard.vue'
 import { useMercure } from '@/composables/useMercure'
@@ -74,6 +89,7 @@ import { useSensorsStore } from '@/stores/sensors'
 import type { Room, SensorVpdSnapshot } from '@/types/api'
 
 const route = useRoute()
+const router = useRouter()
 const plantsStore = usePlantsStore()
 const sensorsStore = useSensorsStore()
 const authStore = useAuthStore()
@@ -92,6 +108,12 @@ const currentRoom = computed<Room | null>(() =>
   plantsStore.rooms.find((room) => room.id === currentRoomId.value) ?? null
 )
 
+const roomTabs = computed(() => plantsStore.rooms.map((room) => ({
+  id: room.id,
+  name: room.name,
+  type: room.type,
+})))
+
 const currentRoomSensors = computed(() => {
   const roomId = currentRoomId.value
   if (!roomId) {
@@ -99,6 +121,89 @@ const currentRoomSensors = computed(() => {
   }
 
   return sensorsStore.sensorsByRoom.get(roomId) ?? []
+})
+
+function computeVpdValue(temperatureCelsius: number, humidityPercent: number): number {
+  const svp = 0.6108 * Math.exp((17.27 * temperatureCelsius) / (temperatureCelsius + 237.3))
+  return Math.round(svp * (1 - humidityPercent / 100) * 100) / 100
+}
+
+function evaluateVpdSnapshot(value: number, stage: 'germination' | 'vegetation' | 'flowering'): SensorVpdSnapshot {
+  const ranges: Record<'germination' | 'vegetation' | 'flowering', [number, number]> = {
+    germination: [0.4, 0.8],
+    vegetation: [0.8, 1.2],
+    flowering: [1.0, 1.5],
+  }
+
+  const [optimalMin, optimalMax] = ranges[stage]
+
+  if (value < optimalMin) {
+    return {
+      vpd: value,
+      status: 'too_low',
+      message: `VPD trop faible (${value.toFixed(2)} kPa) — Risque d'exces d'humidite, fonte des semis, botrytis`,
+      optimal_min: optimalMin,
+      optimal_max: optimalMax,
+      stage,
+    }
+  }
+
+  if (value > optimalMax) {
+    return {
+      vpd: value,
+      status: 'too_high',
+      message: `VPD trop eleve (${value.toFixed(2)} kPa) — Stress hydrique, fermeture des stomates, ralentissement de croissance`,
+      optimal_min: optimalMin,
+      optimal_max: optimalMax,
+      stage,
+    }
+  }
+
+  return {
+    vpd: value,
+    status: 'optimal',
+    message: `VPD optimal (${value.toFixed(2)} kPa) — Transpiration et croissance optimales`,
+    optimal_min: optimalMin,
+    optimal_max: optimalMax,
+    stage,
+  }
+}
+
+function inferStageFromRoom(room: Room | null): 'germination' | 'vegetation' | 'flowering' {
+  if (room?.type === 'flower') {
+    return 'flowering'
+  }
+
+  return 'vegetation'
+}
+
+const derivedVpdReading = computed<SensorVpdSnapshot | null>(() => {
+  let temperature: number | null = null
+  let humidity: number | null = null
+
+  for (const sensor of currentRoomSensors.value) {
+    const liveReading = sensorsStore.getLiveReading(sensor.id)
+    if (!liveReading) {
+      continue
+    }
+
+    if (sensor.type === 'temperature') {
+      temperature = liveReading.value
+    }
+
+    if (sensor.type === 'humidity') {
+      humidity = liveReading.value
+    }
+  }
+
+  if (temperature === null || humidity === null) {
+    return null
+  }
+
+  return evaluateVpdSnapshot(
+    computeVpdValue(temperature, humidity),
+    inferStageFromRoom(currentRoom.value),
+  )
 })
 
 const latestVpdReading = computed<SensorVpdSnapshot | null>(() => {
@@ -109,7 +214,7 @@ const latestVpdReading = computed<SensorVpdSnapshot | null>(() => {
     }
   }
 
-  return null
+  return derivedVpdReading.value
 })
 
 const vpdCard = computed(() => latestVpdReading.value)
@@ -178,7 +283,7 @@ const subscriptionWarning = computed(() => {
 })
 
 async function ensureRoomContext(): Promise<void> {
-  if (!orgId.value && authStore.token) {
+  if (!orgId.value) {
     try {
       await authStore.fetchMe()
     } catch (error) {
@@ -193,6 +298,19 @@ async function ensureRoomContext(): Promise<void> {
   if (currentRoomId.value) {
     await sensorsStore.fetchSensors(currentRoomId.value)
   }
+}
+
+function selectRoom(roomId: string): void {
+  if (roomId === currentRoomId.value) {
+    return
+  }
+
+  void router.replace({
+    query: {
+      ...route.query,
+      roomId,
+    },
+  })
 }
 
 async function syncSubscription(nextTopic: string | null, previousTopic: string | null): Promise<void> {
@@ -270,6 +388,34 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.room-dashboard__switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.room-dashboard__switch-btn {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #edf2f7;
+  color: #4a5568;
+}
+
+.room-dashboard__switch-btn--active {
+  background: #e8f5ee;
+  color: #1b6b3a;
+}
+
+.room-dashboard__switch-btn small {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .room-dashboard__header h1 {

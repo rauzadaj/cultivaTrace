@@ -34,6 +34,14 @@ export const useAuthStore = defineStore('auth', () => {
     return plan === 'pro' || plan === 'business' || plan === 'enterprise'
   })
 
+  function syncTokenFromStorage(): void {
+    const storedToken = localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY)
+
+    if (storedToken && storedToken !== token.value) {
+      token.value = storedToken
+    }
+  }
+
   // ── Actions ──────────────────────────────────────────────────────────────
   async function login(email: string, password: string): Promise<void> {
     loading.value = true
@@ -52,6 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchMe(): Promise<void> {
+    syncTokenFromStorage()
+
     if (!token.value) {
       user.value = null
       return
@@ -104,6 +114,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Restore session on app load
   async function init(): Promise<void> {
+    syncTokenFromStorage()
+
     if (token.value) {
       try {
         await fetchMe()
