@@ -98,7 +98,7 @@
       </div>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container class="app-page-container">
       <q-page class="app-page">
         <div class="app-page__inner">
           <RouterView />
@@ -554,6 +554,7 @@ async function runConfirmedAction() {
 .app-shell {
   background: #f7f8fa;
   color: #1a202c;
+  min-height: 100vh;
 }
 
 .offline-banner {
@@ -687,8 +688,16 @@ async function runConfirmedAction() {
   color: #1b6b3a;
 }
 
+.app-page-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .app-page {
   background: #f7f8fa;
+  min-height: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .app-page__inner {
