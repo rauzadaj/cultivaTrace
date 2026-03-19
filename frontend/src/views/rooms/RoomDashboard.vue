@@ -67,7 +67,7 @@ import { useMercure } from '@/composables/useMercure'
 import { useAuthStore } from '@/stores/auth'
 import { usePlantsStore } from '@/stores/plants'
 import { useSensorsStore } from '@/stores/sensors'
-import type { JwtPayload, Room, SensorVpdSnapshot } from '@/types/api'
+import type { Room, SensorVpdSnapshot } from '@/types/api'
 
 const route = useRoute()
 const plantsStore = usePlantsStore()
@@ -136,32 +136,7 @@ const vpdValue = computed(() => {
   return typeof value === 'number' ? `${value.toFixed(2)} kPa` : '--'
 })
 
-const orgId = computed(() => {
-  if (typeof authStore.organization?.id === 'string' && authStore.organization.id.length) {
-    return authStore.organization.id
-  }
-
-  const token = authStore.token
-  if (!token) {
-    return null
-  }
-
-  const payload = parseJwtPayload(token)
-
-  if (typeof payload.orgId === 'string' && payload.orgId.length) {
-    return payload.orgId
-  }
-
-  if (typeof payload.organizationId === 'string' && payload.organizationId.length) {
-    return payload.organizationId
-  }
-
-  if (typeof payload.tenantId === 'string' && payload.tenantId.length) {
-    return payload.tenantId
-  }
-
-  return null
-})
+const orgId = computed(() => authStore.organization?.id ?? null)
 
 const mercureTopic = computed(() => {
   if (!orgId.value || !currentRoomId.value) {
@@ -176,28 +151,18 @@ const subscriptionWarning = computed(() => {
     return 'Impossible de determiner la salle a surveiller.'
   }
 
-  if (!orgId.value) {
-    return 'Impossible de determiner l organisation courante pour l abonnement Mercure.'
-  }
-
   return null
 })
 
-function parseJwtPayload(token: string): JwtPayload & Record<string, unknown> {
-  const [, rawPayload = ''] = token.split('.')
-  const normalizedPayload = rawPayload
-    .replace(/-/g, '+')
-    .replace(/_/g, '/')
-    .padEnd(Math.ceil(rawPayload.length / 4) * 4, '=')
-
-  try {
-    return JSON.parse(window.atob(normalizedPayload)) as JwtPayload & Record<string, unknown>
-  } catch {
-    return {}
-  }
-}
-
 async function ensureRoomContext(): Promise<void> {
+  if (!orgId.value && authStore.token) {
+    try {
+      await authStore.fetchMe()
+    } catch (error) {
+      console.error('Unable to resolve current organization for Mercure', error)
+    }
+  }
+
   if (!plantsStore.rooms.length || !plantsStore.plants.length) {
     await plantsStore.bootstrap()
   }
@@ -213,6 +178,10 @@ async function syncSubscription(nextTopic: string | null, previousTopic: string 
   }
 
   if (!nextTopic) {
+    if (!orgId.value) {
+      console.error('Mercure subscription skipped: missing organization id')
+    }
+
     return
   }
 
