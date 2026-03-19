@@ -1,125 +1,96 @@
-# CannaSaaS — Instructions Agents (Jalon 3)
+# CannaSaaS — Instructions Agents (Jalon 4)
 
 **Lis ce fichier en entier avant de coder quoi que ce soit.**
 
 ## Stack (définitif)
 
-- Backend : **Symfony 6.4 LTS + API Platform 3**
-- Frontend : **Vue 3 + Quasar Framework**
-- DB : PostgreSQL 16
-- Séries temporelles IoT : table `sensor_reading` (TimescaleDB ou PG classique)
+- Backend : Symfony 6.4 LTS + API Platform 3
+- Frontend : Vue 3 + Quasar Framework
+- DB : PostgreSQL 16 + TimescaleDB (sensor_reading)
 - Auth : LexikJWTAuthenticationBundle
-- PDF : GotenbergBundle (sensiolabs/gotenberg-bundle)
-- Temps réel : **Mercure Hub SSE** (symfony/mercure-bundle)
-- Queue : Symfony Messenger
-- Monorepo : `src/` (backend) + `frontend/src/` (frontend)
+- PDF : GotenbergBundle
+- Temps réel : Mercure Hub SSE (port 9000)
+- Paiement : Stripe PHP SDK (stripe/stripe-php)
+- Monorepo : src/ (backend) + frontend/src/ (frontend)
 
 ## Jalons complétés
 
-- **Jalon 1** ✅ — Multi-tenant, entités de base, SYNC-01 validé
-- **Jalon 2** ✅ — Plant CRUD, audit trail, harvest, destruction, PDF, CTS
-- **Jalon 3** 🔄 — IoT capteurs, Mercure SSE, VPD, alertes
+- Jalon 1 ✅ — Multi-tenant, SYNC-01 validé
+- Jalon 2 ✅ — Plant, audit trail, harvest, destruction, PDF, CTS
+- Jalon 3 ✅ — IoT, Mercure SSE, VPD, SYNC-04 validé
+- Jalon 4 🔄 — KYB, Stripe, limites plan, dashboard KPIs
 
 ## Fichiers livrés dans ce jalon
 
 Backend :
-- `src/Entity/Sensor.php` — capteur IoT (temperature, humidity, co2, ph, ec)
-- `src/Repository/SensorReadingRepository.php` — DBAL natif, pas ORM
-- `src/Service/VpdService.php` — calcul VPD côté serveur
-- `src/Service/AlertService.php` — alertes seuils avec déduplication Redis
-- `src/Controller/SensorReadingController.php` — POST /api/sensors/{id}/reading
-- `src/Controller/SensorHistoryController.php` — GET /api/sensors/{id}/readings
-- `src/DataFixtures/SensorFixtures.php` — 90j données simulées
-- `config/packages/mercure.yaml`
+- src/Entity/LicenseDocument.php
+- src/Service/KybService.php
+- src/Service/StripeService.php
+- src/Service/PlanLimitsService.php
+- src/Service/PlanLimitExceededException.php
+- src/Controller/KybController.php
+- src/Controller/StripeController.php
+- src/Controller/DashboardController.php
+- src/Scheduler/LicenseExpirationScheduler.php
 
 Frontend :
-- `frontend/src/composables/useMercure.ts` — SSE temps réel
-- `frontend/src/stores/sensors.ts` — store Pinia capteurs
-
-Scripts :
-- `scripts/simulate_sensors.py` — simulateur capteurs (remplace vrais capteurs)
+- frontend/src/views/auth/KybView.vue
+- frontend/src/views/billing/BillingView.vue
 
 ## Règle #1 — Multi-tenant (SYNC-01 validé ✅)
 
-**TenantListener priority = -10**
-Toute entité métier a un champ `tenantId`. TenantFilter actif sur toutes les requêtes.
+TenantListener priority = -10.
+Toute entité métier a tenantId. TenantFilter actif sur toutes les requêtes.
 
 ## Règle #2 — Audit Trail APPEND-ONLY
 
 Jamais de UPDATE ni DELETE sur PlantEvent.
-Toujours utiliser PlantEventRepository::appendEvent().
+Toujours PlantEventRepository::appendEvent().
 
-## Règle #3 — sensor_reading est une table DBAL, pas une entité ORM
+## Règle #3 — KYB — Règles non-contournables
 
-Ne jamais créer d'entité Doctrine pour sensor_reading.
-Toujours utiliser SensorReadingRepository (DBAL natif).
+- Un utilisateur sans licence active (pending/rejected/expired/suspended)
+  ne peut pas créer de plants, salles ou capteurs
+- En dev : KybService simule une approbation automatique
+- En prod : METRC via API, Health Canada en manuel, BfArM en manuel
+- Le status pending donne un accès lecture seule uniquement
 
-## Règle #4 — Mercure SSE
+## Règle #4 — Stripe — Règles non-contournables
 
-Topic format : `cannas/{tenantId}/sensors` et `cannas/{tenantId}/rooms/{roomId}`
-Ne jamais publier des données d'un autre tenant sur le même topic.
-Utiliser HubInterface injecté dans les controllers — pas de client HTTP direct.
+- Ne jamais stocker une carte bancaire ou données Stripe sensibles en base
+- stripeCustomerId est la seule donnée Stripe stockée sur Organization
+- Toujours vérifier la signature du webhook (Webhook::constructEvent)
+- Le webhook /api/billing/webhook doit toujours retourner 200
+  même en cas d'erreur — pour éviter les retries Stripe infinis
 
-## Règle #5 — VPD
+## Règle #5 — Plan Limits
 
-VpdService::compute() prend température (°C) et humidité (%).
-Le calcul est fait côté serveur dans SensorReadingController.
-Ne jamais calculer le VPD côté frontend.
+- PlanLimitsService::checkPlantLimit() appelé dans PlantStateProcessor
+  avant toute création de plant
+- HTTP 402 (Payment Required) si limite atteinte — avec toArray()
+- Ne jamais vérifier les limites côté frontend uniquement
 
-## Règle #6 — Alertes
+## Règle #6 — stripeCustomerId sur Organization
 
-AlertService utilise le cache Symfony (Redis en prod) pour la déduplication.
-1 alerte max par capteur par cooldown (défaut 60 min).
-Ne jamais envoyer d'email directement depuis un controller — passer par AlertService.
+L'entité Organization doit avoir ce champ.
+Si absent → ajouter + migration avant de déployer StripeService.
 
-## Règle #7 — Types TypeScript
-
-Un seul fichier : `frontend/src/types/api.ts`
-SensorUpdate est défini dans useMercure.ts — ne pas le dupliquer.
-
-## Règle #8 — Ce que tu ne fais JAMAIS sans validation humaine
+## Règle #7 — Ce que tu ne fais JAMAIS sans validation humaine
 
 - Modifier TenantFilter, TenantListener, Voters RBAC
 - Changer la logique hash-chaining
-- Publier sur un topic Mercure sans le prefixe cannas/{tenantId}/
-- Modifier le format des rapports réglementaires
+- Bypasser la vérification de signature Stripe webhook
+- Bypasser les limites de plan côté serveur
 
-## Règle #9 — Commits
+## Règle #8 — Commits
 
-Format : `feat(TICKET-ID): description courte`
+Format : feat(TICKET-ID): description courte
 
 ## Points de synchronisation
 
-- **SYNC-01** ✅ Validé
-- **SYNC-02** ✅ Validé
-- **SYNC-03** ✅ Premier PDF généré (validation réglementaire externe à faire en beta)
-- **SYNC-04** 🔄 Après IoT : dashboard temps réel < 5s en staging
-
-## Services Docker requis (Jalon 3)
-
-```yaml
-mercure:
-  image: dunglas/mercure
-  environment:
-    SERVER_NAME: ':80'
-    MERCURE_PUBLISHER_JWT_KEY: '${MERCURE_JWT_SECRET}'
-    MERCURE_SUBSCRIBER_JWT_KEY: '${MERCURE_JWT_SECRET}'
-  command: /usr/bin/caddy run --config /etc/caddy/Caddyfile.dev
-  ports:
-    - "80:80"
-
-mosquitto:
-  image: eclipse-mosquitto:2
-  ports:
-    - "1883:1883"
-  volumes:
-    - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
-```
-
-Variables `.env` à ajouter :
-```
-MERCURE_URL=http://mercure/.well-known/mercure
-MERCURE_PUBLIC_URL=http://localhost/.well-known/mercure
-MERCURE_JWT_SECRET=cannas_mercure_secret_change_in_prod
-VITE_MERCURE_PUBLIC_URL=http://localhost/.well-known/mercure
-```
+- SYNC-01 ✅ — Isolation multi-tenant
+- SYNC-02 ✅ — Migrations jalon 2
+- SYNC-03 ✅ — PDF généré (validation réglementaire externe à faire)
+- SYNC-04 ✅ — IoT dashboard temps réel
+- SYNC-05 🔄 — Jalon 4 : tester le flow Stripe complet en sandbox
+  (checkout → paiement test → webhook → plan mis à jour)

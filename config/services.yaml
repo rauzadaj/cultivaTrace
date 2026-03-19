@@ -35,6 +35,19 @@ services:
         tags:
             - { name: doctrine.event_subscriber }
 
+    App\Service\StripeService:
+        arguments:
+            $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
+            $stripeWebhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
+            $priceStarter: '%env(STRIPE_PRICE_STARTER)%'
+            $pricePro: '%env(STRIPE_PRICE_PRO)%'
+            $priceBusiness: '%env(STRIPE_PRICE_BUSINESS)%'
+            $alertFromEmail: '%env(STRIPE_ALERT_FROM_EMAIL)%'
+
+    App\Scheduler\LicenseExpirationScheduler:
+        arguments:
+            $alertFromEmail: '%env(LICENSE_ALERT_FROM_EMAIL)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 

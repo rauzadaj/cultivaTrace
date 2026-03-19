@@ -70,6 +70,29 @@ export const authApi = {
     http.get<User>('/me'),
 }
 
+export const kybApi = {
+  upload: (formData: FormData) =>
+    http.post('/kyb/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  status: () =>
+    http.get('/kyb/status'),
+}
+
+export const billingApi = {
+  checkout: (plan: string) =>
+    http.post('/billing/checkout', { plan }, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  portal: () =>
+    http.post('/billing/portal'),
+
+  status: () =>
+    http.get('/billing/status'),
+}
+
 // ── Plants ────────────────────────────────────────────────────────────────
 
 export const plantsApi = {
