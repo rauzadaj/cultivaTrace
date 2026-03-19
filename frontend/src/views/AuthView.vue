@@ -125,26 +125,23 @@ function resolveRedirectTarget() {
 }
 </script>
 
-<style scoped>
-:global(body) {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
-  background: #eef2f5;
-}
+<style scoped lang="scss">
+@use '../css/breakpoints.sass' as bp;
 
 .auth-shell {
   background:
-    radial-gradient(circle at top left, rgba(38, 166, 154, 0.18), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(66, 165, 245, 0.12), transparent 30%),
-    #eef2f5;
+    radial-gradient(circle at top left, rgba(27, 107, 58, 0.12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.08), transparent 30%),
+    #f7f8fa;
 }
 
 .auth-layout {
   min-height: 100vh;
   display: grid;
-  gap: 24px;
-  align-items: center;
-  padding: 24px;
+  gap: 20px;
+  align-items: start;
+  padding: 20px 16px 32px;
+  min-width: 0;
 }
 
 .auth-hero {
@@ -186,14 +183,15 @@ function resolveRedirectTarget() {
 .auth-hero h1,
 .auth-card h2 {
   margin: 0;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.03em;
 }
 
 .auth-hero h1 {
-  max-width: 12ch;
-  font-size: clamp(2.2rem, 6vw, 4.5rem);
-  line-height: 0.95;
+  max-width: 14ch;
+  font-size: clamp(2rem, 8vw, 4.5rem);
+  line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .auth-hero__copy {
@@ -217,9 +215,11 @@ function resolveRedirectTarget() {
 }
 
 .auth-card {
-  padding: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
   background: rgba(255, 255, 255, 0.96);
+  border-radius: 20px;
 }
 
 .auth-card__header {
@@ -248,9 +248,16 @@ function resolveRedirectTarget() {
   font-size: 0.92rem;
 }
 
-@media (min-width: 960px) {
+@include bp.mobile {
+  .auth-shell {
+    overflow-x: clip;
+  }
+}
+
+@include bp.desktop {
   .auth-layout {
     grid-template-columns: minmax(0, 1.15fr) minmax(380px, 0.85fr);
+    align-items: center;
     padding: 40px;
   }
 

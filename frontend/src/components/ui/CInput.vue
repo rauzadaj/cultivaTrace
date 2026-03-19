@@ -1,20 +1,49 @@
 <template>
-  <q-input
+  <component
+    :is="componentName"
     outlined
     stack-label
     class="c-input"
     v-bind="$attrs"
   >
-    <template v-for="(_, slotName) in $slots" #[slotName]="slotProps">
-      <slot :name="slotName" v-bind="slotProps" />
+    <template v-if="$slots.prepend" #prepend>
+      <slot name="prepend" />
     </template>
-  </q-input>
+    <template v-if="$slots.append" #append>
+      <slot name="append" />
+    </template>
+    <template v-if="$slots.before" #before>
+      <slot name="before" />
+    </template>
+    <template v-if="$slots.after" #after>
+      <slot name="after" />
+    </template>
+    <template v-if="$slots.hint" #hint>
+      <slot name="hint" />
+    </template>
+    <template v-if="$slots.error" #error>
+      <slot name="error" />
+    </template>
+    <template v-if="$slots.default" #default>
+      <slot />
+    </template>
+  </component>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 defineOptions({
   inheritAttrs: false,
 })
+
+const props = withDefaults(defineProps<{
+  select?: boolean
+}>(), {
+  select: false,
+})
+
+const componentName = computed(() => props.select ? 'q-select' : 'q-input')
 </script>
 
 <style scoped>

@@ -18,15 +18,41 @@ import AppErrorBoundary from './components/AppErrorBoundary.vue'
   background: #f7f8fa;
 }
 
+html,
 body {
   margin: 0;
+  width: 100%;
+  min-height: 100%;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   background: #f7f8fa;
+  overflow-x: hidden;
+}
+
+#app {
+  min-height: 100vh;
 }
 
 * {
   box-sizing: border-box;
+}
+
+img,
+.q-card,
+.q-img {
+  max-width: 100%;
+}
+
+.q-header {
+  padding-top: env(safe-area-inset-top);
+}
+
+.q-footer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.fab-button {
+  bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
 button,

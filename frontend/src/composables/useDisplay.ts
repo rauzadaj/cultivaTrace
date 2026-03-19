@@ -1,27 +1,20 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-
-const width = ref(typeof window === 'undefined' ? 1440 : window.innerWidth)
-
-function updateWidth() {
-  width.value = window.innerWidth
-}
+import { computed } from 'vue'
+import { useQuasar } from 'quasar'
 
 export function useDisplay() {
-  onMounted(() => {
-    updateWidth()
-    window.addEventListener('resize', updateWidth)
-  })
-
-  onUnmounted(() => {
-    window.removeEventListener('resize', updateWidth)
-  })
+  const $q = useQuasar()
+  const width = computed(() => $q.screen.width)
+  const height = computed(() => $q.screen.height)
 
   return {
     width,
+    height,
     xs: computed(() => width.value < 768),
     smAndUp: computed(() => width.value >= 768),
-    mdAndUp: computed(() => width.value >= 960),
-    tablet: computed(() => width.value >= 768 && width.value <= 1024),
-    desktop: computed(() => width.value > 1024),
+    mdAndUp: computed(() => width.value >= 1024),
+    tablet: computed(() => width.value >= 768 && width.value < 1024),
+    desktop: computed(() => width.value >= 1024),
+    portrait: computed(() => height.value > width.value),
+    landscape: computed(() => width.value >= height.value),
   }
 }
