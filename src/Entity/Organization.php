@@ -46,6 +46,9 @@ class Organization
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $licenseExpiresAt = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $stripeCustomerId = null;
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
@@ -74,6 +77,8 @@ class Organization
     public function setLicenseStatus(LicenseStatus $status): self { $this->licenseStatus = $status; return $this; }
     public function getLicenseExpiresAt(): ?\DateTimeImmutable { return $this->licenseExpiresAt; }
     public function setLicenseExpiresAt(?\DateTimeImmutable $date): self { $this->licenseExpiresAt = $date; return $this; }
+    public function getStripeCustomerId(): ?string { return $this->stripeCustomerId; }
+    public function setStripeCustomerId(?string $id): self { $this->stripeCustomerId = $id; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUsers(): Collection { return $this->users; }
     public function getFarms(): Collection { return $this->farms; }
