@@ -2,172 +2,416 @@
   <div class="room-dashboard">
     <header class="room-dashboard__header">
       <div>
-        <p class="section-eyebrow">Rooms</p>
-        <h1>Surveillance environnementale</h1>
+        <p class="section-eyebrow">IoT Room</p>
+        <h1>{{ currentRoom?.name ?? 'Dashboard temps reel' }}</h1>
+        <p class="room-dashboard__subtitle">
+          {{ currentRoom ? `Surveillance live de la salle ${currentRoom.name}` : 'Aucune salle selectionnee' }}
+        </p>
       </div>
+      <q-chip
+        v-if="currentRoom"
+        square
+        class="room-dashboard__room-chip"
+      >
+        {{ currentRoom.type }}
+      </q-chip>
     </header>
 
-    <div v-if="plantsStore.loading" class="room-skeleton">
-      <q-skeleton v-for="index in 4" :key="index" height="168px" class="room-skeleton__item" />
+    <div v-if="loading" class="room-skeleton">
+      <q-skeleton v-for="index in 4" :key="index" height="220px" class="room-skeleton__item" />
     </div>
 
-    <q-pull-to-refresh v-if="!isDesktop" @refresh="refreshRooms">
-      <div v-if="!plantsStore.loading" class="sensor-grid">
-        <c-card
-          v-for="metric in sensorMetrics"
-          :key="metric.id"
-          class="sensor-card"
-          :class="`sensor-card--${metric.status}`"
-        >
-          <span class="sensor-card__label">{{ metric.label }}</span>
-          <strong>{{ metric.value }}<small>{{ metric.unit }}</small></strong>
-          <p>{{ metric.detail }}</p>
-        </c-card>
-      </div>
-    </q-pull-to-refresh>
-
-    <div v-else-if="!plantsStore.loading" class="sensor-grid">
-      <c-card
-        v-for="metric in sensorMetrics"
-        :key="metric.id"
-        class="sensor-card"
-        :class="`sensor-card--${metric.status}`"
-      >
-        <span class="sensor-card__label">{{ metric.label }}</span>
-        <strong>{{ metric.value }}<small>{{ metric.unit }}</small></strong>
-        <p>{{ metric.detail }}</p>
-      </c-card>
-    </div>
-
-    <div v-if="isDesktop" class="history-grid">
-      <c-card v-for="room in roomCards" :key="room.id">
-        <p class="section-eyebrow">{{ room.type }}</p>
-        <h2>{{ room.name }}</h2>
-        <div class="history-chart">
-          <div
-            v-for="bar in 12"
-            :key="bar"
-            class="history-chart__bar"
-            :style="{ height: `${Math.max(24, Math.round((room.occupancyRate / 100) * 140) - ((bar % 3) * 8))}px` }"
-          />
+    <template v-else>
+      <c-card v-if="vpdCard" class="vpd-card" :class="`vpd-card--${vpdTone}`">
+        <div class="vpd-card__header">
+          <div>
+            <p class="section-eyebrow">VPD</p>
+            <h2>{{ vpdValue }}</h2>
+          </div>
+          <div class="vpd-card__badge" :class="`vpd-card__badge--${vpdTone}`">
+            {{ vpdLabel }}
+          </div>
         </div>
-        <p class="sensor-card__detail">{{ room.count }}/{{ room.capacityMax }} plants actifs</p>
+        <p class="vpd-card__message">{{ vpdCard.message }}</p>
       </c-card>
-    </div>
+
+      <div v-if="currentRoomSensors.length" class="sensor-grid">
+        <sensor-card
+          v-for="sensor in currentRoomSensors"
+          :key="sensor.id"
+          :sensor="sensor"
+          :live-reading="sensorsStore.getLiveReading(sensor.id)"
+        />
+      </div>
+
+      <c-card v-else class="empty-state">
+        <p class="section-eyebrow">Capteurs</p>
+        <h2>Aucun capteur dans cette salle</h2>
+        <p>Le dashboard temps reel affichera les mesures ici des qu'un capteur IoT sera associe a la salle.</p>
+      </c-card>
+
+      <c-card v-if="subscriptionWarning" class="warning-card">
+        <p class="section-eyebrow">Mercure</p>
+        <p>{{ subscriptionWarning }}</p>
+      </c-card>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import CCard from '../../components/ui/CCard.vue'
-import { useDisplay } from '../../composables/useDisplay'
-import { usePlantsStore } from '../../stores/plants'
-import type { SensorMetricCard } from '../../types/api'
+import { computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import SensorCard from '@/components/sensors/SensorCard.vue'
+import CCard from '@/components/ui/CCard.vue'
+import { useMercure } from '@/composables/useMercure'
+import { useAuthStore } from '@/stores/auth'
+import { usePlantsStore } from '@/stores/plants'
+import { useSensorsStore } from '@/stores/sensors'
+import type { JwtPayload, Room, SensorVpdSnapshot } from '@/types/api'
 
+const route = useRoute()
 const plantsStore = usePlantsStore()
-const { desktop } = useDisplay()
+const sensorsStore = useSensorsStore()
+const authStore = useAuthStore()
+const { subscribe, unsubscribe } = useMercure()
 
-const isDesktop = computed(() => desktop.value)
+const loading = computed(() => plantsStore.loading || sensorsStore.loading)
 
-const roomCards = computed(() => plantsStore.rooms.map((room) => {
-  const count = plantsStore.plants.filter((plant) => {
-    if (typeof plant.room === 'string') {
-      return plant.room.endsWith(`/${room.id}`)
+const fallbackRoomId = computed(() => plantsStore.rooms[0]?.id ?? null)
+
+const currentRoomId = computed(() => {
+  const routeRoomId = typeof route.query.roomId === 'string' ? route.query.roomId : null
+  return routeRoomId ?? fallbackRoomId.value
+})
+
+const currentRoom = computed<Room | null>(() =>
+  plantsStore.rooms.find((room) => room.id === currentRoomId.value) ?? null
+)
+
+const currentRoomSensors = computed(() => {
+  const roomId = currentRoomId.value
+  if (!roomId) {
+    return []
+  }
+
+  return sensorsStore.sensorsByRoom.get(roomId) ?? []
+})
+
+const latestVpdReading = computed<SensorVpdSnapshot | null>(() => {
+  for (const sensor of currentRoomSensors.value) {
+    const vpd = sensorsStore.getLiveReading(sensor.id)?.vpd
+    if (vpd) {
+      return vpd
     }
-
-    return plant.room.id === room.id
-  }).length
-
-  return {
-    id: room.id,
-    name: room.name,
-    type: room.type,
-    capacityMax: room.capacityMax,
-    count,
-    occupancyRate: room.capacityMax ? Math.min(100, Math.round((count / room.capacityMax) * 100)) : 0,
   }
-}))
 
-const totalCapacity = computed(() => roomCards.value.reduce((sum, room) => sum + room.capacityMax, 0))
-const totalPlants = computed(() => roomCards.value.reduce((sum, room) => sum + room.count, 0))
+  return null
+})
 
-const sensorMetrics = computed<SensorMetricCard[]>(() => [
-  {
-    id: 'rooms',
-    label: 'Salles actives',
-    value: String(plantsStore.rooms.length),
-    unit: '',
-    status: 'ok',
-    detail: 'Espaces exploites par le tenant',
-  },
-  {
-    id: 'plants',
-    label: 'Plants actifs',
-    value: String(plantsStore.activePlants.length),
-    unit: '',
-    status: 'ok',
-    detail: 'Plants suivis en temps reel',
-  },
-  {
-    id: 'occupancy',
-    label: 'Occupation',
-    value: totalCapacity.value ? String(Math.round((totalPlants.value / totalCapacity.value) * 100)) : '0',
-    unit: '%',
-    status: totalCapacity.value && totalPlants.value >= totalCapacity.value ? 'warning' : 'ok',
-    detail: `${totalPlants.value}/${totalCapacity.value} emplacements utilises`,
-  },
-  {
-    id: 'flower',
-    label: 'Salle flowering',
-    value: String(roomCards.value.filter((room) => room.type === 'flower').reduce((sum, room) => sum + room.count, 0)),
-    unit: '',
-    status: 'ok',
-    detail: 'Plants actuellement en floraison ou assignes a cette salle',
-  },
-])
+const vpdCard = computed(() => latestVpdReading.value)
 
-async function refreshRooms(done: () => void) {
+const vpdTone = computed<'normal' | 'warning' | 'critical'>(() => {
+  const rawStatus = vpdCard.value?.status?.toLowerCase() ?? ''
+  if (rawStatus.includes('crit')) {
+    return 'critical'
+  }
+  if (rawStatus.includes('warn') || rawStatus.includes('alert')) {
+    return 'warning'
+  }
+  return 'normal'
+})
+
+const vpdLabel = computed(() => {
+  const labels = {
+    normal: 'Optimal',
+    warning: 'Surveillance',
+    critical: 'Action requise',
+  }
+
+  return labels[vpdTone.value]
+})
+
+const vpdValue = computed(() => {
+  const value = vpdCard.value?.vpd
+  return typeof value === 'number' ? `${value.toFixed(2)} kPa` : '--'
+})
+
+const orgId = computed(() => {
+  if (typeof authStore.organization?.id === 'string' && authStore.organization.id.length) {
+    return authStore.organization.id
+  }
+
+  const token = authStore.token
+  if (!token) {
+    return null
+  }
+
+  const payload = parseJwtPayload(token)
+
+  if (typeof payload.orgId === 'string' && payload.orgId.length) {
+    return payload.orgId
+  }
+
+  if (typeof payload.organizationId === 'string' && payload.organizationId.length) {
+    return payload.organizationId
+  }
+
+  if (typeof payload.tenantId === 'string' && payload.tenantId.length) {
+    return payload.tenantId
+  }
+
+  return null
+})
+
+const mercureTopic = computed(() => {
+  if (!orgId.value || !currentRoomId.value) {
+    return null
+  }
+
+  return `cannas/${orgId.value}/rooms/${currentRoomId.value}`
+})
+
+const subscriptionWarning = computed(() => {
+  if (!currentRoomId.value) {
+    return 'Impossible de determiner la salle a surveiller.'
+  }
+
+  if (!orgId.value) {
+    return 'Impossible de determiner l organisation courante pour l abonnement Mercure.'
+  }
+
+  return null
+})
+
+function parseJwtPayload(token: string): JwtPayload & Record<string, unknown> {
+  const [, rawPayload = ''] = token.split('.')
+  const normalizedPayload = rawPayload
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(rawPayload.length / 4) * 4, '=')
+
   try {
-    await plantsStore.bootstrap()
-  } catch (error) {
-    console.error('Room refresh failed', error)
+    return JSON.parse(window.atob(normalizedPayload)) as JwtPayload & Record<string, unknown>
+  } catch {
+    return {}
   }
-  done()
+}
+
+async function ensureRoomContext(): Promise<void> {
+  if (!plantsStore.rooms.length || !plantsStore.plants.length) {
+    await plantsStore.bootstrap()
+  }
+
+  if (currentRoomId.value) {
+    await sensorsStore.fetchSensors(currentRoomId.value)
+  }
+}
+
+async function syncSubscription(nextTopic: string | null, previousTopic: string | null): Promise<void> {
+  if (previousTopic && previousTopic !== nextTopic) {
+    unsubscribe(previousTopic)
+  }
+
+  if (!nextTopic) {
+    return
+  }
+
+  subscribe(nextTopic, (update) => {
+    sensorsStore.updateLiveReading(update.sensorId, {
+      value: update.value,
+      unit: update.unit,
+      recordedAt: update.recordedAt,
+      vpd: update.vpd
+        ? {
+            vpd: update.vpd.vpd,
+            status: update.vpd.status,
+            message: update.vpd.message,
+          }
+        : null,
+    })
+  })
 }
 
 onMounted(async () => {
-  if (!plantsStore.rooms.length || !plantsStore.plants.length) {
-    try {
-      await plantsStore.bootstrap()
-    } catch (error) {
-      console.error('Room dashboard bootstrap failed', error)
-    }
+  try {
+    await ensureRoomContext()
+    await syncSubscription(mercureTopic.value, null)
+  } catch (error) {
+    console.error('Room dashboard bootstrap failed', error)
   }
+})
+
+watch(currentRoomId, async (nextRoomId, previousRoomId) => {
+  if (!nextRoomId || nextRoomId === previousRoomId) {
+    return
+  }
+
+  try {
+    await sensorsStore.fetchSensors(nextRoomId)
+  } catch (error) {
+    console.error('Sensor fetch failed', error)
+  }
+})
+
+watch(mercureTopic, async (nextTopic, previousTopic) => {
+  await syncSubscription(nextTopic, previousTopic)
 })
 </script>
 
 <style scoped lang="scss">
 @use '../../css/breakpoints.sass' as bp;
-.room-dashboard { display: grid; gap: 16px; }
-.room-skeleton { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.room-skeleton__item { border-radius: 16px; }
-.room-dashboard__header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; line-height: 1.15; }
-.section-eyebrow { margin: 0 0 6px; color: #718096; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; }
-.sensor-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.sensor-card { display: grid; gap: 8px; }
-.sensor-card__label { color: #718096; font-size: 0.875rem; }
-.sensor-card strong { font-size: 2rem; font-weight: 700; line-height: 1; }
-.sensor-card strong small { margin-left: 6px; font-size: 1rem; }
-.sensor-card p, .sensor-card__detail { margin: 0; color: #718096; }
-.sensor-card--warning { background: #fff7e8; }
-.sensor-card--critical { background: #fff0f0; animation: room-alert-pulse 1.6s ease-in-out infinite; }
-.history-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-.history-grid h2 { margin: 0 0 14px; font-size: 1.25rem; font-weight: 600; }
-.history-chart { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; align-items: end; min-height: 160px; }
-.history-chart__bar { border-radius: 999px 999px 6px 6px; background: linear-gradient(180deg, #2d9e5f, #1b6b3a); }
-@keyframes room-alert-pulse { 0%,100%{ box-shadow: 0 0 0 0 rgba(197,48,48,0.15);} 50%{ box-shadow: 0 0 0 10px rgba(197,48,48,0);} }
-@include bp.tablet { .room-dashboard__header h1 { font-size: 2rem; } .room-skeleton, .sensor-grid, .history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@include bp.mobile { .room-dashboard__header h1 { font-size: 1.5rem; } .sensor-card strong { font-size: 1.75rem; } }
-@include bp.mobile-wide { .room-skeleton, .sensor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@include bp.desktop { .room-dashboard__header h1 { font-size: 2rem; } .history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.room-dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.room-dashboard__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.room-dashboard__header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.room-dashboard__subtitle {
+  margin: 8px 0 0;
+  color: #718096;
+}
+
+.room-dashboard__room-chip {
+  min-height: 40px;
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
+.section-eyebrow {
+  margin: 0 0 6px;
+  color: #718096;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.room-skeleton {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.room-skeleton__item {
+  border-radius: 16px;
+}
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.vpd-card {
+  display: grid;
+  gap: 12px;
+  border: 2px solid #d9e2ec;
+}
+
+.vpd-card--normal {
+  border-color: #2f855a;
+  background: linear-gradient(135deg, #f0fff4, #ffffff);
+}
+
+.vpd-card--warning {
+  border-color: #dd6b20;
+  background: linear-gradient(135deg, #fffaf0, #ffffff);
+}
+
+.vpd-card--critical {
+  border-color: #c53030;
+  background: linear-gradient(135deg, #fff5f5, #ffffff);
+}
+
+.vpd-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.vpd-card__header h2 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.vpd-card__badge {
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.vpd-card__badge--normal {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.vpd-card__badge--warning {
+  background: #fbd38d;
+  color: #9c4221;
+}
+
+.vpd-card__badge--critical {
+  background: #feb2b2;
+  color: #742a2a;
+}
+
+.vpd-card__message,
+.empty-state p,
+.warning-card p {
+  margin: 0;
+  color: #4a5568;
+}
+
+.empty-state h2 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.warning-card {
+  border: 2px solid #f6ad55;
+  background: #fffaf0;
+}
+
+@include bp.mobile {
+  .room-dashboard__header {
+    flex-direction: column;
+  }
+}
+
+@include bp.mobile-wide {
+  .sensor-grid,
+  .room-skeleton {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@include bp.tablet {
+  .sensor-grid,
+  .room-skeleton {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@include bp.desktop {
+  .sensor-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 </style>

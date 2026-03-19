@@ -193,6 +193,20 @@ export interface SensorReading {
   recordedAt: string
 }
 
+export interface SensorVpdSnapshot {
+  vpd: number
+  status: string
+  message: string
+}
+
+export interface SensorLiveReading {
+  value: number
+  unit: string
+  recordedAt: string
+  status: 'normal' | 'warning' | 'critical'
+  vpd?: SensorVpdSnapshot | null
+}
+
 export interface User {
   '@id'?: string
   id: string
