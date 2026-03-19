@@ -33,6 +33,10 @@
           </div>
         </div>
         <p class="vpd-card__message">{{ vpdCard.message }}</p>
+        <div class="vpd-card__meta">
+          <span>Plage optimale {{ vpdRange }}</span>
+          <span>Stade {{ vpdStageLabel }}</span>
+        </div>
       </c-card>
 
       <div v-if="currentRoomSensors.length" class="sensor-grid">
@@ -110,22 +114,22 @@ const latestVpdReading = computed<SensorVpdSnapshot | null>(() => {
 
 const vpdCard = computed(() => latestVpdReading.value)
 
-const vpdTone = computed<'normal' | 'warning' | 'critical'>(() => {
+const vpdTone = computed<'optimal' | 'too_low' | 'too_high'>(() => {
   const rawStatus = vpdCard.value?.status?.toLowerCase() ?? ''
-  if (rawStatus.includes('crit')) {
-    return 'critical'
+  if (rawStatus === 'too_low') {
+    return 'too_low'
   }
-  if (rawStatus.includes('warn') || rawStatus.includes('alert')) {
-    return 'warning'
+  if (rawStatus === 'too_high') {
+    return 'too_high'
   }
-  return 'normal'
+  return 'optimal'
 })
 
 const vpdLabel = computed(() => {
   const labels = {
-    normal: 'Optimal',
-    warning: 'Surveillance',
-    critical: 'Action requise',
+    optimal: 'Optimal',
+    too_low: 'Trop bas',
+    too_high: 'Trop haut',
   }
 
   return labels[vpdTone.value]
@@ -134,6 +138,25 @@ const vpdLabel = computed(() => {
 const vpdValue = computed(() => {
   const value = vpdCard.value?.vpd
   return typeof value === 'number' ? `${value.toFixed(2)} kPa` : '--'
+})
+
+const vpdRange = computed(() => {
+  if (!vpdCard.value) {
+    return '--'
+  }
+
+  return `${vpdCard.value.optimal_min.toFixed(1)} – ${vpdCard.value.optimal_max.toFixed(1)} kPa`
+})
+
+const vpdStageLabel = computed(() => {
+  const stage = vpdCard.value?.stage ?? ''
+  const stageLabels: Record<string, string> = {
+    germination: 'Germination',
+    vegetation: 'Vegetation',
+    flowering: 'Floraison',
+  }
+
+  return stageLabels[stage] ?? (stage || 'Inconnu')
 })
 
 const orgId = computed(() => authStore.organization?.id ?? null)
@@ -195,6 +218,9 @@ async function syncSubscription(nextTopic: string | null, previousTopic: string 
             vpd: update.vpd.vpd,
             status: update.vpd.status,
             message: update.vpd.message,
+            optimal_min: update.vpd.optimal_min,
+            optimal_max: update.vpd.optimal_max,
+            stage: update.vpd.stage,
           }
         : null,
     })
@@ -294,18 +320,18 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
   border: 2px solid #d9e2ec;
 }
 
-.vpd-card--normal {
+.vpd-card--optimal {
   border-color: #2f855a;
   background: linear-gradient(135deg, #f0fff4, #ffffff);
 }
 
-.vpd-card--warning {
-  border-color: #dd6b20;
-  background: linear-gradient(135deg, #fffaf0, #ffffff);
+.vpd-card--too_low {
+  border-color: #2b6cb0;
+  background: linear-gradient(135deg, #ebf8ff, #ffffff);
 }
 
-.vpd-card--critical {
-  border-color: #c53030;
+.vpd-card--too_high {
+  border-color: #dd6b20;
   background: linear-gradient(135deg, #fff5f5, #ffffff);
 }
 
@@ -330,19 +356,19 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
   font-weight: 700;
 }
 
-.vpd-card__badge--normal {
+.vpd-card__badge--optimal {
   background: #c6f6d5;
   color: #22543d;
 }
 
-.vpd-card__badge--warning {
-  background: #fbd38d;
-  color: #9c4221;
+.vpd-card__badge--too_low {
+  background: #bee3f8;
+  color: #1a365d;
 }
 
-.vpd-card__badge--critical {
-  background: #feb2b2;
-  color: #742a2a;
+.vpd-card__badge--too_high {
+  background: #fbd38d;
+  color: #9c4221;
 }
 
 .vpd-card__message,
@@ -350,6 +376,14 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
 .warning-card p {
   margin: 0;
   color: #4a5568;
+}
+
+.vpd-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: #718096;
+  font-size: 0.95rem;
 }
 
 .empty-state h2 {

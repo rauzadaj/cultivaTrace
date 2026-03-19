@@ -193,10 +193,28 @@ export interface SensorReading {
   recordedAt: string
 }
 
+export interface SensorHistoryPoint {
+  bucket: string
+  avg_value: number
+  min_value: number
+  max_value: number
+}
+
+export interface SensorHistoryResponse {
+  sensorId: string
+  type: SensorType
+  period: '7d' | '30d' | '90d' | '365d'
+  data: SensorHistoryPoint[]
+  count: number
+}
+
 export interface SensorVpdSnapshot {
   vpd: number
   status: string
   message: string
+  optimal_min: number
+  optimal_max: number
+  stage: string
 }
 
 export interface SensorLiveReading {

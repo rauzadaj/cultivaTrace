@@ -12,7 +12,7 @@ import axios, { type AxiosInstance } from 'axios'
 import type {
   HydraCollection,
   Plant, PlantEvent, Farm, Room, Strain,
-  InputRecord, HarvestRecord, Sensor, SensorReading,
+  InputRecord, HarvestRecord, Sensor, SensorHistoryResponse,
   User, Organization, JwtResponse, LoginCredentials, ApiError,
 } from '@/types/api'
 
@@ -175,7 +175,7 @@ export const sensorsApi = {
     }),
 
   readings: (id: string, period: '7d' | '30d' | '90d' | '365d') =>
-    http.get<SensorReading[]>(`/sensors/${id}/readings`, { params: { period } }),
+    http.get<SensorHistoryResponse>(`/sensors/${id}/readings`, { params: { period } }),
 }
 
 // ── Compliance ────────────────────────────────────────────────────────────
