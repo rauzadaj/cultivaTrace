@@ -1,0 +1,19 @@
+# config/packages/mercure.yaml
+#
+# Configuration du hub Mercure pour les Server-Sent Events (SSE).
+# Mercure remplace WebSocket — natif Symfony, plus simple à déployer.
+#
+# Variables d'env requises dans .env :
+#   MERCURE_URL=http://mercure/.well-known/mercure
+#   MERCURE_PUBLIC_URL=http://localhost/.well-known/mercure
+#   MERCURE_JWT_SECRET=cannas_mercure_secret_change_in_prod
+
+mercure:
+    hubs:
+        default:
+            url: '%env(MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                publish: '*'
+                subscribe: '*'
