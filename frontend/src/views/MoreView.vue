@@ -12,7 +12,13 @@
 import CCard from '../components/ui/CCard.vue'
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../css/breakpoints.sass' as bp;
+
+.more-view {
+  min-width: 0;
+}
+
 .more-view__eyebrow {
   margin: 0 0 6px;
   color: #718096;
@@ -23,7 +29,7 @@ import CCard from '../components/ui/CCard.vue'
 
 h1 {
   margin: 0 0 10px;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   font-weight: 600;
 }
 

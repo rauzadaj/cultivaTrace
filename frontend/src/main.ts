@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { Quasar, Notify, Loading } from 'quasar'
 import '@quasar/extras/material-icons/material-icons.css'
+import '@mdi/font/css/materialdesignicons.css'
 import 'quasar/src/css/index.sass'
 import App from './App.vue'
 import { pinia } from './plugins/pinia'
