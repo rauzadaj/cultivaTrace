@@ -11,17 +11,26 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useAuthStore } from '@/stores/auth'
+import { billingApi } from '@/services/api'
 
+const route = useRoute()
 const router = useRouter()
+const $q = useQuasar()
 const authStore = useAuthStore()
 
 onMounted(async () => {
   try {
+    const sessionId = typeof route.query.session_id === 'string' ? route.query.session_id : ''
+    if (sessionId) {
+      await billingApi.confirmCheckout(sessionId)
+    }
     await authStore.fetchMe()
   } catch (error) {
     console.error('Unable to refresh auth state after Stripe checkout', error)
+    $q.notify({ type: 'negative', message: 'Impossible de synchroniser votre abonnement après paiement.' })
   }
 })
 
