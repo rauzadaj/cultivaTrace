@@ -152,6 +152,17 @@ export const plantEventsApi = {
     }),
 }
 
+
+// ── Farms ────────────────────────────────────────────────────────────────
+
+export const farmsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<HydraCollection<Farm>>('/farms', { params }),
+
+  create: (data: Partial<Farm>) =>
+    http.post<Farm>('/farms', data),
+}
+
 // ── Rooms ─────────────────────────────────────────────────────────────────
 
 export const roomsApi = {
