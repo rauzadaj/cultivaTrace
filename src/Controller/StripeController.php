@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Enum\SubscriptionPlan;
 use App\Service\PlanLimitsService;
 use App\Service\StripeService;
+use Stripe\Exception\ApiErrorException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,13 +42,24 @@ class StripeController extends AbstractController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $planEnum     = SubscriptionPlan::from($plan);
-        $checkoutUrl  = $this->stripe->createCheckoutSession(
-            organization: $user->getOrganization(),
-            plan: $planEnum,
-            successUrl: $_ENV['FRONTEND_URL'] . '/billing/success?session_id={CHECKOUT_SESSION_ID}',
-            cancelUrl: $_ENV['FRONTEND_URL'] . '/billing/cancel',
-        );
+        try {
+            $planEnum = SubscriptionPlan::from($plan);
+            $checkoutUrl  = $this->stripe->createCheckoutSession(
+                organization: $user->getOrganization(),
+                plan: $planEnum,
+                successUrl: $_ENV['FRONTEND_URL'] . '/billing/success?session_id={CHECKOUT_SESSION_ID}',
+                cancelUrl: $_ENV['FRONTEND_URL'] . '/billing/cancel',
+            );
+        } catch (\InvalidArgumentException $exception) {
+            return $this->json([
+                'error' => $exception->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (ApiErrorException $exception) {
+            return $this->json([
+                'error' => 'Stripe checkout is currently unavailable for this plan.',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
 
         return $this->json(['checkoutUrl' => $checkoutUrl]);
     }
@@ -75,6 +87,33 @@ class StripeController extends AbstractController
         );
 
         return $this->json(['portalUrl' => $portalUrl]);
+    }
+
+    #[Route('/api/billing/checkout/confirm', methods: ['POST'])]
+    public function confirmCheckout(Request $request, #[CurrentUser] $user): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $sessionId = $data['sessionId'] ?? null;
+
+        if (!is_string($sessionId) || trim($sessionId) === '') {
+            return $this->json(['error' => 'Missing Stripe checkout session ID.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $plan = $this->stripe->syncCheckoutSession(trim($sessionId), $user->getOrganization());
+        } catch (\InvalidArgumentException $exception) {
+            return $this->json(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (ApiErrorException $exception) {
+            return $this->json([
+                'error' => 'Unable to confirm Stripe checkout session.',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return $this->json([
+            'plan' => $plan->value,
+            'message' => 'Organization updated from Stripe checkout session.',
+        ]);
     }
 
     /**

@@ -86,6 +86,11 @@ export const billingApi = {
       headers: { 'Content-Type': 'application/json' },
     }),
 
+  confirmCheckout: (sessionId: string) =>
+    http.post('/billing/checkout/confirm', { sessionId }, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
   portal: () =>
     http.post('/billing/portal'),
 

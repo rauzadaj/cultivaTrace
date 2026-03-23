@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Tests\Service;
+
+use App\Enum\SubscriptionPlan;
+use App\Service\StripeService;
+use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Mailer\MailerInterface;
+
+final class StripeServiceTest extends TestCase
+{
+    public function testItRejectsAProductIdUsedAsAPriceId(): void
+    {
+        $service = new StripeService(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(MailerInterface::class),
+            $this->createMock(LoggerInterface::class),
+            'sk_test_123',
+            'whsec_123',
+            'prod_wrong',
+            'price_ok',
+            'price_ok_business',
+        );
+
+        $method = new \ReflectionMethod($service, 'getPriceId');
+        $method->setAccessible(true);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Expected a Stripe price_ identifier');
+
+        $method->invoke($service, SubscriptionPlan::STARTER);
+    }
+}
