@@ -8,13 +8,33 @@
           {{ currentRoom ? `Surveillance live de la salle ${currentRoom.name}` : 'Aucune salle selectionnee' }}
         </p>
       </div>
-      <q-chip
-        v-if="currentRoom"
-        square
-        class="room-dashboard__room-chip"
-      >
-        {{ currentRoom.type }}
-      </q-chip>
+      <div class="room-dashboard__header-actions">
+        <q-btn
+          v-if="route.name === 'rooms-dashboard'"
+          color="primary"
+          icon="mdi-door-plus"
+          label="Nouvelle salle"
+          no-caps
+          class="room-dashboard__action-btn"
+          @click="roomDialogOpen = true"
+        />
+        <q-btn
+          v-if="route.name === 'sensors-dashboard'"
+          color="primary"
+          icon="mdi-thermometer-plus"
+          label="Nouveau capteur"
+          no-caps
+          class="room-dashboard__action-btn"
+          @click="sensorDialogOpen = true"
+        />
+        <q-chip
+          v-if="currentRoom"
+          square
+          class="room-dashboard__room-chip"
+        >
+          {{ currentRoom.type }}
+        </q-chip>
+      </div>
     </header>
 
     <div v-if="roomTabs.length > 1" class="room-dashboard__switcher">
@@ -60,6 +80,7 @@
           :key="sensor.id"
           :sensor="sensor"
           :live-reading="sensorsStore.getLiveReading(sensor.id)"
+          @edit-thresholds="openThresholdsDialog"
         />
       </div>
 
@@ -74,19 +95,31 @@
         <p>{{ subscriptionWarning }}</p>
       </c-card>
     </template>
+
+
+    <room-form v-model="roomDialogOpen" @created="handleRoomCreated" />
+    <sensor-form v-model="sensorDialogOpen" @created="handleSensorCreated" />
+    <sensor-thresholds-form
+      v-model="thresholdDialogOpen"
+      :sensor="editingSensor"
+      @saved="handleThresholdSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import RoomForm from '@/components/rooms/RoomForm.vue'
 import SensorCard from '@/components/sensors/SensorCard.vue'
+import SensorForm from '@/components/sensors/SensorForm.vue'
+import SensorThresholdsForm from '@/components/sensors/SensorThresholdsForm.vue'
 import CCard from '@/components/ui/CCard.vue'
 import { useMercure } from '@/composables/useMercure'
 import { useAuthStore } from '@/stores/auth'
 import { usePlantsStore } from '@/stores/plants'
 import { useSensorsStore } from '@/stores/sensors'
-import type { Room, SensorVpdSnapshot } from '@/types/api'
+import type { Room, Sensor, SensorVpdSnapshot } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -94,6 +127,10 @@ const plantsStore = usePlantsStore()
 const sensorsStore = useSensorsStore()
 const authStore = useAuthStore()
 const { subscribe, unsubscribe } = useMercure()
+const roomDialogOpen = ref(false)
+const sensorDialogOpen = ref(false)
+const thresholdDialogOpen = ref(false)
+const editingSensor = ref<Sensor | null>(null)
 
 const loading = computed(() => plantsStore.loading || sensorsStore.loading)
 
@@ -345,6 +382,29 @@ async function syncSubscription(nextTopic: string | null, previousTopic: string 
   })
 }
 
+
+function openThresholdsDialog(sensor: Sensor): void {
+  editingSensor.value = sensor
+  thresholdDialogOpen.value = true
+}
+
+async function handleRoomCreated(): Promise<void> {
+  await plantsStore.bootstrap()
+}
+
+async function handleSensorCreated(): Promise<void> {
+  if (currentRoomId.value) {
+    await sensorsStore.fetchSensors(currentRoomId.value)
+  }
+}
+
+function handleThresholdSaved(sensor: Sensor): void {
+  const index = sensorsStore.sensors.findIndex((item) => item.id === sensor.id)
+  if (index !== -1) {
+    sensorsStore.sensors[index] = sensor
+  }
+}
+
 onMounted(async () => {
   try {
     await ensureRoomContext()
@@ -388,6 +448,18 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.room-dashboard__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.room-dashboard__action-btn {
+  min-height: 48px;
 }
 
 .room-dashboard__switcher {

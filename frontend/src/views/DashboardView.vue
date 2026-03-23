@@ -6,6 +6,15 @@
         <h1>Bonjour {{ firstName }}</h1>
         <p class="dashboard-view__date">{{ todayLabel }}</p>
       </div>
+
+      <q-btn
+        color="primary"
+        icon="mdi-home-plus-outline"
+        label="Nouvelle ferme"
+        class="dashboard-view__farm-btn"
+        no-caps
+        @click="farmDialogOpen = true"
+      />
     </header>
 
     <div v-if="plantsStore.loading" class="dashboard-skeleton">
@@ -147,12 +156,14 @@
         </c-card>
       </div>
     </template>
+    <farm-form v-model="farmDialogOpen" @created="handleFarmCreated" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { PlantEvent } from '@/types/api'
+import FarmForm from '@/components/farms/FarmForm.vue'
 import AlertBadge from '../components/ui/AlertBadge.vue'
 import CCard from '../components/ui/CCard.vue'
 import PlantStageChip from '../components/ui/PlantStageChip.vue'
@@ -165,6 +176,7 @@ const plantsStore = usePlantsStore()
 const userStore = useUserStore()
 const { xs } = useDisplay()
 
+const farmDialogOpen = ref(false)
 const isMobile = computed(() => xs.value)
 const firstName = computed(() => (userStore.operatorLabel || userStore.userEmail || 'operateur').split(/[\s@._-]+/)[0] ?? 'operateur')
 const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
@@ -256,6 +268,11 @@ function formatDateTime(value: string) {
   })
 }
 
+
+async function handleFarmCreated() {
+  await plantsStore.bootstrap()
+}
+
 async function refreshDashboard(done: () => void) {
   await plantsStore.bootstrap()
   done()
@@ -266,6 +283,9 @@ async function refreshDashboard(done: () => void) {
 @use '../css/breakpoints.sass' as bp;
 
 .dashboard-view { display: grid; gap: 16px; }
+.dashboard-view__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dashboard-view__farm-btn { min-height: 48px; }
+
 .dashboard-mobile { display: grid; gap: 16px; padding-bottom: 120px; min-width: 0; }
 .dashboard-view__header h1 { margin: 0; font-size: 1.75rem; font-weight: 600; line-height: 1.1; }
 .dashboard-view__eyebrow, .section-head__eyebrow { margin: 0 0 6px; color: #718096; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; }

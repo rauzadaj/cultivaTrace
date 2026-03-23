@@ -177,7 +177,7 @@ export interface Sensor {
   id: string
   type: SensorType
   deviceId: string
-  protocol: 'mqtt' | 'rest'
+  protocol: 'mqtt' | 'rest' | 'simulated'
   lastSeen?: string
   thresholds?: {
     min: number

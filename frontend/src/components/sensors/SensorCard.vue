@@ -10,6 +10,15 @@
         <q-chip dense square class="sensor-card__chip" :class="`sensor-card__chip--${cardStatus}`">
           {{ statusLabel }}
         </q-chip>
+        <q-btn
+          flat
+          round
+          dense
+          icon="mdi-pencil-outline"
+          aria-label="Modifier seuils"
+          class="sensor-card__edit-btn"
+          @click="emit('edit-thresholds', sensor)"
+        />
       </div>
     </div>
 
@@ -37,6 +46,10 @@ import type { Sensor, SensorLiveReading } from '@/types/api'
 const props = defineProps<{
   sensor: Sensor
   liveReading: SensorLiveReading | null
+}>()
+
+const emit = defineEmits<{
+  (event: 'edit-thresholds', sensor: Sensor): void
 }>()
 
 const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000
