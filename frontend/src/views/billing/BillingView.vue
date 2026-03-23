@@ -14,6 +14,9 @@
               <div class="text-h6 text-weight-bold text-primary q-mt-xs">
                 {{ planLabel }}
               </div>
+              <div class="text-body2 text-grey-7 q-mt-xs">
+                C’est le plan actuellement appliqué à votre organisation.
+              </div>
             </div>
             <q-chip
               :color="licenseStatusColor"
@@ -63,18 +66,40 @@
           <q-card
             flat
             bordered
-            :class="['plan-card', { 'plan-card--current': plan.id === currentPlan, 'plan-card--recommended': plan.id === 'pro' }]"
+            :class="[
+              'plan-card',
+              {
+                'plan-card--current': plan.id === currentPlan,
+                'plan-card--recommended': plan.id === recommendedPlan && plan.id !== currentPlan,
+              },
+            ]"
           >
-            <q-badge
-              v-if="plan.id === 'pro'"
-              color="primary"
-              label="Recommandé"
-              class="plan-badge"
-              floating
-            />
+            <div class="plan-badges">
+              <q-badge
+                v-if="plan.id === currentPlan"
+                color="positive"
+                label="Plan actif"
+                class="plan-badge plan-badge--current"
+              />
+              <q-badge
+                v-if="plan.id === recommendedPlan && plan.id !== currentPlan"
+                color="primary"
+                label="Recommandé"
+                class="plan-badge"
+              />
+            </div>
 
             <q-card-section>
-              <div class="text-subtitle1 text-weight-bold">{{ plan.name }}</div>
+              <div class="row items-center justify-between no-wrap q-gutter-sm">
+                <div class="text-subtitle1 text-weight-bold">{{ plan.name }}</div>
+                <q-chip
+                  v-if="plan.id === currentPlan"
+                  color="positive"
+                  text-color="white"
+                  dense
+                  label="Actif"
+                />
+              </div>
               <div class="text-h4 text-weight-bold text-primary q-my-sm">
                 {{ plan.price }}
                 <span class="text-caption text-grey-6 text-weight-regular">/mois</span>
@@ -91,10 +116,10 @@
             <q-card-actions class="q-px-md q-pb-md">
               <q-btn
                 v-if="plan.id !== currentPlan"
-                :label="plan.id === 'enterprise' ? 'Nous contacter' : 'Choisir ce plan'"
+                :label="plan.id === 'enterprise' ? 'Nous contacter' : actionLabel(plan.id)"
                 color="primary"
-                :outline="plan.id !== 'pro'"
-                :unelevated="plan.id === 'pro'"
+                :outline="plan.id !== recommendedPlan"
+                :unelevated="plan.id === recommendedPlan"
                 :loading="loadingCheckout === plan.id"
                 class="full-width"
                 style="height: 48px"
@@ -132,8 +157,10 @@ const limits         = ref<any>(null)
 const loadingPortal  = ref(false)
 const loadingCheckout = ref<string | null>(null)
 const hasStripeSubscription = ref(false)
+const resolvedPlan = ref<string | null>(null)
 
-const currentPlan = computed(() => auth.organization?.plan ?? 'starter')
+const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'starter')
+const recommendedPlan = computed(() => 'pro')
 
 const planLabel = computed(() => {
   const labels: Record<string, string> = {
@@ -194,6 +221,7 @@ async function loadBillingStatus(): Promise<void> {
     const { data } = await billingApi.status()
     hasStripeSubscription.value = data.hasActiveSubscription
     limits.value = data.limits
+    resolvedPlan.value = data.plan
   } catch { /* silencieux */ }
 }
 
@@ -203,7 +231,8 @@ async function startCheckout(planId: string): Promise<void> {
     const { data } = await billingApi.checkout(planId)
     window.location.href = data.checkoutUrl
   } catch (e: any) {
-    $q.notify({ type: 'negative', message: 'Erreur lors de la création du checkout' })
+    const message = e?.response?.data?.error ?? e?.response?.data?.detail ?? 'Erreur lors de la création du checkout'
+    $q.notify({ type: 'negative', message })
   } finally {
     loadingCheckout.value = null
   }
@@ -225,6 +254,18 @@ function contactSales(): void {
   window.location.href = 'mailto:sales@cannas.app?subject=Enterprise CannaSaaS'
 }
 
+function actionLabel(planId: string): string {
+  const order = ['starter', 'pro', 'business', 'enterprise']
+  const currentIndex = order.indexOf(currentPlan.value)
+  const nextIndex = order.indexOf(planId)
+
+  if (currentIndex !== -1 && nextIndex !== -1 && nextIndex < currentIndex) {
+    return `Revenir à ${planId === 'starter' ? 'Starter' : planId}`
+  }
+
+  return `Passer à ${planId === 'starter' ? 'Starter' : planId === 'pro' ? 'Pro' : planId === 'business' ? 'Business' : 'Enterprise'}`
+}
+
 onMounted(loadBillingStatus)
 </script>
 
@@ -232,9 +273,11 @@ onMounted(loadBillingStatus)
 .billing-page { background: var(--q-color-grey-1, #f7f8fa); }
 .billing-container { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
 .current-plan-card { border-radius: 12px; }
-.plan-card { border-radius: 12px; position: relative; transition: box-shadow 0.2s; }
+.plan-card { border-radius: 12px; position: relative; transition: box-shadow 0.2s; overflow: hidden; }
 .plan-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-.plan-card--current { border-color: var(--q-primary) !important; }
+.plan-card--current { border-color: #21ba45 !important; box-shadow: 0 0 0 2px rgba(33,186,69,0.12); }
 .plan-card--recommended { border-color: var(--q-primary) !important; }
-.plan-badge { top: 12px; right: 12px; }
+.plan-badges { display: flex; gap: 8px; padding: 12px 12px 0; min-height: 34px; }
+.plan-badge { position: static; }
+.plan-badge--current { order: 0; }
 </style>

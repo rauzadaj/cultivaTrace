@@ -103,6 +103,36 @@ class StripeService
         return $session->url;
     }
 
+    public function syncCheckoutSession(string $sessionId, Organization $organization): SubscriptionPlan
+    {
+        $session = Session::retrieve($sessionId);
+
+        if (($session->payment_status ?? null) !== 'paid' && ($session->status ?? null) !== 'complete') {
+            throw new \InvalidArgumentException('Stripe checkout session is not completed yet.');
+        }
+
+        $sessionOrganizationId = $session->metadata->organization_id ?? $session->client_reference_id ?? null;
+        if ($sessionOrganizationId !== (string) $organization->getId()) {
+            throw new \InvalidArgumentException('Stripe checkout session does not belong to the current organization.');
+        }
+
+        $plan = $session->metadata->plan ?? null;
+        if (!is_string($plan) || $plan === '') {
+            throw new \InvalidArgumentException('Stripe checkout session is missing the target plan.');
+        }
+
+        $planEnum = SubscriptionPlan::from($plan);
+        $organization->setPlan($planEnum);
+
+        if (is_string($session->customer) && $session->customer !== '') {
+            $organization->setStripeCustomerId($session->customer);
+        }
+
+        $this->em->flush();
+
+        return $planEnum;
+    }
+
     /**
      * Traite un webhook Stripe.
      * Vérifie la signature avant de traiter l'événement.
@@ -222,11 +252,26 @@ class StripeService
 
     private function getPriceId(SubscriptionPlan $plan): string
     {
-        return match ($plan) {
+        $priceId = match ($plan) {
             SubscriptionPlan::STARTER  => $this->priceStarter,
             SubscriptionPlan::PRO      => $this->pricePro,
             SubscriptionPlan::BUSINESS => $this->priceBusiness,
             default                    => throw new \InvalidArgumentException('Plan non géré : ' . $plan->value),
         };
+
+        $priceId = trim($priceId);
+        if ($priceId === '') {
+            throw new \InvalidArgumentException(sprintf('Stripe price ID is missing for the "%s" plan.', $plan->value));
+        }
+
+        if (!str_starts_with($priceId, 'price_')) {
+            throw new \InvalidArgumentException(sprintf(
+                'Stripe price ID for the "%s" plan is invalid. Expected a Stripe price_ identifier, got "%s".',
+                $plan->value,
+                $priceId,
+            ));
+        }
+
+        return $priceId;
     }
 }
