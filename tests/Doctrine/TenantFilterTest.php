@@ -85,7 +85,13 @@ final class TenantFilterTest extends KernelTestCase
             $this->entityManager->getClassMetadata(Farm::class),
         ];
 
-        $schemaTool->dropSchema($metadata);
+        $platformClass = $this->entityManager->getConnection()->getDatabasePlatform()::class;
+        if (str_contains($platformClass, 'PostgreSQL')) {
+            $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS farm, "user", organization CASCADE');
+        } else {
+            $schemaTool->dropSchema($metadata);
+        }
+
         $schemaTool->createSchema($metadata);
     }
 }

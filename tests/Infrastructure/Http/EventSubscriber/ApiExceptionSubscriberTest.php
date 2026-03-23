@@ -6,6 +6,7 @@ use App\Infrastructure\Http\EventSubscriber\ApiExceptionSubscriber;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Driver\Exception as DriverException;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -16,7 +17,7 @@ final class ApiExceptionSubscriberTest extends TestCase
 {
     public function testItMapsHttpExceptionsToTheirStatusCodeForApiRoutes(): void
     {
-        $subscriber = new ApiExceptionSubscriber();
+        $subscriber = new ApiExceptionSubscriber(new NullLogger());
         $kernel = $this->createMock(HttpKernelInterface::class);
         $request = Request::create('/api/crops/missing/transitions/harvest', 'POST');
         $event = new ExceptionEvent(
@@ -34,7 +35,7 @@ final class ApiExceptionSubscriberTest extends TestCase
 
     public function testItMapsConstraintViolationsToConflictForApiRoutes(): void
     {
-        $subscriber = new ApiExceptionSubscriber();
+        $subscriber = new ApiExceptionSubscriber(new NullLogger());
         $kernel = $this->createMock(HttpKernelInterface::class);
         $request = Request::create('/api/genetics/CT-ALP', 'DELETE');
         $driverException = new class ('Foreign key violation') extends \RuntimeException implements DriverException {
