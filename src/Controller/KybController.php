@@ -28,7 +28,7 @@ class KybController extends AbstractController
      *
      * Body (multipart/form-data) :
      *   licenseNumber : string (obligatoire)
-     *   licenseType   : metrc_usa | health_canada | bfarm_de | ansm_fr
+     *   licenseType   : metrc_usa | health_canada | bfarm_de | ansm_fr | ctls_dev (dev/test only)
      *   file          : fichier PDF ou image (optionnel en dev)
      */
     #[Route('/api/kyb/upload', methods: ['POST'])]
@@ -47,6 +47,11 @@ class KybController extends AbstractController
         }
 
         $validTypes = ['metrc_usa', 'health_canada', 'bfarm_de', 'ansm_fr'];
+        $appEnv = (string) $this->getParameter('kernel.environment');
+        if (in_array($appEnv, ['dev', 'test'], true)) {
+            $validTypes[] = 'ctls_dev';
+        }
+
         if (!in_array($licenseType, $validTypes, true)) {
             return $this->json([
                 'error'       => 'licenseType invalide',

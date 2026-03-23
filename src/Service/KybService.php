@@ -67,6 +67,23 @@ class KybService
         // Simuler un délai d'appel API
         sleep(1);
 
+        if ($license->getLicenseType() === 'ctls_dev') {
+            if (!preg_match('/^TEST-CTLS-[A-Z0-9-]{4,}$/', strtoupper($license->getLicenseNumber()))) {
+                return [
+                    'verified' => false,
+                    'method'   => 'simulated',
+                    'reason'   => 'Le format de licence CTLS fictive doit commencer par TEST-CTLS-',
+                ];
+            }
+
+            return [
+                'verified'   => true,
+                'method'     => 'simulated_ctls_dev',
+                'expiresAt'  => (new \DateTimeImmutable('+2 years'))->format('Y-m-d'),
+                'reason'     => null,
+            ];
+        }
+
         // En dev : toujours approuver (sauf si le numéro contient "INVALID")
         if (str_contains(strtoupper($license->getLicenseNumber()), 'INVALID')) {
             return [

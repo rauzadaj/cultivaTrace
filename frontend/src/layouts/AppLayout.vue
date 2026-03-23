@@ -1,5 +1,16 @@
 <template>
   <q-layout view="hHh Lpr lFf" class="app-shell">
+    <template v-if="restrictedToKyb">
+      <q-page-container class="app-page-container">
+        <q-page class="app-page">
+          <div class="app-page__inner">
+            <RouterView />
+          </div>
+        </q-page>
+      </q-page-container>
+    </template>
+
+    <template v-else>
     <div v-if="!offlineState.isOnline" class="offline-banner">
       Hors ligne — {{ offlineState.pendingCount }} actions en attente de synchronisation
     </div>
@@ -256,6 +267,7 @@
         </div>
       </q-card>
     </q-dialog>
+    </template>
   </q-layout>
 </template>
 
@@ -315,6 +327,7 @@ const showDrawerLabels = computed(() => {
   return !drawerMini.value || drawerHover.value
 })
 const alertCount = computed(() => appAlerts.value.length)
+const restrictedToKyb = computed(() => authStore.isAuthenticated && !authStore.isPlanActive)
 const showLicenseBanner = computed(() => {
   const status = authStore.organization?.licenseStatus
   return status === 'pending' || status === 'suspended'

@@ -105,7 +105,7 @@
             label="Accéder au dashboard"
             color="primary"
             flat
-            @click="$router.push('/')"
+            @click="goToDashboard"
           />
         </q-card-actions>
       </q-card>
@@ -117,9 +117,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 import { kybApi } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 const $q = useQuasar()
+const router = useRouter()
+const authStore = useAuthStore()
 
 const loading    = ref(false)
 const kybStatus  = ref<any>(null)
@@ -133,6 +137,7 @@ const form = ref({
 
 const licenseTypeOptions = [
   { label: 'Health Canada (Canada)', value: 'health_canada' },
+  { label: 'CTLS fictive (dev)', value: 'ctls_dev' },
   { label: 'METRC (USA)', value: 'metrc_usa' },
   { label: 'BfArM (Allemagne)', value: 'bfarm_de' },
   { label: 'ANSM (France)', value: 'ansm_fr' },
@@ -141,6 +146,7 @@ const licenseTypeOptions = [
 const licenseNumberHint = computed(() => {
   const hints: Record<string, string> = {
     health_canada: 'Format : LP-XXXXXXXX (ex: LP-12345678)',
+    ctls_dev:      'Format dev : TEST-CTLS-XXXX (ex: TEST-CTLS-DEMO-001)',
     metrc_usa:     'Format : {ÉTAT}-LIC-XXXXX (ex: CO-LIC-12345)',
     bfarm_de:      'Format : BfArM-DE-XXXXX',
     ansm_fr:       'Format : ANSM-FR-XXXXX',
@@ -215,6 +221,7 @@ async function submitLicense(): Promise<void> {
     await loadStatus()
 
     if (data.status === 'active') {
+      await authStore.fetchMe()
       $q.notify({ type: 'positive', message: '✅ Licence validée ! Accès complet activé.' })
     } else if (data.status === 'pending') {
       $q.notify({ type: 'warning', message: '⏳ Vérification manuelle en cours (24-48h).' })
@@ -228,6 +235,10 @@ async function submitLicense(): Promise<void> {
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR')
+}
+
+function goToDashboard(): void {
+  void router.push('/dashboard/overview')
 }
 
 onMounted(loadStatus)
