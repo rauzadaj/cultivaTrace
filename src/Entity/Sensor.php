@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use App\State\SensorStateProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -40,8 +41,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(operations: [
     new GetCollection(),
     new Get(),
-    new Post(),
-    new Patch(),
+    new Post(processor: SensorStateProcessor::class),
+    new Patch(processor: SensorStateProcessor::class),
     new Delete(),
 ])]
 #[ApiFilter(SearchFilter::class, properties: [
