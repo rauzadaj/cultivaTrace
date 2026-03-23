@@ -213,7 +213,7 @@ final class SeedDemoDataCommand extends Command
         $organization
             ->setCountry('FR')
             ->setPlan(SubscriptionPlan::PRO)
-            ->setLicenseStatus(LicenseStatus::ACTIVE);
+            ->setLicenseStatus(LicenseStatus::PENDING);
 
         return $organization;
     }

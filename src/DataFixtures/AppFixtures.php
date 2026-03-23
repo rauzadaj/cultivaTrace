@@ -50,7 +50,7 @@ final class AppFixtures extends Fixture
             ->setName('Ferme Test')
             ->setCountry('FR')
             ->setPlan(SubscriptionPlan::PRO)
-            ->setLicenseStatus(LicenseStatus::ACTIVE);
+            ->setLicenseStatus(LicenseStatus::PENDING);
         $demoUser->setOrganization($organization);
 
         $manager->persist($organization);
