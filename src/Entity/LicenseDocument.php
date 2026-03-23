@@ -52,7 +52,7 @@ class LicenseDocument
 
     /**
      * Type de licence selon le marché :
-     * metrc_usa | health_canada | bfarm_de | ansm_fr
+     * metrc_usa | health_canada | bfarm_de | ansm_fr | ctls_dev (dev/test only)
      */
     #[ORM\Column(length: 50)]
     private string $licenseType;
