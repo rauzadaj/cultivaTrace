@@ -5,8 +5,10 @@
         <p class="section-eyebrow">Plants</p>
         <h1>Liste terrain</h1>
       </div>
-      <div v-if="!isMobile" class="plant-list__actions">
+      <div class="plant-list__actions">
+        <c-btn variant="primary" @click="createPlantOpen = true">Nouveau plant</c-btn>
         <q-btn-toggle
+          v-if="!isMobile"
           v-model="desktopMode"
           no-caps
           unelevated
@@ -114,12 +116,15 @@
         </div>
       </section>
     </div>
+
+    <plant-form v-model="createPlantOpen" @created="handlePlantCreated" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PlantForm from '../../components/plants/PlantForm.vue'
 import CBtn from '../../components/ui/CBtn.vue'
 import CCard from '../../components/ui/CCard.vue'
 import PlantStageChip from '../../components/ui/PlantStageChip.vue'
@@ -134,6 +139,7 @@ const { xs } = useDisplay()
 const isMobile = computed(() => xs.value)
 const activeStage = ref<'all' | PlantStage>('all')
 const desktopMode = ref<'list' | 'grid'>('list')
+const createPlantOpen = ref(false)
 
 const modeOptions = [
   { label: 'Liste', value: 'list' },
@@ -172,6 +178,11 @@ async function refreshPlants(done: () => void) {
 }
 
 function openPlant(id: string) {
+  void router.push({ name: 'plant-detail', params: { id } })
+}
+
+function handlePlantCreated(id: string) {
+  createPlantOpen.value = false
   void router.push({ name: 'plant-detail', params: { id } })
 }
 </script>
