@@ -58,7 +58,7 @@
           <q-menu anchor="bottom right" self="top right">
             <q-list style="min-width: 180px">
               <q-item>
-                <q-item-section>{{ userStore.userEmail || userStore.operatorLabel }}</q-item-section>
+                <q-item-section>{{ userIdentity }}</q-item-section>
               </q-item>
               <q-separator />
               <q-item clickable @click="logout">
@@ -100,8 +100,8 @@
 
         <div v-if="isMobile" class="app-drawer__footer">
           <div class="app-drawer__user">
-            <strong>{{ userStore.operatorLabel || 'Operateur' }}</strong>
-            <span>{{ userStore.userEmail }}</span>
+            <strong>{{ userDisplayName }}</strong>
+            <span>{{ authStore.user?.email || 'operateur@cultivatrace.local' }}</span>
           </div>
           <c-btn variant="ghost" class="full-width" @click="logout">Logout</c-btn>
         </div>
@@ -268,7 +268,6 @@ import CInput from '../components/ui/CInput.vue'
 import { useOfflineQueue } from '../composables/useOfflineQueue'
 import { useAuthStore } from '../stores/auth'
 import { usePlantsStore } from '../stores/plants'
-import { useUserStore } from '../stores/useUserStore'
 import type { AlertItem, Plant, PlantStage } from '../types/api'
 
 const route = useRoute()
@@ -276,7 +275,6 @@ const router = useRouter()
 const $q = useQuasar()
 const plantsStore = usePlantsStore()
 const authStore = useAuthStore()
-const userStore = useUserStore()
 const offlineState = useOfflineQueue()
 
 const drawerOpen = ref(true)
@@ -321,6 +319,8 @@ const showLicenseBanner = computed(() => {
   const status = authStore.organization?.licenseStatus
   return status === 'pending' || status === 'suspended'
 })
+const userIdentity = computed(() => authStore.user?.email || 'Operateur')
+const userDisplayName = computed(() => userIdentity.value.split('@')[0] || 'Operateur')
 const currentPlant = computed<Plant | null>(() => {
   const routeId = String(route.params.id || '')
 
@@ -380,7 +380,9 @@ const mobileNavigation = [
 
 const desktopNavigation = [
   ...mobileNavigation.slice(0, 4),
+  { label: 'Conformite', icon: 'mdi-shield-check-outline', to: '/compliance' },
   { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing' },
+  { label: 'Parametres', icon: 'mdi-cog-outline', to: '/settings' },
   mobileNavigation[4],
 ] as const
 
@@ -390,7 +392,9 @@ const headerTitle = computed(() => {
   if (route.name === 'rooms-dashboard') return 'Rooms'
   if (route.name === 'sensors-dashboard') return 'Sensors'
   if (route.name === 'kyb') return 'KYB'
+  if (route.name === 'compliance') return 'Compliance'
   if (route.name === 'billing' || route.name === 'billing-success') return 'Billing'
+  if (route.name === 'settings') return 'Settings'
   if (route.name === 'more') return 'More'
 
   return 'Dashboard'
@@ -401,7 +405,9 @@ const breadcrumb = computed(() => {
   if (route.name === 'rooms-dashboard') return 'Operations / Rooms'
   if (route.name === 'sensors-dashboard') return 'Operations / Sensors'
   if (route.name === 'kyb') return 'Compliance / KYB'
+  if (route.name === 'compliance') return 'Compliance / CTS'
   if (route.name === 'billing' || route.name === 'billing-success') return 'Settings / Billing'
+  if (route.name === 'settings') return 'Settings / Account'
 
   return 'Operations / Overview'
 })
@@ -412,7 +418,9 @@ const mobileKicker = computed(() => {
   if (route.name === 'rooms-dashboard') return 'Monitoring'
   if (route.name === 'sensors-dashboard') return 'Capteurs'
   if (route.name === 'kyb') return 'Conformite'
+  if (route.name === 'compliance') return 'CTS'
   if (route.name === 'billing' || route.name === 'billing-success') return 'Abonnement'
+  if (route.name === 'settings') return 'Compte'
 
   return 'Cultivation'
 })
@@ -509,7 +517,6 @@ function closeConfirmDialog() {
 
 async function logout() {
   authStore.logout()
-  userStore.clearSession()
   await router.push({ name: 'auth' })
 }
 
