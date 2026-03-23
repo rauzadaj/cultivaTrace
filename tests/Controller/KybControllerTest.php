@@ -116,4 +116,32 @@ final class KybControllerTest extends ApiTestCase
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
+
+    public function testUploadActivatesDevCtlsLicenseWithExplicitTestPrefix(): void
+    {
+        $organization = $this->createOrganization('Org KYB CTLS');
+        $user = $this->createUser($organization, 'kyb-ctls@test.local');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($user);
+        $this->client->request(
+            'POST',
+            '/api/kyb/upload',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            json_encode([
+                'licenseNumber' => 'TEST-CTLS-DEMO-001',
+                'licenseType' => 'ctls_dev',
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        $this->assertStatusCode(Response::HTTP_CREATED);
+
+        $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('active', $payload['status']);
+    }
 }

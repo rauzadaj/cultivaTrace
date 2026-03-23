@@ -126,8 +126,14 @@ router.beforeEach((to) => {
     }
   }
 
+  if (authStore.isAuthenticated && !authStore.isPlanActive && to.name !== 'kyb') {
+    return { name: 'kyb' }
+  }
+
   if (to.name === 'auth' && authStore.isAuthenticated) {
-    return typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard/overview'
+    return authStore.isPlanActive
+      ? (typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard/overview')
+      : '/kyb'
   }
 
   return true
