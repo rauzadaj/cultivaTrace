@@ -76,10 +76,10 @@ export const usePlantsStore = defineStore('plants', () => {
     itemsPerPage: 30,
   })
 
-  const roomsById = computed(() => new Map(rooms.value.map((room) => [room.id, room])))
-  const strainsById = computed(() => new Map(strains.value.map((strain) => [strain.id, strain])))
+  const roomsById = computed(() => new Map<string, Room>(rooms.value.map((room: Room) => [room.id, room])))
+  const strainsById = computed(() => new Map<string, Strain>(strains.value.map((strain: Strain) => [strain.id, strain])))
 
-  const plantCards = computed<PlantCardSummary[]>(() => plants.value.map((plant) => {
+  const plantCards = computed<PlantCardSummary[]>(() => plants.value.map((plant: Plant) => {
     const roomId = relationId(plant.room)
     const room = roomId ? roomsById.value.get(roomId) : null
     const strainId = relationId(plant.strain)
@@ -98,8 +98,8 @@ export const usePlantsStore = defineStore('plants', () => {
     }
   }))
 
-  const activePlants = computed(() => plantCards.value.filter((plant) => plant.status === 'active'))
-  const harvestedPlants = computed(() => plantCards.value.filter((plant) => plant.status === 'harvested'))
+  const activePlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'active'))
+  const harvestedPlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'harvested'))
 
   async function fetchSupportData(): Promise<void> {
     const [roomsResponse, strainsResponse] = await Promise.all([
@@ -189,7 +189,7 @@ export const usePlantsStore = defineStore('plants', () => {
       germinatedAt: payload.germinatedAt,
       rfidTag: payload.rfidTag?.trim() || null,
     }
-    const { data } = await plantsApi.create(body)
+    const { data } = await plantsApi.create(body as Partial<Plant>)
     plants.value.unshift(data)
     totalItems.value += 1
     currentPlant.value = data
@@ -199,7 +199,7 @@ export const usePlantsStore = defineStore('plants', () => {
 
   async function changeStage(plantId: string, to: PlantStage): Promise<void> {
     const { data } = await plantsApi.update(plantId, { stage: to })
-    plants.value = plants.value.map((plant) => plant.id === plantId ? data : plant)
+      plants.value = plants.value.map((plant: Plant) => plant.id === plantId ? data : plant)
 
     if (currentPlant.value?.id === plantId) {
       currentPlant.value = data
@@ -223,7 +223,7 @@ export const usePlantsStore = defineStore('plants', () => {
       return plant.room.name
     }
 
-    return 'room' in plant ? plant.room : 'Salle non renseignee'
+    return 'room' in plant && typeof plant.room === 'string' ? plant.room : 'Salle non renseignee'
   }
 
   function strainLabel(plant: Plant | PlantCardSummary | null): string {
@@ -241,7 +241,7 @@ export const usePlantsStore = defineStore('plants', () => {
       return plant.strain.name
     }
 
-    return 'strain' in plant ? plant.strain : 'Genetique non renseignee'
+    return 'strain' in plant && typeof plant.strain === 'string' ? plant.strain : 'Genetique non renseignee'
   }
 
   function plantName(plant: Plant | null): string {
@@ -253,14 +253,14 @@ export const usePlantsStore = defineStore('plants', () => {
   }
 
   function roomIriList() {
-    return rooms.value.map((room) => ({
+    return rooms.value.map((room: Room) => ({
       label: room.name,
       value: relationIri(room, 'rooms') ?? `/api/rooms/${room.id}`,
     }))
   }
 
   function strainIriList() {
-    return strains.value.map((strain) => ({
+    return strains.value.map((strain: Strain) => ({
       label: `${strain.name} · ${strain.genetics}`,
       value: relationIri(strain, 'strains') ?? `/api/strains/${strain.id}`,
     }))
@@ -288,6 +288,7 @@ export const usePlantsStore = defineStore('plants', () => {
     roomsById,
     strainsById,
     bootstrap,
+    fetchSupportData,
     fetchPlants,
     fetchPlant,
     fetchEvents,
