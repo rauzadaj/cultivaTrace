@@ -9,7 +9,6 @@ use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class CropLifecycleTransitionController
 {
@@ -19,7 +18,6 @@ final readonly class CropLifecycleTransitionController
     ) {
     }
 
-    #[Route('/api/crops/{id}/transitions/{transition}', name: 'api_crop_lifecycle_transition', methods: ['POST'])]
     public function __invoke(string $id, string $transition, Request $request): JsonResponse
     {
         $crop = $this->entityManager->find(Crop::class, $id);
