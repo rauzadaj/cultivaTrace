@@ -19,6 +19,10 @@ final class Version20260318094532 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        $this->addSql('CREATE TABLE IF NOT EXISTS room (id UUID NOT NULL, tenant_id UUID NOT NULL, farm_id UUID NOT NULL, name VARCHAR(255) NOT NULL, description TEXT DEFAULT NULL, type VARCHAR(50) NOT NULL, capacity_max INT NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_729F519B65FCFA0D ON room (farm_id)');
+        $this->addSql('CREATE TABLE IF NOT EXISTS sensor (id UUID NOT NULL, tenant_id UUID NOT NULL, room_id UUID NOT NULL, type VARCHAR(50) NOT NULL, device_id VARCHAR(255) NOT NULL, protocol VARCHAR(50) NOT NULL, status VARCHAR(50) NOT NULL, last_seen TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, thresholds JSON DEFAULT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_BC8617B054177093 ON sensor (room_id)');
         $this->addSql('CREATE TABLE IF NOT EXISTS strain (id UUID NOT NULL, tenant_id UUID NOT NULL, name VARCHAR(255) NOT NULL, genetics VARCHAR(50) NOT NULL, cannabis_type VARCHAR(20) NOT NULL, thc_percentage DOUBLE PRECISION DEFAULT NULL, flowering_days INT DEFAULT NULL, grow_params JSON DEFAULT NULL, notes TEXT DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE TABLE IF NOT EXISTS plant (id UUID NOT NULL, tenant_id UUID NOT NULL, rfid_tag VARCHAR(100) DEFAULT NULL, stage VARCHAR(50) NOT NULL, status VARCHAR(50) NOT NULL, germinated_at DATE NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, room_id UUID NOT NULL, strain_id UUID DEFAULT NULL, created_by_id INT NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IF NOT EXISTS IDX_AB030D7254177093 ON plant (room_id)');
@@ -41,6 +45,12 @@ final class Version20260318094532 extends AbstractMigration
         $this->addSql(<<<'SQL'
             DO $$
             BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE lower(conname) = lower('FK_729F519B65FCFA0D')) THEN
+                    ALTER TABLE room ADD CONSTRAINT FK_729F519B65FCFA0D FOREIGN KEY (farm_id) REFERENCES farm (id) NOT DEFERRABLE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE lower(conname) = lower('FK_BC8617B054177093')) THEN
+                    ALTER TABLE sensor ADD CONSTRAINT FK_BC8617B054177093 FOREIGN KEY (room_id) REFERENCES room (id) NOT DEFERRABLE;
+                END IF;
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE lower(conname) = lower('FK_AB030D7254177093')) THEN
                     ALTER TABLE plant ADD CONSTRAINT FK_AB030D7254177093 FOREIGN KEY (room_id) REFERENCES room (id) NOT DEFERRABLE;
                 END IF;
