@@ -70,6 +70,7 @@ abstract class ApiTestCase extends KernelTestCase
         if (str_contains($platformClass, 'PostgreSQL')) {
             $this->entityManager->getConnection()->executeStatement('DROP SCHEMA IF EXISTS public CASCADE');
             $this->entityManager->getConnection()->executeStatement('CREATE SCHEMA public');
+            $this->entityManager->getConnection()->executeStatement('SET search_path TO public');
         } else {
             $schemaTool->dropSchema($metadata);
         }

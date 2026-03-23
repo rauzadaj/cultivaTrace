@@ -53,6 +53,15 @@ class PlantEventRepository extends ServiceEntityRepository
         $event->setIpAddress(
             $this->requestStack->getCurrentRequest()?->getClientIp() ?? '0.0.0.0'
         );
+        $event->setOccurredAt(
+            new \DateTimeImmutable($event->getOccurredAt()->format('Y-m-d H:i:s'))
+        );
+
+        // The DB stores occurredAt with second precision. Make append order deterministic
+        // so hash-chain verification remains stable when multiple events are written quickly.
+        if ($lastEvent !== null && $event->getOccurredAt() <= $lastEvent->getOccurredAt()) {
+            $event->setOccurredAt($lastEvent->getOccurredAt()->modify('+1 second'));
+        }
 
         $event->setHashSelf(
             $this->hashChainService->computeHash($event, $previousHash)
