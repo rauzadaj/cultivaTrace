@@ -22,8 +22,8 @@ export const useAuthStore = defineStore('auth', () => {
   // ── Getters ──────────────────────────────────────────────────────────────
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.roles.includes('ROLE_ADMIN') ?? false)
-  const isManager = computed(() => user.value?.roles.some(r => ['ROLE_ADMIN', 'ROLE_MANAGER'].includes(r)) ?? false)
-  const isOperator = computed(() => user.value?.roles.some(r => ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_OPERATOR'].includes(r)) ?? false)
+  const isManager = computed(() => user.value?.roles.some((r: UserRole) => ['ROLE_ADMIN', 'ROLE_MANAGER'].includes(r)) ?? false)
+  const isOperator = computed(() => user.value?.roles.some((r: UserRole) => ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_OPERATOR'].includes(r)) ?? false)
 
   const organization = computed(() => user.value?.organization ?? null)
 
