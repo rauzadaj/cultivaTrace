@@ -168,17 +168,21 @@ import AlertBadge from '../components/ui/AlertBadge.vue'
 import CCard from '../components/ui/CCard.vue'
 import PlantStageChip from '../components/ui/PlantStageChip.vue'
 import { useDisplay } from '../composables/useDisplay'
+import { useAuthStore } from '../stores/auth'
 import { usePlantsStore } from '../stores/plants'
-import { useUserStore } from '../stores/useUserStore'
 import type { AlertItem, DashboardStatChip, PlantCardSummary, PlantStage } from '../types/api'
 
 const plantsStore = usePlantsStore()
-const userStore = useUserStore()
+const authStore = useAuthStore()
 const { xs } = useDisplay()
 
 const farmDialogOpen = ref(false)
 const isMobile = computed(() => xs.value)
-const firstName = computed(() => (userStore.operatorLabel || userStore.userEmail || 'operateur').split(/[\s@._-]+/)[0] ?? 'operateur')
+const firstName = computed(() => {
+  const identity = authStore.user?.email || 'operateur'
+
+  return identity.split(/[\s@._-]+/)[0] ?? 'operateur'
+})
 const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
 
 const roomOccupancy = computed(() => plantsStore.rooms.map((room) => ({

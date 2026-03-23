@@ -56,7 +56,7 @@ export const useSensorsStore = defineStore('sensors', () => {
 
   // Nombre d'alertes actives (capteurs hors seuil)
   const alertCount = computed(() =>
-    [...liveReadings.value.values()].filter(r => r.status !== 'normal').length
+    [...liveReadings.value.values()].filter((reading: SensorLiveReading) => reading.status !== 'normal').length
   )
 
   async function fetchSensors(roomId?: string): Promise<void> {
@@ -98,7 +98,7 @@ export const useSensorsStore = defineStore('sensors', () => {
       stage: string
     } | null
   }): void {
-    const sensor = sensors.value.find(s => s.id === sensorId)
+    const sensor = sensors.value.find((s: Sensor) => s.id === sensorId)
     if (!sensor) return
 
     const status = computeStatus(sensor, update.value)
@@ -135,7 +135,7 @@ export const useSensorsStore = defineStore('sensors', () => {
     const nextReadings = new Map(liveReadings.value)
 
     await Promise.all(
-      sensors.value.map(async (sensor) => {
+      sensors.value.map(async (sensor: Sensor) => {
         try {
           const { data } = await sensorsApi.readings(sensor.id, '30d')
           const points = Array.isArray(data.data) ? data.data : []

@@ -29,11 +29,6 @@
 
         <form class="auth-form" @submit.prevent="submit">
           <q-input
-            v-model="apiBaseUrl"
-            label="API base URL"
-            outlined
-          />
-          <q-input
             v-model="email"
             label="Email"
             type="email"
@@ -74,23 +69,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ApiError, login } from '../lib/api'
-import { useUserStore } from '../stores/useUserStore'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
+const authStore = useAuthStore()
 
-const email = ref(userStore.userEmail)
+const email = ref(authStore.user?.email ?? '')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-const apiBaseUrl = computed({
-  get: () => userStore.apiBaseUrl,
-  set: (value: string) => userStore.setApiBaseUrl(value),
-})
 
 async function submit() {
   error.value = ''
@@ -107,12 +97,10 @@ async function submit() {
       throw new Error('Mot de passe requis.')
     }
 
-    const payload = await login(normalizedEmail, password.value)
-
-    userStore.setSession(payload.token, normalizedEmail)
+    await authStore.login(normalizedEmail, password.value)
     await router.push(resolveRedirectTarget())
   } catch (caughtError) {
-    error.value = caughtError instanceof ApiError || caughtError instanceof Error
+    error.value = caughtError instanceof Error
       ? caughtError.message
       : 'Echec de l’authentification.'
   } finally {

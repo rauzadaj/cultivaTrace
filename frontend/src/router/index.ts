@@ -1,13 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { pinia } from '../plugins/pinia'
 import AppLayout from '../layouts/AppLayout.vue'
-import { useUserStore } from '../stores/useUserStore'
+import { useAuthStore } from '../stores/auth'
 import AuthView from '../views/AuthView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import MoreView from '../views/MoreView.vue'
 import SensorsView from '../views/SensorsView.vue'
+import ComplianceView from '../views/compliance/ComplianceView.vue'
 import KybView from '../views/auth/KybView.vue'
 import BillingView from '../views/billing/BillingView.vue'
+import SettingsView from '../views/settings/SettingsView.vue'
 import PlantDetailView from '../views/plants/PlantDetailView.vue'
 import PlantListView from '../views/plants/PlantListView.vue'
 import RoomDashboard from '../views/rooms/RoomDashboard.vue'
@@ -75,6 +77,16 @@ const router = createRouter({
           component: BillingView,
         },
         {
+          path: 'compliance',
+          name: 'compliance',
+          component: ComplianceView,
+        },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: SettingsView,
+        },
+        {
           path: 'billing/success',
           name: 'billing-success',
           component: () => import('../views/billing/BillingSuccessView.vue'),
@@ -105,16 +117,16 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const userStore = useUserStore(pinia)
+  const authStore = useAuthStore(pinia)
 
-  if (to.meta.requiresAuth && !userStore.isAuthenticated) {
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return {
       name: 'auth',
       query: { redirect: to.fullPath },
     }
   }
 
-  if (to.name === 'auth' && userStore.isAuthenticated) {
+  if (to.name === 'auth' && authStore.isAuthenticated) {
     return typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard/overview'
   }
 
