@@ -34,7 +34,7 @@ final class SensorControllerTest extends ApiTestCase
         ]);
 
         $this->entityManager->getConnection()->executeStatement(
-            'CREATE TABLE sensor_reading (
+            'CREATE TABLE IF NOT EXISTS sensor_reading (
                 sensor_id   UUID        NOT NULL,
                 tenant_id   UUID        NOT NULL,
                 value       FLOAT       NOT NULL,
@@ -42,7 +42,7 @@ final class SensorControllerTest extends ApiTestCase
             )'
         );
         $this->entityManager->getConnection()->executeStatement(
-            'CREATE INDEX idx_sensor_reading ON sensor_reading (sensor_id, recorded_at DESC)'
+            'CREATE INDEX IF NOT EXISTS idx_sensor_reading ON sensor_reading (sensor_id, recorded_at DESC)'
         );
 
     }
