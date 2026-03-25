@@ -81,7 +81,7 @@ final class PlantReportControllerFallbackTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->method('getRepository')->willReturn($repository);
 
-        $controller = new PlantReportController($gotenberg, $plantEventRepository, $hashChain, $entityManager);
+        $controller = new PlantReportController($gotenberg, $plantEventRepository, $hashChain, $entityManager, 'test');
 
         $organization = new Organization();
         $organization->setName('Org PDF');
