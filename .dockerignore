@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.local
+.env.test
+.env.*.local
+config/jwt/*.pem
+var/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+tests/
+docker-compose.yml
+README.md
+AGENTS.md
