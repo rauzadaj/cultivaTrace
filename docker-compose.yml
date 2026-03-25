@@ -10,6 +10,7 @@ services:
       - symfony_var:/var/www/html/var
     depends_on:
       - db
+      - gotenberg
     environment:
       APP_ENV: dev
       APP_AUTO_BOOTSTRAP: "1"

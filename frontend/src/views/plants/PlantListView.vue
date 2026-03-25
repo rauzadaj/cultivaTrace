@@ -130,7 +130,7 @@ import CCard from '../../components/ui/CCard.vue'
 import PlantStageChip from '../../components/ui/PlantStageChip.vue'
 import { useDisplay } from '../../composables/useDisplay'
 import { usePlantsStore } from '../../stores/plants'
-import type { PlantCardSummary, PlantStage } from '../../types/api'
+import type { Plant, PlantCardSummary, PlantStage } from '../../types/api'
 
 const router = useRouter()
 const plantsStore = usePlantsStore()
@@ -181,9 +181,9 @@ function openPlant(id: string) {
   void router.push({ name: 'plant-detail', params: { id } })
 }
 
-function handlePlantCreated(id: string) {
+function handlePlantCreated(plant: Plant) {
   createPlantOpen.value = false
-  void router.push({ name: 'plant-detail', params: { id } })
+  void router.push({ name: 'plant-detail', params: { id: plant.id } })
 }
 </script>
 
