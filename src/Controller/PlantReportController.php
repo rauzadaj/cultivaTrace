@@ -7,6 +7,7 @@ use App\Repository\PlantEventRepository;
 use App\Service\HashChainService;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +33,8 @@ class PlantReportController extends AbstractController
         private readonly PlantEventRepository $eventRepo,
         private readonly HashChainService $hashChain,
         private readonly EntityManagerInterface $em,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $appEnv,
     ) {}
 
     public function __invoke(Plant $plant): Response
@@ -68,9 +71,7 @@ class PlantReportController extends AbstractController
                 'error' => 'PDF generation service is unavailable.',
             ];
 
-            if (isset($this->container)
-                && $this->container->hasParameter('kernel.environment')
-                && $this->container->getParameter('kernel.environment') === 'test') {
+            if ($this->appEnv === 'test') {
                 $payload['details'] = $exception->getMessage();
             }
 
