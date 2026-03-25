@@ -19,10 +19,24 @@ import type {
 const TOKEN_KEY = 'cultivatrace_token'
 const USER_EMAIL_KEY = 'cultivatrace_user_email'
 
+function resolveApiBaseUrl(): string {
+  const configuredBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
+
+  if (!configuredBaseUrl) {
+    return '/api'
+  }
+
+  const normalizedBaseUrl = configuredBaseUrl.replace(/\/+$/, '')
+
+  return normalizedBaseUrl.endsWith('/api')
+    ? normalizedBaseUrl
+    : `${normalizedBaseUrl}/api`
+}
+
 // ── Instance Axios ────────────────────────────────────────────────────────
 
 const http: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  baseURL: resolveApiBaseUrl(),
   headers: {
     'Content-Type': 'application/ld+json',
     'Accept': 'application/ld+json',
