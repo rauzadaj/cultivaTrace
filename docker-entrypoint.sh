@@ -55,7 +55,8 @@ fi
 
 if [ -f "$NGINX_TEMPLATE" ]; then
   export PORT
-  envsubst '${PORT}' < "$NGINX_TEMPLATE" > "$NGINX_CONF"
+  export FRONTEND_URL
+  envsubst '${PORT} ${FRONTEND_URL}' < "$NGINX_TEMPLATE" > "$NGINX_CONF"
 fi
 
 if [ -n "${DATABASE_URL:-}" ]; then
