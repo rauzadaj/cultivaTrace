@@ -2,12 +2,6 @@
 
 namespace App\Domain\Cultivation\Model;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
 use App\Domain\Cultivation\Enum\CropStage;
 use App\Domain\Cultivation\Enum\JournalEntryType;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -25,18 +19,6 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[ORM\Index(name: 'idx_crop_seeded_at', columns: ['seeded_at'])]
 #[ORM\UniqueConstraint(name: 'uniq_crop_batch_code', columns: ['batch_code'])]
 #[UniqueEntity(fields: ['batchCode'])]
-#[ApiResource(
-    operations: [
-        new GetCollection(),
-        new Get(),
-        new Post(),
-        new Patch(),
-        new Delete(),
-    ],
-    normalizationContext: ['groups' => ['crop:read']],
-    denormalizationContext: ['groups' => ['crop:write']],
-    order: ['seededAt' => 'DESC'],
-)]
 #[Assert\Callback('validateChronology')]
 class Crop
 {
