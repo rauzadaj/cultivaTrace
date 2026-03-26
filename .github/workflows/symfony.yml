@@ -37,6 +37,7 @@ jobs:
           - 3000:3000
     env:
       DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
+      GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: ''
     steps:
