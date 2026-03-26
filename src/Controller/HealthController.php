@@ -23,14 +23,12 @@ final class HealthController extends AbstractController
             $db = 'error';
         }
 
-        $status = $db === 'ok' ? 'ok' : 'degraded';
-        $httpCode = $db === 'ok' ? 200 : 503;
-
         return $this->json([
-            'status' => $status,
+            'status' => $db === 'ok' ? 'ok' : 'degraded',
+            'ready' => $db === 'ok',
             'db' => $db,
             'env' => $this->getParameter('kernel.environment'),
             'version' => '1.0.0',
-        ], $httpCode);
+        ]);
     }
 }
