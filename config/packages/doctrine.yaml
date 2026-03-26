@@ -2,9 +2,9 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
 
-        # IMPORTANT: You MUST configure your server version,
-        # either here or in the DATABASE_URL env var (see .env file)
-        #server_version: '16'
+        # Railway can inject a DATABASE_URL without a usable serverVersion query
+        # parameter; keep the PostgreSQL version explicit so migrations can boot.
+        server_version: '16.0.0'
 
         profiling_collect_backtrace: '%kernel.debug%'
     orm:
