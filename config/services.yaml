@@ -35,6 +35,10 @@ services:
         tags:
             - { name: doctrine.event_subscriber }
 
+    App\Infrastructure\Persistence\Doctrine\EventSubscriber\CropTenantSubscriber:
+        tags:
+            - { name: doctrine.event_subscriber }
+
     App\Service\StripeService:
         arguments:
             $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
