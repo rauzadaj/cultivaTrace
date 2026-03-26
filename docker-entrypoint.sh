@@ -25,7 +25,12 @@ wait_for_database() {
         exit(1);
     }
 
-    $host = $parts["host"] ?? "db";
+    if (empty($parts["host"])) {
+        fwrite(STDERR, "DATABASE_URL is missing a host — cannot connect to the database.\n");
+        exit(1);
+    }
+
+    $host = $parts["host"];
     $port = $parts["port"] ?? 5432;
     $database = isset($parts["path"]) ? ltrim($parts["path"], "/") : "";
     $user = $parts["user"] ?? "";
