@@ -19,11 +19,29 @@ import type {
 const TOKEN_KEY = 'cultivatrace_token'
 const USER_EMAIL_KEY = 'cultivatrace_user_email'
 
+function resolveRailwayApiBaseUrl(): string | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const { hostname, origin } = window.location
+
+  if (!hostname.endsWith('.up.railway.app')) {
+    return null
+  }
+
+  if (hostname.startsWith('api-')) {
+    return `${origin}/api`
+  }
+
+  return `${window.location.protocol}//api-${hostname}/api`
+}
+
 function resolveApiBaseUrl(): string {
   const configuredBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
 
   if (!configuredBaseUrl) {
-    return '/api'
+    return resolveRailwayApiBaseUrl() ?? '/api'
   }
 
   const normalizedBaseUrl = configuredBaseUrl.replace(/\/+$/, '')
