@@ -31,8 +31,13 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      gotenberg:
+        image: gotenberg/gotenberg:8
+        ports:
+          - 3000:3000
     env:
       DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
+      GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: ''
     steps:
     - uses: shivammathur/setup-php@v2
@@ -62,6 +67,11 @@ jobs:
     - name: Wait for PostgreSQL
       run: |
         until (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1; do
+          sleep 1
+        done
+    - name: Wait for Gotenberg
+      run: |
+        until curl -fsS http://127.0.0.1:3000/version >/dev/null; do
           sleep 1
         done
     - name: Create test database

@@ -7,6 +7,7 @@ use App\Repository\SensorReadingRepository;
 use App\Service\AlertService;
 use App\Service\VpdService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,6 +34,7 @@ class SensorReadingController extends AbstractController
         private readonly VpdService $vpd,
         private readonly HubInterface $hub,
         private readonly EntityManagerInterface $em,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function __invoke(
@@ -79,13 +81,22 @@ class SensorReadingController extends AbstractController
         ];
 
         $tenantId = (string) $sensor->getTenantId();
-        $this->hub->publish(new Update(
-            topics: [
-                "cannas/{$tenantId}/sensors",
-                "cannas/{$tenantId}/rooms/{$sensor->getRoom()->getId()}",
-            ],
-            data: json_encode($payload),
-        ));
+
+        try {
+            $this->hub->publish(new Update(
+                topics: [
+                    "cannas/{$tenantId}/sensors",
+                    "cannas/{$tenantId}/rooms/{$sensor->getRoom()->getId()}",
+                ],
+                data: json_encode($payload),
+            ));
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Mercure publish failed for sensor reading.', [
+                'sensorId' => (string) $sensor->getId(),
+                'tenantId' => $tenantId,
+                'exception' => $exception,
+            ]);
+        }
 
         // 5. Vérifier les seuils et alerter si nécessaire
         $alerted = $this->alerts->checkAndAlert($sensor, $value);
