@@ -64,5 +64,8 @@ jobs:
         until (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1; do
           sleep 1
         done
+    - name: Create test database
+      run: |
+        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=postgres", "cultiva", ""); $pdo->exec("CREATE DATABASE cultivatrace_test");'
     - name: Execute tests (Unit and Feature tests) via PHPUnit
       run: vendor/bin/phpunit
