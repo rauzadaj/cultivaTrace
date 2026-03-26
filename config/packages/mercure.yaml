@@ -1,3 +1,8 @@
+parameters:
+    app.default_mercure_url: 'http://127.0.0.1/.well-known/mercure'
+    app.default_mercure_public_url: 'http://127.0.0.1/.well-known/mercure'
+    app.default_mercure_jwt_secret: 'change-me-in-production'
+
 # config/packages/mercure.yaml
 #
 # Configuration du hub Mercure pour les Server-Sent Events (SSE).
@@ -11,9 +16,9 @@
 mercure:
     hubs:
         default:
-            url: '%env(MERCURE_URL)%'
-            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            url: '%env(default:app.default_mercure_url:MERCURE_URL)%'
+            public_url: '%env(default:app.default_mercure_public_url:MERCURE_PUBLIC_URL)%'
             jwt:
-                secret: '%env(MERCURE_JWT_SECRET)%'
+                secret: '%env(default:app.default_mercure_jwt_secret:MERCURE_JWT_SECRET)%'
                 publish: '*'
                 subscribe: '*'
