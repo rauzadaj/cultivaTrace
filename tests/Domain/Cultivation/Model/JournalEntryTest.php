@@ -8,12 +8,15 @@ use App\Domain\Cultivation\Model\Crop;
 use App\Domain\Cultivation\Model\Genetic;
 use App\Domain\Cultivation\Model\JournalEntry;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Uuid;
 
 final class JournalEntryTest extends TestCase
 {
     public function testJournalEntryCanBeBuiltBeforeItIsSealed(): void
     {
+        $tenantId = Uuid::v4();
         $crop = (new Crop())
+            ->setTenantId($tenantId)
             ->setBatchCode('LOT-2026-JRN-001')
             ->setDisplayName('Journal Mutable')
             ->setGenetic(
@@ -31,6 +34,7 @@ final class JournalEntryTest extends TestCase
         self::assertFalse($entry->isSealed());
         self::assertSame('Initial note', $entry->getNotes());
         self::assertSame(['source' => 'unit-test'], $entry->getMetadata());
+        self::assertSame((string) $tenantId, (string) $entry->getTenantId());
     }
 
     public function testSealedJournalEntryRejectsMutation(): void

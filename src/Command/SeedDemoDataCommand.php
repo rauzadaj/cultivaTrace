@@ -50,6 +50,11 @@ final class SeedDemoDataCommand extends Command
         }
 
         $demoUser = $this->upsertDemoUser();
+        $organization = $demoUser->getOrganization();
+        if (!$organization instanceof Organization) {
+            throw new \LogicException('Demo user must belong to an organization before seeding crops.');
+        }
+
         $alpineResin = $this->upsertGenetic(
             code: 'CT-ALP',
             name: 'Alpine Resin',
@@ -67,6 +72,7 @@ final class SeedDemoDataCommand extends Command
         $this->upsertOperationalService('Journal', 'Compliance', 'Append-only field event log with immutable history.', 'mdi-book-lock-outline', 'success', '5 events', 30);
 
         $this->upsertCrop(
+            organization: $organization,
             batchCode: 'ALP-2401-A',
             displayName: 'Alpine Resin Lot A',
             genetic: $alpineResin,
@@ -93,6 +99,7 @@ final class SeedDemoDataCommand extends Command
         );
 
         $this->upsertCrop(
+            organization: $organization,
             batchCode: 'ALP-2309-H',
             displayName: 'Alpine Resin Harvest',
             genetic: $alpineResin,
@@ -113,6 +120,7 @@ final class SeedDemoDataCommand extends Command
         );
 
         $this->upsertCrop(
+            organization: $organization,
             batchCode: 'SOL-2402-F',
             displayName: 'Solar Kush Flower',
             genetic: $solarKush,
@@ -244,6 +252,7 @@ final class SeedDemoDataCommand extends Command
      * @param array<int, array{type: JournalEntryType, occurredAt: string, notes: string, metadata: array<string, mixed>, ph: float, ppm: int}> $journalBlueprints
      */
     private function upsertCrop(
+        Organization $organization,
         string $batchCode,
         string $displayName,
         Genetic $genetic,
@@ -259,6 +268,7 @@ final class SeedDemoDataCommand extends Command
         if (!$crop instanceof Crop) {
             $crop = new Crop();
             $crop
+                ->setTenantId($organization->getId())
                 ->setBatchCode($batchCode)
                 ->setDisplayName($displayName)
                 ->setGenetic($genetic)
