@@ -8,6 +8,7 @@ use App\Domain\Cultivation\Model\Crop;
 use App\Domain\Cultivation\Model\Genetic;
 use App\Domain\Cultivation\Model\JournalEntry;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Uuid;
 
 final class CropTest extends TestCase
 {
@@ -35,7 +36,9 @@ final class CropTest extends TestCase
 
     public function testCropRecordsWorkflowStageTransitionIntoJournal(): void
     {
+        $tenantId = Uuid::v4();
         $crop = (new Crop())
+            ->setTenantId($tenantId)
             ->setBatchCode('LOT-2026-002')
             ->setDisplayName('Workflow Transition')
             ->setGenetic(
@@ -48,6 +51,7 @@ final class CropTest extends TestCase
 
         self::assertCount(1, $crop->getJournalEntries());
         self::assertSame(JournalEntryType::StageTransition, $crop->getJournalEntries()->first()->getType());
+        self::assertSame((string) $tenantId, (string) $crop->getJournalEntries()->first()->getTenantId());
     }
 
     public function testJournalEntryAttachmentIsAppendOnlyFromCropAggregate(): void
@@ -69,5 +73,26 @@ final class CropTest extends TestCase
 
         self::assertCount(1, $crop->getJournalEntries());
         self::assertSame($crop, $entry->getCrop());
+    }
+
+    public function testSettingTenantIdPropagatesToAttachedJournalEntries(): void
+    {
+        $crop = (new Crop())
+            ->setBatchCode('LOT-2026-004')
+            ->setDisplayName('Tenant Propagation Crop')
+            ->setGenetic(
+                (new Genetic())
+                    ->setCode('TEN-01')
+                    ->setName('Tenant Genetic'),
+            );
+
+        $entry = (new JournalEntry())
+            ->setType(JournalEntryType::Observation)
+            ->setCrop($crop);
+
+        $crop->addJournalEntry($entry);
+        $crop->setTenantId(Uuid::v4());
+
+        self::assertSame((string) $crop->getTenantId(), (string) $entry->getTenantId());
     }
 }
