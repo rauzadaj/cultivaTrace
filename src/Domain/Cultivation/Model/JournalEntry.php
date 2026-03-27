@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domain\Cultivation\Model;
 
 use ApiPlatform\Metadata\ApiResource;
@@ -11,8 +13,10 @@ use App\Domain\Cultivation\ValueObject\NutrientConcentration;
 use App\Domain\Cultivation\ValueObject\PhLevel;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Ulid;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
@@ -44,6 +48,9 @@ class JournalEntry
     #[Assert\NotNull]
     #[Groups(['journal:read', 'journal:write'])]
     private ?Crop $crop = null;
+
+    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    private ?Uuid $tenantId = null;
 
     #[ORM\Column(length: 32, enumType: JournalEntryType::class)]
     #[Assert\NotNull]
@@ -91,10 +98,27 @@ class JournalEntry
         return $this->crop;
     }
 
+    public function getTenantId(): ?Uuid
+    {
+        return $this->tenantId;
+    }
+
+    public function setTenantId(Uuid $tenantId): self
+    {
+        $this->assertMutable();
+        $this->tenantId = $tenantId;
+
+        return $this;
+    }
+
     public function setCrop(Crop $crop): self
     {
         $this->assertMutable();
         $this->crop = $crop;
+
+        if ($crop->getTenantId() instanceof Uuid) {
+            $this->tenantId = $crop->getTenantId();
+        }
 
         return $this;
     }

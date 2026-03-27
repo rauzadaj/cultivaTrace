@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domain\Cultivation\Model;
 
 use App\Domain\Cultivation\Enum\CropStage;
@@ -7,9 +9,11 @@ use App\Domain\Cultivation\Enum\JournalEntryType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Ulid;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
@@ -38,6 +42,9 @@ class Crop
     #[Assert\Length(max: 160)]
     #[Groups(['crop:read', 'crop:write', 'journal:read'])]
     private ?string $displayName = null;
+
+    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    private ?Uuid $tenantId = null;
 
     #[ORM\Column(name: 'current_stage', length: 32)]
     #[Groups(['crop:read', 'journal:read'])]
@@ -95,6 +102,22 @@ class Crop
     public function getDisplayName(): ?string
     {
         return $this->displayName;
+    }
+
+    public function getTenantId(): ?Uuid
+    {
+        return $this->tenantId;
+    }
+
+    public function setTenantId(Uuid $tenantId): self
+    {
+        $this->tenantId = $tenantId;
+
+        foreach ($this->journalEntries as $journalEntry) {
+            $journalEntry->setTenantId($tenantId);
+        }
+
+        return $this;
     }
 
     public function setDisplayName(string $displayName): self
@@ -166,6 +189,10 @@ class Crop
         if (!$this->journalEntries->contains($journalEntry)) {
             $this->journalEntries->add($journalEntry);
             $journalEntry->setCrop($this);
+
+            if ($this->tenantId instanceof Uuid) {
+                $journalEntry->setTenantId($this->tenantId);
+            }
         }
 
         return $this;
