@@ -20,6 +20,11 @@ final class PlantReportControllerTest extends ApiTestCase
 {
     protected function setUp(): void
     {
+        $_ENV['GOTENBERG_DSN'] = 'http://127.0.0.1:3000';
+        $_SERVER['GOTENBERG_DSN'] = 'http://127.0.0.1:3000';
+        $_ENV['GOTENBERG_URL'] = 'http://127.0.0.1:3000';
+        $_SERVER['GOTENBERG_URL'] = 'http://127.0.0.1:3000';
+
         parent::setUp();
 
         $this->resetSchema([
