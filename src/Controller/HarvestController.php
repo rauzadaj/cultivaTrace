@@ -3,11 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Plant;
-use App\Entity\HarvestRecord;
-use App\Enum\PlantStatus;
-use App\Enum\PlantStage;
-use App\Repository\PlantEventRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\HarvestWorkflowService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,66 +25,19 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 class HarvestController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly PlantEventRepository $eventRepo,
+        private readonly HarvestWorkflowService $harvestWorkflow,
     ) {}
 
     public function __invoke(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
-        if (!$plant->isActive()) {
-            return $this->json([
-                'error' => sprintf('Plant non archivable (statut actuel : %s)', $plant->getStatus()->value),
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        $data        = json_decode($request->getContent(), true) ?? [];
-        $grossWeight = $data['grossWeightG'] ?? null;
-        $netWeight   = $data['netWeightG'] ?? null;
-        $harvestedAt = $data['harvestedAt'] ?? date('Y-m-d');
-        $notes       = $data['notes'] ?? null;
-
-        if (!$grossWeight || !$netWeight) {
-            return $this->json(['error' => 'grossWeightG et netWeightG sont obligatoires'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        if ((float) $netWeight > (float) $grossWeight) {
-            return $this->json(['error' => 'Le poids net ne peut pas être supérieur au poids brut'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        $this->em->beginTransaction();
         try {
-            $harvest = new HarvestRecord();
-            $harvest->setPlant($plant);
-            $harvest->setTenantId($plant->getTenantId());
-            $harvest->setGrossWeightG((string) $grossWeight);
-            $harvest->setNetWeightG((string) $netWeight);
-            $harvest->setHarvestedAt(new \DateTimeImmutable($harvestedAt));
-            $harvest->setHarvestedBy($user);
-            $harvest->setNotes($notes);
-            $this->em->persist($harvest);
-
-            $plant->setStatus(PlantStatus::HARVESTED);
-            $plant->setStage(PlantStage::HARVEST);
-
-            $this->eventRepo->appendEvent(
-                plant: $plant,
-                eventType: 'harvest',
-                user: $user,
-                payload: [
-                    'grossWeightG' => $grossWeight,
-                    'netWeightG'   => $netWeight,
-                    'harvestedAt'  => $harvestedAt,
-                    'yieldRatio'   => $harvest->getYieldRatio(),
-                ],
-                notes: $notes,
+            $harvest = $this->harvestWorkflow->harvest(
+                $plant,
+                $user,
+                json_decode($request->getContent(), true) ?? [],
             );
-
-            $this->em->flush();
-            $this->em->commit();
-
-        } catch (\Throwable $e) {
-            $this->em->rollback();
-            throw $e;
+        } catch (\InvalidArgumentException $exception) {
+            return $this->json(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return $this->json([
