@@ -10,11 +10,20 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class KybController extends AbstractController
 {
+    private const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+
+    private const ALLOWED_UPLOAD_MIME_TYPES = [
+        'application/pdf' => 'pdf',
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+    ];
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly KybService $kybService,
@@ -63,14 +72,21 @@ class KybController extends AbstractController
         $filePath = null;
         $file     = $request->files->get('file');
         if ($file) {
+            $validationError = $this->validateUploadedLicenseFile($file);
+            if ($validationError !== null) {
+                return $this->json(['error' => $validationError], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
             $uploadDir = $this->getParameter('kernel.project_dir') . '/var/licenses/';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
+
+            $detectedMimeType = $file->getMimeType();
             $filename = sprintf('%s_%s.%s',
                 $org->getId(),
                 (new \DateTimeImmutable())->format('Ymd_His'),
-                $file->guessExtension() ?? 'pdf'
+                self::ALLOWED_UPLOAD_MIME_TYPES[$detectedMimeType] ?? 'bin'
             );
             $file->move($uploadDir, $filename);
             $filePath = 'var/licenses/' . $filename;
@@ -176,5 +192,23 @@ class KybController extends AbstractController
             'status'  => $license->getStatus(),
             'message' => $action === 'approve' ? 'Licence approuvée' : 'Licence rejetée',
         ]);
+    }
+
+    private function validateUploadedLicenseFile(UploadedFile $file): ?string
+    {
+        if (!$file->isValid()) {
+            return 'Upload de document invalide.';
+        }
+
+        if ($file->getSize() > self::MAX_UPLOAD_SIZE_BYTES) {
+            return 'Le document dépasse la taille maximale autorisée de 10MB.';
+        }
+
+        $detectedMimeType = $file->getMimeType();
+        if (!is_string($detectedMimeType) || !array_key_exists($detectedMimeType, self::ALLOWED_UPLOAD_MIME_TYPES)) {
+            return 'Type de document invalide. Formats autorisés : PDF, JPG, PNG.';
+        }
+
+        return null;
     }
 }

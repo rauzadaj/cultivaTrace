@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\LicenseDocument;
 use App\Entity\Organization;
 use App\Entity\User;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
 final class KybControllerTest extends ApiTestCase
@@ -143,5 +144,79 @@ final class KybControllerTest extends ApiTestCase
 
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('active', $payload['status']);
+    }
+
+    public function testUploadRejectsUnsupportedFileType(): void
+    {
+        $organization = $this->createOrganization('Org KYB File Type');
+        $user = $this->createUser($organization, 'kyb-filetype@test.local');
+        $this->entityManager->flush();
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'kyb_txt_');
+        file_put_contents($tmpFile, 'plain text content');
+
+        $uploadedFile = new UploadedFile(
+            $tmpFile,
+            'license.txt',
+            'text/plain',
+            null,
+            true,
+        );
+
+        $this->authorizeClient($user);
+        $this->client->request(
+            'POST',
+            '/api/kyb/upload',
+            [
+                'licenseNumber' => 'HC-LP-12345',
+                'licenseType' => 'health_canada',
+            ],
+            [
+                'file' => $uploadedFile,
+            ],
+            [
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+        );
+
+        $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertStringContainsString('Formats autorisés', $this->client->getResponse()->getContent() ?: '');
+    }
+
+    public function testUploadRejectsFileLargerThanTenMegabytes(): void
+    {
+        $organization = $this->createOrganization('Org KYB File Size');
+        $user = $this->createUser($organization, 'kyb-filesize@test.local');
+        $this->entityManager->flush();
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'kyb_pdf_');
+        file_put_contents($tmpFile, "%PDF-1.4\n" . str_repeat('A', 10 * 1024 * 1024 + 1));
+
+        $uploadedFile = new UploadedFile(
+            $tmpFile,
+            'license.pdf',
+            'application/pdf',
+            null,
+            true,
+        );
+
+        $this->authorizeClient($user);
+        $this->client->request(
+            'POST',
+            '/api/kyb/upload',
+            [
+                'licenseNumber' => 'HC-LP-12345',
+                'licenseType' => 'health_canada',
+            ],
+            [
+                'file' => $uploadedFile,
+            ],
+            [
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+        );
+
+        $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertStringContainsString('10MB', $this->client->getResponse()->getContent() ?: '');
     }
 }
