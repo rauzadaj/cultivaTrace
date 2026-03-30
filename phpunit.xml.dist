@@ -12,8 +12,9 @@
         <env name="MERCURE_URL" value="http://mercure/.well-known/mercure" force="true"/>
         <env name="MERCURE_PUBLIC_URL" value="http://localhost:9000/.well-known/mercure" force="true"/>
         <env name="MERCURE_JWT_SECRET" value="!ChangeThisMercureHubJWTSecretKey!" force="true"/>
-        <server name="JWT_SECRET_KEY" value="%kernel.project_dir%/config/jwt/private.pem" force="true"/>
-        <server name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/config/jwt/public.pem" force="true"/>
+        <env name="JWT_SECRET_KEY" value="%kernel.project_dir%/config/jwt/private.pem" force="true"/>
+        <env name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/config/jwt/public.pem" force="true"/>
+        <env name="JWT_PASSPHRASE" value="change-me-in-local-and-prod" force="true"/>
     </php>
     <testsuites>
         <testsuite name="Project Test Suite">

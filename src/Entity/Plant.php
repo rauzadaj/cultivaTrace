@@ -33,10 +33,16 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'plant')]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
-        new Post(processor: PlantStateProcessor::class),
-        new Patch(processor: PlantStateProcessor::class), // uniquement stage, room, rfidTag — pas les données de création
+        new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new Post(
+            processor: PlantStateProcessor::class,
+            security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+        ),
+        new Patch(
+            processor: PlantStateProcessor::class,
+            security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+        ), // uniquement stage, room, rfidTag — pas les données de création
         // pas de Delete — archivage uniquement via PATCH status=archived
     ],
     normalizationContext: ['groups' => ['plant:read']],
