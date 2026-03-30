@@ -98,6 +98,28 @@ final class PlantApiTest extends ApiTestCase
         self::assertStringNotContainsString((string) $organizationB->getId(), $this->client->getResponse()->getContent() ?: '');
     }
 
+    public function testPostPlantsRejectsUserWithoutPlantCreatePermission(): void
+    {
+        $organization = $this->createOrganization('Org Read Only');
+        $user = $this->createUser($organization, 'readonly@test.local', role: 'ROLE_USER');
+        $farm = $this->createFarm($organization, 'Farm Read Only');
+        $room = $this->createRoom($farm, 'Veg Room');
+        $strain = $this->createStrain($organization, 'Banana OG');
+
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', '/api/plants', [
+            'room' => sprintf('/api/rooms/%s', $room->getId()),
+            'strain' => sprintf('/api/strains/%s', $strain->getId()),
+            'rfidTag' => 'PLANT-READONLY-001',
+            'germinatedAt' => '2026-03-01',
+            'stage' => 'germination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
     public function testAppendEventProducesValidHashChain(): void
     {
         $organization = $this->createOrganization('Org A');
