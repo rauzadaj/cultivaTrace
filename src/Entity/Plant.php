@@ -33,7 +33,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'plant')]
 #[ApiResource(
     operations: [
-        new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new GetCollection(security: "is_granted('PLANT_VIEW', null)"),
         new Get(security: "is_granted('PLANT_VIEW', object)"),
         new Post(processor: PlantStateProcessor::class, security: "is_granted('PLANT_CREATE', null)"),
         new Patch(processor: PlantStateProcessor::class, security: "is_granted('PLANT_EDIT', object)"), // uniquement stage, room, rfidTag — pas les données de création
