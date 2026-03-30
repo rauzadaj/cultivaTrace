@@ -3,6 +3,7 @@
 namespace App\EventListener;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use App\Entity\User;
@@ -61,19 +62,13 @@ class TenantListener
             return;
         }
 
-        // Vérifier que l'organisation n'est pas suspendue
-        if ($organization->isSuspended()) {
-            // Ne pas activer le filtre — les requêtes retourneront 403 via le Voter
-            if ($filters->isEnabled('tenant_filter')) {
-                $filters->disable('tenant_filter');
-            }
-
-            return;
-        }
-
         $filter = $filters->isEnabled('tenant_filter')
             ? $filters->getFilter('tenant_filter')
             : $filters->enable('tenant_filter');
         $filter->setParameter('tenantId', (string) $organization->getId());
+
+        if ($organization->isSuspended()) {
+            throw new AccessDeniedHttpException('Organization access is suspended.');
+        }
     }
 }
