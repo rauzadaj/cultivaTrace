@@ -86,10 +86,21 @@ class StripeController extends AbstractController
             );
         }
 
-        $portalUrl = $this->stripe->createPortalSession(
-            customerId: $org->getStripeCustomerId(),
-            returnUrl: $_ENV['FRONTEND_URL'] . '/billing',
-        );
+        try {
+            $portalUrl = $this->stripe->createPortalSession(
+                customerId: $org->getStripeCustomerId(),
+                returnUrl: $_ENV['FRONTEND_URL'] . '/billing',
+            );
+        } catch (ApiErrorException $exception) {
+            $this->logger->error('[Stripe] Portal session creation failed', [
+                'organizationId' => (string) $org->getId(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $this->json([
+                'error' => 'Stripe billing portal is currently unavailable.',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
 
         return $this->json(['portalUrl' => $portalUrl]);
     }
@@ -153,16 +164,16 @@ class StripeController extends AbstractController
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('OK', Response::HTTP_OK);
+            return new Response('', Response::HTTP_OK);
         } catch (\Throwable $exception) {
             $this->logger->error('[Stripe] Webhook handling failed', [
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('OK', Response::HTTP_OK);
+            return new Response('', Response::HTTP_OK);
         }
 
-        return new Response('OK', Response::HTTP_OK);
+        return new Response('', Response::HTTP_OK);
     }
 
     /**
