@@ -100,13 +100,36 @@ final class SensorControllerTest extends ApiTestCase
         self::assertNotEmpty($payload['data']);
     }
 
+    public function testGetReadingsRejectsUserWithoutOperatorPrivileges(): void
+    {
+        [$organization, $sensor] = $this->createSensorEntityFixture('sensor-reader@test.local', 'humidity');
+        $user = $this->createUser($organization, 'viewer@test.local', role: 'ROLE_USER');
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->client->request('GET', sprintf('/api/sensors/%s/readings?period=30d', $sensor->getId()));
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
     /**
      * @return array{0: User, 1: Sensor}
      */
     private function createSensorFixture(string $email = 'sensor@test.local', string $type = 'temperature'): array
     {
-        $organization = $this->createOrganization('Org Sensors');
+        [$organization, $sensor] = $this->createSensorEntityFixture($email, $type);
         $user = $this->createUser($organization, $email);
+        $this->entityManager->flush();
+
+        return [$user, $sensor];
+    }
+
+    /**
+     * @return array{0: Organization, 1: Sensor}
+     */
+    private function createSensorEntityFixture(string $email, string $type): array
+    {
+        $organization = $this->createOrganization('Org Sensors');
         $farm = $this->createFarm($organization, 'Farm Sensors');
         $room = $this->createRoom($farm, 'Room Sensors', 'veg');
 
@@ -126,8 +149,7 @@ final class SensorControllerTest extends ApiTestCase
         ]);
 
         $this->entityManager->persist($sensor);
-        $this->entityManager->flush();
 
-        return [$user, $sensor];
+        return [$organization, $sensor];
     }
 }
