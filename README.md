@@ -106,7 +106,8 @@ docker compose exec -it cultivatrace_app php bin/console about
 
 Note :
 - Un `401 JWT Token not found` sur `/api` est normal si vous n’êtes pas authentifié.
-- Le login JWT est exposé sur `POST /api/login`.
+- Le login JWT est exposé sur `POST /api/auth/login`.
+- Aucun endpoint de refresh token n'est actuellement livré côté backend. À expiration du JWT, le frontend invalide la session locale et demande une reconnexion.
 - La création de compte est exposée sur `POST /api/register`.
 - Les clés privées générées localement restent ignorées par Git via `config/jwt/*.pem`.
 
