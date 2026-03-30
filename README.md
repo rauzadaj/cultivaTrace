@@ -59,6 +59,35 @@ Variables utiles dans `docker-compose.yml` :
 - `APP_BOOTSTRAP_SEED_DEMO=1` : rejoue le seed de démonstration idempotent au démarrage du conteneur `app`.
 - `APP_BOOTSTRAP_SEED_CATALOG=1` : synchronise aussi le catalogue graines vérifié pour alimenter la vue frontend `Catalog`.
 
+Variables à définir hors Git :
+
+- Le fichier `.env` versionné ne contient que des placeholders sûrs.
+- Pour le développement local, créez vos vraies valeurs dans `.env.local` ou injectez-les via votre shell.
+- En environnement Railway, injectez les secrets dans le dashboard du service et non dans un fichier commité.
+- Si une valeur sensible a déjà été exposée dans un historique Git ou un ancien environnement, considérez-la comme compromise et faites une rotation avant déploiement.
+- Variables minimales à configurer dans Railway :
+  - `APP_SECRET`
+  - `DATABASE_URL`
+  - `JWT_SECRET_KEY`
+  - `JWT_PUBLIC_KEY`
+  - `JWT_SECRET_KEY_BASE64`
+  - `JWT_PUBLIC_KEY_BASE64`
+  - `JWT_PASSPHRASE`
+  - `MERCURE_URL`
+  - `MERCURE_PUBLIC_URL`
+  - `MERCURE_JWT_SECRET`
+  - `GOTENBERG_URL`
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `STRIPE_PRICE_STARTER`
+  - `STRIPE_PRICE_PRO`
+  - `STRIPE_PRICE_BUSINESS`
+  - `FRONTEND_URL`
+  - `MAILER_DSN`
+  - `LICENSE_ALERT_FROM_EMAIL`
+  - `STRIPE_ALERT_FROM_EMAIL`
+- En déploiement Railway standard, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY` pointent vers les fichiers PEM lus par Lexik, tandis que `JWT_SECRET_KEY_BASE64` et `JWT_PUBLIC_KEY_BASE64` servent à matérialiser ces fichiers au démarrage via `docker-entrypoint.sh`.
+
 2. Installer les dépendances Symfony (si nécessaire)
 
 ```bash
