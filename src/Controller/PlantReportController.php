@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Plant;
 use App\Repository\PlantEventRepository;
+use App\Security\Voter\PlantVoter;
 use App\Service\HashChainService;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
@@ -39,6 +40,8 @@ class PlantReportController extends AbstractController
 
     public function __invoke(Plant $plant): Response
     {
+        $this->denyAccessUnlessGranted(PlantVoter::VIEW, $plant);
+
         $events       = $this->eventRepo->findByPlantOrderedAsc($plant->getId());
         $inputRecords = $this->em->getRepository(\App\Entity\InputRecord::class)
             ->findBy(['plant' => $plant], ['appliedAt' => 'ASC']);

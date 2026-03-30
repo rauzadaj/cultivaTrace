@@ -39,11 +39,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'sensor')]
 #[ApiResource(operations: [
-    new GetCollection(),
-    new Get(),
-    new Post(processor: SensorStateProcessor::class),
-    new Patch(processor: SensorStateProcessor::class),
-    new Delete(),
+    new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+    new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+    new Post(processor: SensorStateProcessor::class, security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+    new Patch(processor: SensorStateProcessor::class, security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+    new Delete(security: "is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
 ])]
 #[ApiFilter(SearchFilter::class, properties: [
     'room.id' => 'exact',

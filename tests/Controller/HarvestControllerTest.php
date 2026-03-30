@@ -101,6 +101,18 @@ final class HarvestControllerTest extends ApiTestCase
         self::assertSame('pending', $intent->getStatus());
     }
 
+    public function testDestroyRejectsOperatorWithoutDestroyPermission(): void
+    {
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY-FORBIDDEN');
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
+            'reason' => 'Mold contamination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
     public function testConfirmDestroyRejectsBeforeLegalDelay(): void
     {
         [$user, $intent] = $this->createDestructionIntentFixture();
@@ -129,6 +141,20 @@ final class HarvestControllerTest extends ApiTestCase
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertStringContainsString('50%', $this->client->getResponse()->getContent() ?: '');
+    }
+
+    public function testConfirmDestroyRejectsOperatorWithoutDestroyPermission(): void
+    {
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days');
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
+            'totalWeightG' => 100,
+            'nonCannabisRatio' => 0.60,
+            'photoUrls' => ['https://example.test/photo.jpg'],
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
     }
 
     public function testConfirmDestroyRejectsMissingPhotos(): void

@@ -18,11 +18,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(name: 'uniq_operational_service_name', columns: ['name'])]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
-        new Post(),
-        new Patch(),
-        new Delete(),
+        new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new Post(security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+        new Patch(security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+        new Delete(security: "is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
     ],
     normalizationContext: ['groups' => ['service:read']],
     denormalizationContext: ['groups' => ['service:write']],
