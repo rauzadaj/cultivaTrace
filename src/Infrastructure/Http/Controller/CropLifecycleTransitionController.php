@@ -9,7 +9,9 @@ use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Attribute\Route;
 
+#[Route('/api/crops/{id}/transitions/{transition}', methods: ['POST'])]
 final readonly class CropLifecycleTransitionController
 {
     public function __construct(
