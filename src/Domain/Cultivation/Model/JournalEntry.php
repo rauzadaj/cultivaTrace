@@ -49,7 +49,7 @@ class JournalEntry
     #[Groups(['journal:read', 'journal:write'])]
     private ?Crop $crop = null;
 
-    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    #[ORM\Column(type: UuidType::NAME)]
     private ?Uuid $tenantId = null;
 
     #[ORM\Column(length: 32, enumType: JournalEntryType::class)]
