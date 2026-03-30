@@ -50,9 +50,6 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = data.token
       localStorage.setItem(TOKEN_KEY, data.token)
       localStorage.removeItem(LEGACY_TOKEN_KEY)
-      if (data.refresh_token) {
-        localStorage.setItem('refresh_token', data.refresh_token)
-      }
       await fetchMe()
     } finally {
       loading.value = false
@@ -80,7 +77,6 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(LEGACY_TOKEN_KEY)
-    localStorage.removeItem('refresh_token')
   }
 
   function hasRole(role: UserRole): boolean {
