@@ -144,4 +144,32 @@ final class KybControllerTest extends ApiTestCase
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('active', $payload['status']);
     }
+
+    public function testUploadTrimsWhitespaceAroundDevCtlsLicenseNumber(): void
+    {
+        $organization = $this->createOrganization('Org KYB CTLS Trim');
+        $user = $this->createUser($organization, 'kyb-ctls-trim@test.local');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($user);
+        $this->client->request(
+            'POST',
+            '/api/kyb/upload',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            json_encode([
+                'licenseNumber' => ' TEST-CTLS-DEMO-001 ',
+                'licenseType' => ' ctls_dev ',
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        $this->assertStatusCode(Response::HTTP_CREATED);
+
+        $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('active', $payload['status']);
+    }
 }
