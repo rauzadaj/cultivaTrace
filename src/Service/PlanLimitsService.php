@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Organization;
+use App\Enum\PlantStatus;
 use App\Enum\SubscriptionPlan;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -154,7 +155,7 @@ class PlanLimitsService
              WHERE p.tenantId = :tenantId AND p.status = :status'
         )
         ->setParameter('tenantId', $org->getId(), 'uuid')
-        ->setParameter('status', 'active')
+        ->setParameter('status', PlantStatus::ACTIVE)
         ->getSingleScalarResult();
     }
 
