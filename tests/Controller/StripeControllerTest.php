@@ -117,7 +117,7 @@ final class StripeControllerTest extends KernelTestCase
         $response = $controller->webhook($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('OK', $response->getContent());
+        self::assertSame('', $response->getContent());
     }
 
     public function testWebhookReturnsOkOnUnexpectedFailure(): void
@@ -149,15 +149,47 @@ final class StripeControllerTest extends KernelTestCase
         $response = $controller->webhook($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('OK', $response->getContent());
+        self::assertSame('', $response->getContent());
     }
 
-    private function createUserWithOrganization(): User
+    public function testPortalDoesNotExposeStripeErrorDetails(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->method('createPortalSession')
+            ->willThrowException(new class('Stripe portal detail') extends ApiErrorException {});
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects(self::once())
+            ->method('error')
+            ->with(
+                '[Stripe] Portal session creation failed',
+                self::arrayHasKey('error'),
+            );
+
+        $controller = $this->createController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            new BillingCheckoutService($stripe),
+            $logger,
+        );
+
+        $response = $controller->portal($this->createUserWithOrganization('cus_123'));
+        $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(Response::HTTP_BAD_GATEWAY, $response->getStatusCode());
+        self::assertSame('Stripe billing portal is currently unavailable.', $payload['error']);
+        self::assertArrayNotHasKey('detail', $payload);
+    }
+
+    private function createUserWithOrganization(?string $stripeCustomerId = null): User
     {
         $organization = new Organization();
         $organization->setName('Org Stripe');
         $organization->setPlan(SubscriptionPlan::STARTER);
         $organization->setLicenseStatus(LicenseStatus::ACTIVE);
+        $organization->setStripeCustomerId($stripeCustomerId);
 
         $user = new User();
         $user->setEmail('stripe@test.local');
