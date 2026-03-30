@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class RegisterUserController
@@ -17,12 +18,23 @@ final readonly class RegisterUserController
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
+        private RateLimiterFactory $registerRateLimiter,
     ) {
     }
 
     #[Route('/api/register', name: 'api_register', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
+        $limit = $this->registerRateLimiter
+            ->create($request->getClientIp() ?? 'unknown')
+            ->consume();
+
+        if (!$limit->isAccepted()) {
+            return new JsonResponse([
+                'error' => 'Too many registration attempts. Please try again later.',
+            ], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $payload = $this->resolvePayload($request);
         $email = $this->resolveEmail($payload);
         $password = $this->resolvePassword($payload);
