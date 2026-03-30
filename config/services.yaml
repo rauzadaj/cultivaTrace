@@ -52,6 +52,10 @@ services:
         arguments:
             $alertFromEmail: '%env(LICENSE_ALERT_FROM_EMAIL)%'
 
+    App\Infrastructure\Http\Controller\RegisterUserController:
+        arguments:
+            $registerRateLimiter: '@limiter.api_register'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
