@@ -21,13 +21,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: cultivatrace_test
+          POSTGRES_DB: cultivatrace
           POSTGRES_USER: cultiva
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U cultiva -d cultivatrace_test"
+          --health-cmd="pg_isready -U cultiva -d cultivatrace"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -36,7 +36,7 @@ jobs:
         ports:
           - 3000:3000
     env:
-      DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
       GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: ''
