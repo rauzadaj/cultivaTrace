@@ -6,6 +6,7 @@ use App\Entity\Plant;
 use App\Entity\DestructionIntent;
 use App\Enum\PlantStatus;
 use App\Repository\PlantEventRepository;
+use App\Security\Voter\PlantVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,6 +29,8 @@ class DestructionController extends AbstractController
     #[Route('/api/plants/{id}/destroy', methods: ['POST'])]
     public function intent(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $plant);
+
         if (!$plant->isActive()) {
             return $this->json([
                 'error' => sprintf('Plant non destructible (statut : %s)', $plant->getStatus()->value),
@@ -76,6 +79,8 @@ class DestructionController extends AbstractController
     #[Route('/api/destructions/{id}/confirm', methods: ['POST'])]
     public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $intent->getPlant());
+
         if (!$intent->canBeConfirmed()) {
             return $this->json([
                 'error'         => sprintf(

@@ -7,6 +7,7 @@ use App\Entity\HarvestRecord;
 use App\Enum\PlantStatus;
 use App\Enum\PlantStage;
 use App\Repository\PlantEventRepository;
+use App\Security\Voter\PlantVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -35,6 +36,8 @@ class HarvestController extends AbstractController
 
     public function __invoke(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted(PlantVoter::HARVEST, $plant);
+
         if (!$plant->isActive()) {
             return $this->json([
                 'error' => sprintf('Plant non archivable (statut actuel : %s)', $plant->getStatus()->value),
