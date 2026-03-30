@@ -11,9 +11,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\RateLimiter\LimiterInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
-use Symfony\Component\RateLimiter\RateLimit;
+use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
 
 final class RegisterUserControllerTest extends TestCase
 {
@@ -135,25 +134,24 @@ final class RegisterUserControllerTest extends TestCase
 
     private function createAcceptedRateLimiterFactory(): RateLimiterFactory
     {
-        return $this->createRateLimiterFactoryForLimit(true);
+        return $this->createRateLimiterFactory();
     }
 
     private function createRejectedRateLimiterFactory(): RateLimiterFactory
     {
-        return $this->createRateLimiterFactoryForLimit(false);
-    }
-
-    private function createRateLimiterFactoryForLimit(bool $accepted): RateLimiterFactory
-    {
-        $rateLimit = $this->createMock(RateLimit::class);
-        $rateLimit->method('isAccepted')->willReturn($accepted);
-
-        $limiter = $this->createMock(LimiterInterface::class);
-        $limiter->method('consume')->with(1)->willReturn($rateLimit);
-
-        $factory = $this->createMock(RateLimiterFactory::class);
-        $factory->method('create')->willReturn($limiter);
+        $factory = $this->createRateLimiterFactory();
+        $factory->create('203.0.113.10')->consume();
 
         return $factory;
+    }
+
+    private function createRateLimiterFactory(): RateLimiterFactory
+    {
+        return new RateLimiterFactory([
+            'id' => 'api_register',
+            'policy' => 'fixed_window',
+            'limit' => 1,
+            'interval' => '15 minutes',
+        ], new InMemoryStorage());
     }
 }
