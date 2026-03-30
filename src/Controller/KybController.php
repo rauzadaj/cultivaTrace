@@ -71,12 +71,16 @@ class KybController extends AbstractController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $license = $this->kybSubmissionService->submit(
-            $org,
-            (string) $licenseNumber,
-            (string) $licenseType,
-            $request->files->get('file'),
-        );
+        try {
+            $license = $this->kybSubmissionService->submit(
+                $org,
+                (string) $licenseNumber,
+                (string) $licenseType,
+                $request->files->get('file'),
+            );
+        } catch (\InvalidArgumentException) {
+            return $this->json(['error' => 'Le fichier fourni est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         return $this->json([
             'id'                 => (string) $license->getId(),
