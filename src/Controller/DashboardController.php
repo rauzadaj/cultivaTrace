@@ -26,6 +26,8 @@ class DashboardController extends AbstractController
 
     public function __invoke(#[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
         $org      = $user->getOrganization();
         $tenantId = (string) $org->getId();
 
