@@ -40,8 +40,19 @@ class KybController extends AbstractController
             return $this->json(['error' => 'Aucune organisation associée à ce compte'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $licenseNumber = $request->request->get('licenseNumber') ?? $request->toArray()['licenseNumber'] ?? null;
-        $licenseType   = $request->request->get('licenseType') ?? $request->toArray()['licenseType'] ?? null;
+        $payload = [];
+        if ($request->request->count() > 0) {
+            $payload = $request->request->all();
+        } else {
+            try {
+                $payload = $request->toArray();
+            } catch (\JsonException) {
+                $payload = [];
+            }
+        }
+
+        $licenseNumber = isset($payload['licenseNumber']) ? trim((string) $payload['licenseNumber']) : null;
+        $licenseType   = isset($payload['licenseType']) ? trim((string) $payload['licenseType']) : null;
 
         if (!$licenseNumber || !$licenseType) {
             return $this->json(['error' => 'licenseNumber et licenseType sont obligatoires'], Response::HTTP_UNPROCESSABLE_ENTITY);
