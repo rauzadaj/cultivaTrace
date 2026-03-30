@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Enum\SubscriptionPlan;
 use App\Service\PlanLimitsService;
 use App\Service\StripeService;
+use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,6 +19,7 @@ class StripeController extends AbstractController
     public function __construct(
         private readonly StripeService $stripe,
         private readonly PlanLimitsService $planLimits,
+        private readonly LoggerInterface $logger,
     ) {}
 
     /**
@@ -55,9 +57,13 @@ class StripeController extends AbstractController
                 'error' => $exception->getMessage(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (ApiErrorException $exception) {
+            $this->logger->error('[Stripe] Checkout session creation failed', [
+                'plan' => $plan,
+                'error' => $exception->getMessage(),
+            ]);
+
             return $this->json([
                 'error' => 'Stripe checkout is currently unavailable for this plan.',
-                'detail' => $exception->getMessage(),
             ], Response::HTTP_BAD_GATEWAY);
         }
 
@@ -104,9 +110,14 @@ class StripeController extends AbstractController
         } catch (\InvalidArgumentException $exception) {
             return $this->json(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (ApiErrorException $exception) {
+            $this->logger->error('[Stripe] Checkout confirmation failed', [
+                'sessionId' => trim($sessionId),
+                'organizationId' => (string) $user->getOrganization()->getId(),
+                'error' => $exception->getMessage(),
+            ]);
+
             return $this->json([
                 'error' => 'Unable to confirm Stripe checkout session.',
-                'detail' => $exception->getMessage(),
             ], Response::HTTP_BAD_GATEWAY);
         }
 
@@ -135,11 +146,18 @@ class StripeController extends AbstractController
 
         try {
             $this->stripe->handleWebhook($payload, $signature);
-        } catch (\InvalidArgumentException $e) {
-            return new Response('Webhook signature invalid', Response::HTTP_BAD_REQUEST);
-        } catch (\Throwable $e) {
-            // Logger l'erreur mais retourner 200 pour éviter les retries Stripe
-            return new Response('Webhook error logged', Response::HTTP_OK);
+        } catch (\InvalidArgumentException $exception) {
+            $this->logger->warning('[Stripe] Invalid webhook signature', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return new Response('OK', Response::HTTP_OK);
+        } catch (\Throwable $exception) {
+            $this->logger->error('[Stripe] Webhook handling failed', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return new Response('OK', Response::HTTP_OK);
         }
 
         return new Response('OK', Response::HTTP_OK);

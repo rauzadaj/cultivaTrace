@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Tests\Controller;
+
+use App\Controller\StripeController;
+use App\Entity\Organization;
+use App\Entity\User;
+use App\Enum\LicenseStatus;
+use App\Enum\SubscriptionPlan;
+use App\Service\PlanLimitsService;
+use App\Service\StripeService;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Stripe\Exception\ApiErrorException;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+final class StripeControllerTest extends TestCase
+{
+    public function testCheckoutDoesNotExposeStripeErrorDetails(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->method('createCheckoutSession')
+            ->willThrowException(new class('Stripe low-level detail') extends ApiErrorException {});
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects(self::once())
+            ->method('error')
+            ->with(
+                '[Stripe] Checkout session creation failed',
+                self::arrayHasKey('error'),
+            );
+
+        $controller = new StripeController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            $logger,
+        );
+
+        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'starter'], JSON_THROW_ON_ERROR));
+        $request->headers->set('CONTENT_TYPE', 'application/json');
+
+        $response = $controller->checkout($request, $this->createUserWithOrganization());
+        $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(Response::HTTP_BAD_GATEWAY, $response->getStatusCode());
+        self::assertSame('Stripe checkout is currently unavailable for this plan.', $payload['error']);
+        self::assertArrayNotHasKey('detail', $payload);
+    }
+
+    public function testConfirmCheckoutDoesNotExposeStripeErrorDetails(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->method('syncCheckoutSession')
+            ->willThrowException(new class('Stripe confirmation detail') extends ApiErrorException {});
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects(self::once())
+            ->method('error')
+            ->with(
+                '[Stripe] Checkout confirmation failed',
+                self::arrayHasKey('error'),
+            );
+
+        $controller = new StripeController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            $logger,
+        );
+
+        $request = new Request([], [], [], [], [], [], json_encode(['sessionId' => 'cs_test_123'], JSON_THROW_ON_ERROR));
+        $request->headers->set('CONTENT_TYPE', 'application/json');
+
+        $response = $controller->confirmCheckout($request, $this->createUserWithOrganization());
+        $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(Response::HTTP_BAD_GATEWAY, $response->getStatusCode());
+        self::assertSame('Unable to confirm Stripe checkout session.', $payload['error']);
+        self::assertArrayNotHasKey('detail', $payload);
+    }
+
+    public function testWebhookReturnsOkOnInvalidSignature(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->method('handleWebhook')
+            ->willThrowException(new \InvalidArgumentException('invalid signature'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects(self::once())
+            ->method('warning')
+            ->with(
+                '[Stripe] Invalid webhook signature',
+                self::arrayHasKey('error'),
+            );
+
+        $controller = new StripeController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            $logger,
+        );
+
+        $request = new Request([], [], [], [], [], [], '{"type":"invoice.payment_failed"}');
+        $request->headers->set('Stripe-Signature', 'invalid');
+
+        $response = $controller->webhook($request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('OK', $response->getContent());
+    }
+
+    public function testWebhookReturnsOkOnUnexpectedFailure(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->method('handleWebhook')
+            ->willThrowException(new \RuntimeException('unexpected failure'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects(self::once())
+            ->method('error')
+            ->with(
+                '[Stripe] Webhook handling failed',
+                self::arrayHasKey('error'),
+            );
+
+        $controller = new StripeController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            $logger,
+        );
+
+        $request = new Request([], [], [], [], [], [], '{"type":"invoice.payment_failed"}');
+        $request->headers->set('Stripe-Signature', 't=1,v1=test');
+
+        $response = $controller->webhook($request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('OK', $response->getContent());
+    }
+
+    private function createUserWithOrganization(): User
+    {
+        $organization = new Organization();
+        $organization->setName('Org Stripe');
+        $organization->setPlan(SubscriptionPlan::STARTER);
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
+
+        $user = new User();
+        $user->setEmail('stripe@test.local');
+        $user->setOrganization($organization);
+        $user->setRole('ROLE_ADMIN');
+
+        return $user;
+    }
+}
