@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\LicenseDocument;
-use App\Enum\LicenseStatus;
+use App\Service\KybSubmissionService;
 use App\Service\KybService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,6 +18,7 @@ class KybController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly KybService $kybService,
+        private readonly KybSubmissionService $kybSubmissionService,
     ) {}
 
     /**
@@ -59,41 +60,12 @@ class KybController extends AbstractController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Gérer le fichier uploadé (stockage local en dev)
-        $filePath = null;
-        $file     = $request->files->get('file');
-        if ($file) {
-            $uploadDir = $this->getParameter('kernel.project_dir') . '/var/licenses/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            $filename = sprintf('%s_%s.%s',
-                $org->getId(),
-                (new \DateTimeImmutable())->format('Ymd_His'),
-                $file->guessExtension() ?? 'pdf'
-            );
-            $file->move($uploadDir, $filename);
-            $filePath = 'var/licenses/' . $filename;
-        }
-
-        // Créer le LicenseDocument
-        $license = new LicenseDocument();
-        $license->setTenantId($org->getId());
-        $license->setOrganization($org);
-        $license->setLicenseNumber($licenseNumber);
-        $license->setLicenseType($licenseType);
-        $license->setFilePath($filePath);
-        $license->setStatus('pending');
-
-        $this->em->persist($license);
-
-        // Passer l'org en pending pendant la vérification
-        $org->setLicenseStatus(LicenseStatus::PENDING);
-        $this->em->flush();
-
-        // Lancer la vérification automatique
-        $result = $this->kybService->verify($license);
-        $this->kybService->applyVerificationResult($license, $result);
+        $license = $this->kybSubmissionService->submit(
+            $org,
+            (string) $licenseNumber,
+            (string) $licenseType,
+            $request->files->get('file'),
+        );
 
         return $this->json([
             'id'                 => (string) $license->getId(),
