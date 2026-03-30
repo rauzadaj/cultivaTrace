@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Doctrine;
 
 use App\Domain\Cultivation\Enum\JournalEntryType;
@@ -127,6 +129,15 @@ final class TenantFilterTest extends KernelTestCase
         self::assertSame('FILTER-A', $visibleCrops[0]->getBatchCode());
         self::assertCount(1, $visibleEntries);
         self::assertSame('Journal A', $visibleEntries[0]->getNotes());
+    }
+
+    public function testCultivationTenantColumnsAreMappedAsRequired(): void
+    {
+        $cropMetadata = $this->entityManager->getClassMetadata(Crop::class);
+        $journalMetadata = $this->entityManager->getClassMetadata(JournalEntry::class);
+
+        self::assertFalse($cropMetadata->fieldMappings['tenantId']->nullable ?? true);
+        self::assertFalse($journalMetadata->fieldMappings['tenantId']->nullable ?? true);
     }
 
     private function resetSchema(): void
