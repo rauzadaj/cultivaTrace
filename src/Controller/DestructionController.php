@@ -6,7 +6,6 @@ use App\Entity\Plant;
 use App\Entity\DestructionIntent;
 use App\Enum\PlantStatus;
 use App\Repository\PlantEventRepository;
-use App\Security\Voter\PlantVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,7 +28,7 @@ class DestructionController extends AbstractController
     #[Route('/api/plants/{id}/destroy', methods: ['POST'])]
     public function intent(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
-        $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $plant);
+        $this->assertDestructionAccess();
 
         if (!$plant->isActive()) {
             return $this->json([
@@ -79,7 +78,7 @@ class DestructionController extends AbstractController
     #[Route('/api/destructions/{id}/confirm', methods: ['POST'])]
     public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] $user): JsonResponse
     {
-        $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $intent->getPlant());
+        $this->assertDestructionAccess();
 
         if (!$intent->canBeConfirmed()) {
             return $this->json([
@@ -148,5 +147,16 @@ class DestructionController extends AbstractController
         }
 
         return $this->json(['status' => 'confirmed'], Response::HTTP_OK);
+    }
+
+    private function assertDestructionAccess(): void
+    {
+        if (
+            !$this->isGranted('ROLE_OPERATOR')
+            && !$this->isGranted('ROLE_MANAGER')
+            && !$this->isGranted('ROLE_ADMIN')
+        ) {
+            throw $this->createAccessDeniedException();
+        }
     }
 }
