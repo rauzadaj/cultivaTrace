@@ -76,7 +76,6 @@ http.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem('refresh_token')
       localStorage.removeItem(USER_EMAIL_KEY)
       // Redirection vers login sans import circulaire
       window.location.href = '/auth'
@@ -90,11 +89,6 @@ http.interceptors.response.use(
 export const authApi = {
   login: (credentials: LoginCredentials) =>
     http.post<JwtResponse>('/auth/login', credentials, {
-      headers: { 'Content-Type': 'application/json' },
-    }),
-
-  refresh: (refreshToken: string) =>
-    http.post<JwtResponse>('/auth/token/refresh', { refresh_token: refreshToken }, {
       headers: { 'Content-Type': 'application/json' },
     }),
 
