@@ -8,7 +8,7 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 - PHP 8.4
 - PostgreSQL 13
 - Auth JWT (LexikJWTAuthenticationBundle)
-- Frontend Vue 3 + TypeScript + Pinia + Vite + Vuetify
+- Frontend Vue 3 + TypeScript + Pinia + Vite + Quasar
 - Docker / Docker Compose
 
 ## Architecture
@@ -106,11 +106,11 @@ docker compose exec -it cultivatrace_app php bin/console about
 
 Note :
 - Un `401 JWT Token not found` sur `/api` est normal si vous n’êtes pas authentifié.
-- Le login JWT est exposé sur `POST /api/login`.
+- Le login JWT est exposé sur `POST /api/auth/login`.
 - La création de compte est exposée sur `POST /api/register`.
 - Les clés privées générées localement restent ignorées par Git via `config/jwt/*.pem`.
 
-## Lancer le frontend (Vue / Vuetify)
+## Lancer le frontend (Vue / Quasar)
 
 Depuis le dossier `frontend` :
 
@@ -219,7 +219,7 @@ References officielles verifiees :
 
 - `src/` : code Symfony (Domain / Application / Infrastructure)
 - `config/` : configuration Symfony / routes / packages
-- `frontend/` : application Vue 3 (Vite + Pinia + Vuetify)
+- `frontend/` : application Vue 3 (Vite + Pinia + Quasar)
 - `docker/` : configuration Nginx
 - `docker-compose.yml` : orchestration locale
 
