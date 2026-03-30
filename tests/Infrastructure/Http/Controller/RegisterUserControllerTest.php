@@ -129,7 +129,7 @@ final class RegisterUserControllerTest extends TestCase
         $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame(Response::HTTP_TOO_MANY_REQUESTS, $response->getStatusCode());
-        self::assertSame('Too many registration attempts. Please try again later.', $payload['error']);
+        self::assertSame('Too many requests, please try again later.', $payload['error']);
     }
 
     private function createAcceptedRateLimiterFactory(): RateLimiterFactory
