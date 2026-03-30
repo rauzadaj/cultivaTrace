@@ -43,7 +43,7 @@ class Crop
     #[Groups(['crop:read', 'crop:write', 'journal:read'])]
     private ?string $displayName = null;
 
-    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    #[ORM\Column(type: UuidType::NAME)]
     private ?Uuid $tenantId = null;
 
     #[ORM\Column(name: 'current_stage', length: 32)]
