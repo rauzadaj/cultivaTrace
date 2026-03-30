@@ -31,7 +31,7 @@ final readonly class RegisterUserController
 
         if (!$limit->isAccepted()) {
             return new JsonResponse([
-                'error' => 'Too many registration attempts. Please try again later.',
+                'error' => 'Too many requests, please try again later.',
             ], Response::HTTP_TOO_MANY_REQUESTS);
         }
 
