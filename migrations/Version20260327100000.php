@@ -25,9 +25,14 @@ final class Version20260327100000 extends AbstractMigration
                 organization_count INTEGER;
                 default_tenant UUID;
             BEGIN
-                SELECT COUNT(*), MIN(id)
-                INTO organization_count, default_tenant
+                SELECT COUNT(*)
+                INTO organization_count
                 FROM organization;
+
+                SELECT id
+                INTO default_tenant
+                FROM organization
+                LIMIT 1;
 
                 IF organization_count = 1 THEN
                     UPDATE crop
