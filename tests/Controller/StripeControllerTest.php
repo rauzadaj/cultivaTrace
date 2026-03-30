@@ -7,15 +7,16 @@ use App\Entity\Organization;
 use App\Entity\User;
 use App\Enum\LicenseStatus;
 use App\Enum\SubscriptionPlan;
+use App\Service\BillingCheckoutService;
 use App\Service\PlanLimitsService;
 use App\Service\StripeService;
-use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-final class StripeControllerTest extends TestCase
+final class StripeControllerTest extends KernelTestCase
 {
     public function testCheckoutDoesNotExposeStripeErrorDetails(): void
     {
@@ -23,6 +24,7 @@ final class StripeControllerTest extends TestCase
         $stripe
             ->method('createCheckoutSession')
             ->willThrowException(new class('Stripe low-level detail') extends ApiErrorException {});
+        $billingCheckoutService = new BillingCheckoutService($stripe);
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger
@@ -33,9 +35,10 @@ final class StripeControllerTest extends TestCase
                 self::arrayHasKey('error'),
             );
 
-        $controller = new StripeController(
+        $controller = $this->createController(
             $stripe,
             $this->createMock(PlanLimitsService::class),
+            $billingCheckoutService,
             $logger,
         );
 
@@ -56,6 +59,7 @@ final class StripeControllerTest extends TestCase
         $stripe
             ->method('syncCheckoutSession')
             ->willThrowException(new class('Stripe confirmation detail') extends ApiErrorException {});
+        $billingCheckoutService = new BillingCheckoutService($stripe);
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger
@@ -66,9 +70,10 @@ final class StripeControllerTest extends TestCase
                 self::arrayHasKey('error'),
             );
 
-        $controller = new StripeController(
+        $controller = $this->createController(
             $stripe,
             $this->createMock(PlanLimitsService::class),
+            $billingCheckoutService,
             $logger,
         );
 
@@ -99,9 +104,10 @@ final class StripeControllerTest extends TestCase
                 self::arrayHasKey('error'),
             );
 
-        $controller = new StripeController(
+        $controller = $this->createController(
             $stripe,
             $this->createMock(PlanLimitsService::class),
+            new BillingCheckoutService($stripe),
             $logger,
         );
 
@@ -130,9 +136,10 @@ final class StripeControllerTest extends TestCase
                 self::arrayHasKey('error'),
             );
 
-        $controller = new StripeController(
+        $controller = $this->createController(
             $stripe,
             $this->createMock(PlanLimitsService::class),
+            new BillingCheckoutService($stripe),
             $logger,
         );
 
@@ -158,5 +165,24 @@ final class StripeControllerTest extends TestCase
         $user->setRole('ROLE_ADMIN');
 
         return $user;
+    }
+
+    private function createController(
+        StripeService $stripe,
+        PlanLimitsService $planLimits,
+        BillingCheckoutService $billingCheckoutService,
+        LoggerInterface $logger,
+    ): StripeController {
+        self::bootKernel();
+
+        $controller = new StripeController(
+            $stripe,
+            $planLimits,
+            $billingCheckoutService,
+            $logger,
+        );
+        $controller->setContainer(static::getContainer());
+
+        return $controller;
     }
 }
