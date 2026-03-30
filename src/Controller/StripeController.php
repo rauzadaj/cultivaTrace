@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Enum\SubscriptionPlan;
+use App\Service\BillingCheckoutService;
 use App\Service\PlanLimitsService;
 use App\Service\StripeService;
 use Stripe\Exception\ApiErrorException;
@@ -18,6 +18,7 @@ class StripeController extends AbstractController
     public function __construct(
         private readonly StripeService $stripe,
         private readonly PlanLimitsService $planLimits,
+        private readonly BillingCheckoutService $billingCheckoutService,
     ) {}
 
     /**
@@ -43,12 +44,10 @@ class StripeController extends AbstractController
         }
 
         try {
-            $planEnum = SubscriptionPlan::from($plan);
-            $checkoutUrl  = $this->stripe->createCheckoutSession(
-                organization: $user->getOrganization(),
-                plan: $planEnum,
-                successUrl: $_ENV['FRONTEND_URL'] . '/billing/success?session_id={CHECKOUT_SESSION_ID}',
-                cancelUrl: $_ENV['FRONTEND_URL'] . '/billing/cancel',
+            $checkoutUrl = $this->billingCheckoutService->createCheckoutUrl(
+                $user->getOrganization(),
+                $plan,
+                (string) $_ENV['FRONTEND_URL'],
             );
         } catch (\InvalidArgumentException $exception) {
             return $this->json([
@@ -100,7 +99,10 @@ class StripeController extends AbstractController
         }
 
         try {
-            $plan = $this->stripe->syncCheckoutSession(trim($sessionId), $user->getOrganization());
+            $plan = $this->billingCheckoutService->confirmCheckout(
+                trim($sessionId),
+                $user->getOrganization(),
+            );
         } catch (\InvalidArgumentException $exception) {
             return $this->json(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (ApiErrorException $exception) {
