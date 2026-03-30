@@ -43,7 +43,7 @@ class JournalEntry
     #[Groups(['journal:read'])]
     private string $id;
 
-    #[ORM\ManyToOne(targetEntity: Crop::class, inversedBy: 'journalEntries', fetch: 'EAGER')]
+    #[ORM\ManyToOne(targetEntity: Crop::class, inversedBy: 'journalEntries')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Assert\NotNull]
     #[Groups(['journal:read', 'journal:write'])]

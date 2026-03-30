@@ -64,7 +64,7 @@ class Crop
     #[Groups(['crop:read'])]
     private ?int $finalYieldGrams = null;
 
-    #[ORM\ManyToOne(targetEntity: Genetic::class, inversedBy: 'crops', fetch: 'EAGER')]
+    #[ORM\ManyToOne(targetEntity: Genetic::class, inversedBy: 'crops')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
     #[Assert\NotNull]
     #[Groups(['crop:read', 'crop:write'])]
