@@ -77,6 +77,6 @@ jobs:
         done
     - name: Create test database
       run: |
-        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=postgres", "cultiva", ""); $pdo->exec("CREATE DATABASE cultivatrace_test");'
+        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=postgres", "cultiva", ""); $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = '\''cultivatrace_test'\''"); if ($stmt->fetchColumn() === false) { $pdo->exec("CREATE DATABASE cultivatrace_test"); }'
     - name: Execute tests (Unit and Feature tests) via PHPUnit
       run: vendor/bin/phpunit
