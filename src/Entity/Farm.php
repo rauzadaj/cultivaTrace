@@ -20,10 +20,16 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'farm')]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
-        new Post(processor: FarmStateProcessor::class),
-        new Patch(processor: FarmStateProcessor::class),
+        new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new Post(
+            processor: FarmStateProcessor::class,
+            security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+        ),
+        new Patch(
+            processor: FarmStateProcessor::class,
+            security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+        ),
         // pas de Delete — soft delete uniquement
     ],
     normalizationContext: ['groups' => ['farm:read']],
