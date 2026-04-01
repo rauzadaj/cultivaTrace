@@ -10,6 +10,7 @@ use App\Entity\Strain;
 use App\Entity\User;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
+use App\Enum\UserAccountStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
@@ -102,6 +103,10 @@ abstract class ApiTestCase extends KernelTestCase
         $user->setRole($role);
         $user->setRoles($roles);
         $user->setPassword('test-password');
+        $user->setAccountStatus(UserAccountStatus::ACTIVE);
+        $user->setEmailVerifiedAt(new \DateTimeImmutable());
+        $user->setEmailVerificationTokenHash(null);
+        $user->setEmailVerificationExpiresAt(null);
 
         $this->entityManager->persist($user);
 
