@@ -8,7 +8,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 final class SecurityHeadersSubscriber implements EventSubscriberInterface
 {
-    private const CONTENT_SECURITY_POLICY = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; connect-src 'self' https: http: ws: wss:; font-src 'self' data: https:; form-action 'self'";
+    private const CONTENT_SECURITY_POLICY = "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; form-action 'none'";
     private const PERMISSIONS_POLICY = 'camera=(), geolocation=(), microphone=(), payment=(), usb=()';
     private const REFERRER_POLICY = 'strict-origin-when-cross-origin';
     private const STRICT_TRANSPORT_SECURITY = 'max-age=31536000; includeSubDomains';
