@@ -16,7 +16,9 @@ use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\TestCase;
 use Sensiolabs\GotenbergBundle\Builder\BuilderInterface;
 use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 #[RunTestsInSeparateProcesses]
 final class PlantReportControllerFallbackTest extends TestCase
@@ -82,6 +84,21 @@ final class PlantReportControllerFallbackTest extends TestCase
         $entityManager->method('getRepository')->willReturn($repository);
 
         $controller = new PlantReportController($gotenberg, $plantEventRepository, $hashChain, $entityManager, 'test');
+        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker->method('isGranted')->willReturn(true);
+
+        $container = $this->createMock(ContainerInterface::class);
+        $container
+            ->method('has')
+            ->willReturnCallback(static fn (string $id): bool => $id === 'security.authorization_checker');
+        $container
+            ->method('get')
+            ->willReturnCallback(static fn (string $id): mixed => match ($id) {
+                'security.authorization_checker' => $authorizationChecker,
+                default => throw new \InvalidArgumentException(sprintf('Unexpected service "%s".', $id)),
+            });
+
+        $controller->setContainer($container);
 
         $organization = new Organization();
         $organization->setName('Org PDF');

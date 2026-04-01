@@ -81,7 +81,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testDestroyCreatesIntentAndReturnsLegalWindow(): void
     {
-        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY');
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY', 'ROLE_MANAGER');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
@@ -103,7 +103,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsBeforeLegalDelay(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture();
+        [$user, $intent] = $this->createDestructionIntentFixture(role: 'ROLE_MANAGER');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -118,7 +118,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsRatioBelowFiftyPercent(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_MANAGER');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -133,7 +133,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsMissingPhotos(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_MANAGER');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -149,10 +149,39 @@ final class HarvestControllerTest extends ApiTestCase
     /**
      * @return array{0: User, 1: Plant}
      */
-    private function createHarvestFixture(string $rfidTag = 'PLANT-HARVEST'): array
+    public function testDestroyRejectsOperatorRole(): void
+    {
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY-FORBIDDEN', 'ROLE_OPERATOR');
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
+            'reason' => 'Mold contamination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
+    public function testConfirmDestroyRejectsOperatorRole(): void
+    {
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_OPERATOR');
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
+            'totalWeightG' => 100,
+            'nonCannabisRatio' => 0.60,
+            'photoUrls' => ['https://example.test/photo.jpg'],
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
+    /**
+     * @return array{0: User, 1: Plant}
+     */
+    private function createHarvestFixture(string $rfidTag = 'PLANT-HARVEST', string $role = 'ROLE_OPERATOR'): array
     {
         $organization = $this->createOrganization('Org Harvest');
-        $user = $this->createUser($organization, sprintf('%s@test.local', strtolower($rfidTag)));
+        $user = $this->createUser($organization, sprintf('%s@test.local', strtolower($rfidTag)), role: $role);
         $farm = $this->createFarm($organization, 'Farm Harvest');
         $room = $this->createRoom($farm, 'Flower Room', 'flower');
         $strain = $this->createStrain($organization, 'Harvest Strain');
@@ -166,9 +195,9 @@ final class HarvestControllerTest extends ApiTestCase
     /**
      * @return array{0: User, 1: DestructionIntent}
      */
-    private function createDestructionIntentFixture(string $declaredAt = 'now'): array
+    private function createDestructionIntentFixture(string $declaredAt = 'now', string $role = 'ROLE_OPERATOR'): array
     {
-        [$user, $plant] = $this->createHarvestFixture(sprintf('PLANT-DESTROY-%s', md5($declaredAt)));
+        [$user, $plant] = $this->createHarvestFixture(sprintf('PLANT-DESTROY-%s', md5($declaredAt)), $role);
 
         $intent = new DestructionIntent();
         $intent->setPlant($plant);
