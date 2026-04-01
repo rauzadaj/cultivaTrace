@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Plant;
 use App\Service\HarvestWorkflowService;
+use App\Security\Voter\PlantVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,6 +31,8 @@ class HarvestController extends AbstractController
 
     public function __invoke(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted(PlantVoter::HARVEST, $plant);
+
         try {
             $harvest = $this->harvestWorkflow->harvest(
                 $plant,

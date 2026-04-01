@@ -63,4 +63,11 @@ final class DashboardControllerTest extends ApiTestCase
         self::assertArrayHasKey('harvests', $payload);
         self::assertArrayHasKey('plants', $payload);
     }
+
+    public function testDashboardRequiresAuthentication(): void
+    {
+        $this->client->request('GET', '/api/dashboard');
+
+        $this->assertStatusCode(Response::HTTP_UNAUTHORIZED);
+    }
 }
