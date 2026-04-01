@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Plant;
 use App\Entity\DestructionIntent;
 use App\Service\DestructionWorkflowService;
+use App\Security\Voter\PlantVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +26,8 @@ class DestructionController extends AbstractController
     #[Route('/api/plants/{id}/destroy', methods: ['POST'])]
     public function intent(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $plant);
+
         try {
             $intent = $this->destructionWorkflow->declareIntent(
                 $plant,
@@ -50,6 +53,8 @@ class DestructionController extends AbstractController
     #[Route('/api/destructions/{id}/confirm', methods: ['POST'])]
     public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] $user): JsonResponse
     {
+        $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $intent->getPlant());
+
         try {
             $this->destructionWorkflow->confirmIntent(
                 $intent,
