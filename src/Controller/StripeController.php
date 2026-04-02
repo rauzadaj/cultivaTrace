@@ -186,6 +186,17 @@ class StripeController extends AbstractController
     {
         $org = $user->getOrganization();
 
+        if ($org->getStripeCustomerId()) {
+            try {
+                $this->stripe->syncOrganizationSubscription($org);
+            } catch (\Throwable $exception) {
+                $this->logger->warning('[Stripe] Billing status sync failed', [
+                    'organizationId' => (string) $org->getId(),
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
         return $this->json([
             'plan'               => $org->getPlan()->value,
             'licenseStatus'      => $org->getLicenseStatus()->value,

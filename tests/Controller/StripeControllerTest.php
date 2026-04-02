@@ -214,6 +214,33 @@ final class StripeControllerTest extends KernelTestCase
         self::assertArrayNotHasKey('detail', $payload);
     }
 
+    public function testBillingStatusSyncsPlanFromStripeForExistingCustomer(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->expects(self::once())
+            ->method('syncOrganizationSubscription')
+            ->willReturnCallback(static function (Organization $organization): SubscriptionPlan {
+                $organization->setPlan(SubscriptionPlan::BUSINESS);
+
+                return SubscriptionPlan::BUSINESS;
+            });
+
+        $controller = $this->createController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            new BillingCheckoutService($stripe),
+            $this->createMock(LoggerInterface::class),
+        );
+
+        $response = $controller->billingStatus($this->createUserWithOrganization('cus_123'));
+        $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('business', $payload['plan']);
+        self::assertTrue($payload['hasActiveSubscription']);
+    }
+
     private function createUserWithOrganization(?string $stripeCustomerId = null): User
     {
         $organization = new Organization();
