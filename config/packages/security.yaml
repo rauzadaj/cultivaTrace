@@ -1,4 +1,8 @@
 security:
+    role_hierarchy:
+        ROLE_ORG_ADMIN: [ROLE_ORG_USER]
+        ROLE_SUPER_ADMIN: [ROLE_ORG_ADMIN]
+
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 

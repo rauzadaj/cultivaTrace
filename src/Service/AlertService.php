@@ -116,7 +116,7 @@ class AlertService
         $org  = $farm->getOrganization();
 
         foreach ($org->getUsers() as $user) {
-            if (in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+            if (in_array('ROLE_ORG_ADMIN', $user->getRoles(), true)) {
                 return $user->getEmail();
             }
         }

@@ -37,8 +37,12 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'plant_event')]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
+        new GetCollection(
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+        ),
+        new Get(
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+        ),
     ],
     normalizationContext: ['groups' => ['plant_event:read']],
 )]
