@@ -28,6 +28,7 @@ onMounted(async () => {
       await billingApi.confirmCheckout(sessionId)
     }
     await authStore.fetchMe()
+    await router.replace('/billing')
   } catch (error) {
     console.error('Unable to refresh auth state after Stripe checkout', error)
     $q.notify({ type: 'negative', message: 'Impossible de synchroniser votre abonnement après paiement.' })
