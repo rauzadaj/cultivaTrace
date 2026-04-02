@@ -53,6 +53,37 @@ final class StripeControllerTest extends KernelTestCase
         self::assertArrayNotHasKey('detail', $payload);
     }
 
+    public function testCheckoutRedirectsExistingStripeCustomersToPortal(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $stripe
+            ->expects(self::never())
+            ->method('createCheckoutSession');
+        $stripe
+            ->expects(self::once())
+            ->method('createPortalSession')
+            ->with('cus_existing', self::stringContains('/billing'))
+            ->willReturn('https://billing.stripe.test/session');
+
+        $billingCheckoutService = new BillingCheckoutService($stripe);
+
+        $controller = $this->createController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            $billingCheckoutService,
+            $this->createMock(LoggerInterface::class),
+        );
+
+        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'pro'], JSON_THROW_ON_ERROR));
+        $request->headers->set('CONTENT_TYPE', 'application/json');
+
+        $response = $controller->checkout($request, $this->createUserWithOrganization('cus_existing'));
+        $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('https://billing.stripe.test/session', $payload['checkoutUrl']);
+    }
+
     public function testConfirmCheckoutDoesNotExposeStripeErrorDetails(): void
     {
         $stripe = $this->createMock(StripeService::class);
