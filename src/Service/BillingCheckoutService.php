@@ -14,7 +14,16 @@ final readonly class BillingCheckoutService
 
     public function createCheckoutUrl(Organization $organization, string $plan, string $frontendUrl): string
     {
+        $frontendUrl = rtrim($frontendUrl, '/');
+
         $planEnum = SubscriptionPlan::from($plan);
+
+        if ($organization->getStripeCustomerId()) {
+            return $this->stripeService->createPortalSession(
+                customerId: $organization->getStripeCustomerId(),
+                returnUrl: $frontendUrl . '/billing',
+            );
+        }
 
         return $this->stripeService->createCheckoutSession(
             organization: $organization,
