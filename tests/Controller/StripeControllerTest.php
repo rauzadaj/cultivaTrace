@@ -194,7 +194,7 @@ final class StripeControllerTest extends KernelTestCase
         $user = new User();
         $user->setEmail('stripe@test.local');
         $user->setOrganization($organization);
-        $user->setRole('ROLE_ADMIN');
+        $user->setRole('ROLE_ORG_ADMIN');
 
         return $user;
     }

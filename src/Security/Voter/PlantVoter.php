@@ -32,10 +32,10 @@ class PlantVoter extends Voter
 
         return match ($attribute) {
             self::VIEW    => true,
-            self::CREATE  => $this->hasAnyRole($user, ['ROLE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN']),
-            self::EDIT    => $this->hasAnyRole($user, ['ROLE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN']),
-            self::HARVEST => $this->hasAnyRole($user, ['ROLE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN']),
-            self::DESTROY => $this->hasAnyRole($user, ['ROLE_MANAGER', 'ROLE_ADMIN']),
+            self::CREATE  => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
+            self::EDIT    => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
+            self::HARVEST => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
+            self::DESTROY => $this->hasAnyRole($user, ['ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             default       => false,
         };
     }

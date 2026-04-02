@@ -28,10 +28,21 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'room')]
 #[ApiResource(operations: [
-    new GetCollection(),
-    new Get(),
-    new Post(processor: RoomStateProcessor::class),
-    new Patch(processor: RoomStateProcessor::class),
+    new GetCollection(
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+    ),
+    new Get(
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+    ),
+    new Post(
+        processor: RoomStateProcessor::class,
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')"
+    ),
+    new Patch(
+        processor: RoomStateProcessor::class,
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)",
+        securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
+    ),
 ])]
 class Room
 {
