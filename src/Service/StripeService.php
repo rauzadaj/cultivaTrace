@@ -12,6 +12,7 @@ use Stripe\Checkout\Session;
 use Stripe\BillingPortal\Session as PortalSession;
 use Stripe\Event;
 use Stripe\Stripe;
+use Stripe\Subscription;
 use Stripe\Webhook;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
@@ -131,6 +132,40 @@ class StripeService
         $this->em->flush();
 
         return $planEnum;
+    }
+
+    public function syncOrganizationSubscription(Organization $organization): SubscriptionPlan
+    {
+        $customerId = $organization->getStripeCustomerId();
+        if ($customerId === null || trim($customerId) === '') {
+            return $organization->getPlan();
+        }
+
+        $subscriptions = Subscription::all([
+            'customer' => $customerId,
+            'status' => 'all',
+            'limit' => 10,
+        ]);
+
+        foreach ($subscriptions->data as $subscription) {
+            $status = (string) ($subscription->status ?? '');
+            if (!in_array($status, ['active', 'trialing', 'past_due', 'unpaid'], true)) {
+                continue;
+            }
+
+            $priceId = $subscription->items->data[0]->price->id ?? null;
+            if (!is_string($priceId) || $priceId === '') {
+                continue;
+            }
+
+            $plan = $this->resolvePlanFromPriceId($priceId);
+            $organization->setPlan($plan);
+            $this->em->flush();
+
+            return $plan;
+        }
+
+        return $organization->getPlan();
     }
 
     /**
@@ -273,5 +308,18 @@ class StripeService
         }
 
         return $priceId;
+    }
+
+    private function resolvePlanFromPriceId(string $priceId): SubscriptionPlan
+    {
+        return match ($priceId) {
+            trim($this->priceStarter) => SubscriptionPlan::STARTER,
+            trim($this->pricePro) => SubscriptionPlan::PRO,
+            trim($this->priceBusiness) => SubscriptionPlan::BUSINESS,
+            default => throw new \InvalidArgumentException(sprintf(
+                'Unknown Stripe price ID "%s" returned by subscription sync.',
+                $priceId,
+            )),
+        };
     }
 }
