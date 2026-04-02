@@ -23,7 +23,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private array $roles = [];
 
     #[ORM\Column(length: 50)]
-    private string $role = 'ROLE_OPERATOR';
+    private string $role = 'ROLE_ORG_USER';
 
     #[ORM\ManyToOne(targetEntity: Organization::class, inversedBy: 'users')]
     #[ORM\JoinColumn(nullable: true)]

@@ -24,7 +24,7 @@ final class CropTenantSubscriberTest extends TestCase
         $user = (new User())
             ->setEmail('tenant@cultivatrace.local')
             ->setPassword('hashed-password')
-            ->setRole('ROLE_ADMIN')
+            ->setRole('ROLE_ORG_ADMIN')
             ->setOrganization($organization);
 
         $token = $this->createMock(TokenInterface::class);

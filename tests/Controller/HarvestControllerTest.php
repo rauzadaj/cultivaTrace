@@ -81,7 +81,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testDestroyCreatesIntentAndReturnsLegalWindow(): void
     {
-        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY', 'ROLE_MANAGER');
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY', 'ROLE_ORG_ADMIN');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
@@ -103,7 +103,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsBeforeLegalDelay(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture(role: 'ROLE_MANAGER');
+        [$user, $intent] = $this->createDestructionIntentFixture(role: 'ROLE_ORG_ADMIN');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -118,7 +118,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsRatioBelowFiftyPercent(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_MANAGER');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_ADMIN');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -133,7 +133,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsMissingPhotos(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_MANAGER');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_ADMIN');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -151,7 +151,7 @@ final class HarvestControllerTest extends ApiTestCase
      */
     public function testDestroyRejectsOperatorRole(): void
     {
-        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY-FORBIDDEN', 'ROLE_OPERATOR');
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY-FORBIDDEN', 'ROLE_ORG_USER');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
@@ -163,7 +163,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsOperatorRole(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_OPERATOR');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_USER');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -178,7 +178,7 @@ final class HarvestControllerTest extends ApiTestCase
     /**
      * @return array{0: User, 1: Plant}
      */
-    private function createHarvestFixture(string $rfidTag = 'PLANT-HARVEST', string $role = 'ROLE_OPERATOR'): array
+    private function createHarvestFixture(string $rfidTag = 'PLANT-HARVEST', string $role = 'ROLE_ORG_USER'): array
     {
         $organization = $this->createOrganization('Org Harvest');
         $user = $this->createUser($organization, sprintf('%s@test.local', strtolower($rfidTag)), role: $role);
@@ -195,7 +195,7 @@ final class HarvestControllerTest extends ApiTestCase
     /**
      * @return array{0: User, 1: DestructionIntent}
      */
-    private function createDestructionIntentFixture(string $declaredAt = 'now', string $role = 'ROLE_OPERATOR'): array
+    private function createDestructionIntentFixture(string $declaredAt = 'now', string $role = 'ROLE_ORG_USER'): array
     {
         [$user, $plant] = $this->createHarvestFixture(sprintf('PLANT-DESTROY-%s', md5($declaredAt)), $role);
 

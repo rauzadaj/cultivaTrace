@@ -9,6 +9,7 @@ use App\Entity\User;
 use InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 final class FarmStateProcessor implements ProcessorInterface
 {
@@ -32,6 +33,12 @@ final class FarmStateProcessor implements ProcessorInterface
             $organization = $user->getOrganization();
             if ($organization === null) {
                 throw new InvalidArgumentException('The authenticated user must belong to an organization.');
+            }
+
+            if (isset($context['previous_data']) && $context['previous_data'] instanceof Farm) {
+                if ($context['previous_data']->getTenantId() != $organization->getId()) {
+                    throw new AccessDeniedException('Cross-tenant farm access is forbidden.');
+                }
             }
 
             $data->setOrganization($organization);
