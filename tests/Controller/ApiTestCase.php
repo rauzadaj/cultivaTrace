@@ -94,7 +94,7 @@ abstract class ApiTestCase extends KernelTestCase
         Organization $organization,
         string $email,
         string $plainPassword = 'test123',
-        string $role = 'ROLE_OPERATOR',
+        string $role = 'ROLE_ORG_USER',
         array $roles = [],
     ): User {
         $user = new User();

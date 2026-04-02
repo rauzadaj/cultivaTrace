@@ -36,7 +36,7 @@ final class CreateUserCommand extends Command
             ->addOption('email', null, InputOption::VALUE_REQUIRED, 'User email.')
             ->addOption('password', null, InputOption::VALUE_REQUIRED, 'User password.')
             ->addOption('organization', null, InputOption::VALUE_REQUIRED, 'Organization name.')
-            ->addOption('role', null, InputOption::VALUE_OPTIONAL, 'Primary role.', 'ROLE_OPERATOR')
+            ->addOption('role', null, InputOption::VALUE_OPTIONAL, 'Primary role.', 'ROLE_ORG_USER')
             ->addOption('country', null, InputOption::VALUE_OPTIONAL, 'Organization country.', 'FR');
     }
 
@@ -49,9 +49,20 @@ final class CreateUserCommand extends Command
         $organizationName = (string) $input->getOption('organization');
         $role = strtoupper((string) $input->getOption('role'));
         $country = strtoupper((string) $input->getOption('country'));
+        $allowedRoles = ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_API'];
 
         if ($email === '' || $password === '' || $organizationName === '') {
             $io->error('The options --email, --password and --organization are required.');
+
+            return Command::INVALID;
+        }
+
+        if (!in_array($role, $allowedRoles, true)) {
+            $io->error(sprintf(
+                'Invalid role "%s". Allowed roles: %s.',
+                $role,
+                implode(', ', $allowedRoles),
+            ));
 
             return Command::INVALID;
         }
