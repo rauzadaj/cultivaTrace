@@ -25,7 +25,7 @@ class SensorHistoryController extends AbstractController
 
     public function __invoke(Sensor $sensor, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_OPERATOR');
+        $this->denyAccessUnlessGranted('ROLE_ORG_USER');
 
         $period = $request->query->get('period', '30d');
 
