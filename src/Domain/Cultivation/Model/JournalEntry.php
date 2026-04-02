@@ -26,9 +26,16 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
-        new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
-        new Post(security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+        new GetCollection(
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+        ),
+        new Get(
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+        ),
+        new Post(
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')",
+            securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
+        ),
     ],
     normalizationContext: ['groups' => ['journal:read']],
     denormalizationContext: ['groups' => ['journal:write']],

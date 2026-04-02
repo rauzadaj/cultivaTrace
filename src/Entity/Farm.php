@@ -20,15 +20,20 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'farm')]
 #[ApiResource(
     operations: [
-        new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
-        new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+        new GetCollection(
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+        ),
+        new Get(
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+        ),
         new Post(
             processor: FarmStateProcessor::class,
-            security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')"
         ),
         new Patch(
             processor: FarmStateProcessor::class,
-            security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)",
+            securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
         ),
         // pas de Delete — soft delete uniquement
     ],

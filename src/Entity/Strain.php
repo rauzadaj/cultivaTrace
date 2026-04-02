@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use App\State\StrainStateProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
@@ -18,11 +19,24 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'strain')]
 #[ApiResource(operations: [
-    new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
-    new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
-    new Post(security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
-    new Patch(security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
-    new Delete(security: "is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+    new GetCollection(
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+    ),
+    new Get(
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+    ),
+    new Post(
+        processor: StrainStateProcessor::class,
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')"
+    ),
+    new Patch(
+        processor: StrainStateProcessor::class,
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)",
+        securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
+    ),
+    new Delete(
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)"
+    ),
 ])]
 #[ApiFilter(SearchFilter::class, properties: [
     'name'         => 'partial',

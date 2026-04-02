@@ -39,17 +39,24 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'sensor')]
 #[ApiResource(operations: [
-    new GetCollection(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
-    new Get(security: "is_granted('IS_AUTHENTICATED_FULLY')"),
+    new GetCollection(
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')"
+    ),
+    new Get(
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')) and is_granted('TENANT_ACCESS', object)"
+    ),
     new Post(
         processor: SensorStateProcessor::class,
-        security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_API')"
     ),
     new Patch(
         processor: SensorStateProcessor::class,
-        security: "is_granted('ROLE_OPERATOR') or is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_API')) and is_granted('TENANT_ACCESS', object)",
+        securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
     ),
-    new Delete(security: "is_granted('ROLE_MANAGER') or is_granted('ROLE_ADMIN')"),
+    new Delete(
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)"
+    ),
 ])]
 #[ApiFilter(SearchFilter::class, properties: [
     'room.id' => 'exact',
