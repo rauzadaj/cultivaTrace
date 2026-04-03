@@ -34,7 +34,11 @@ services:
       - ./:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/api/health >/dev/null 2>&1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1/api/health | grep -q '\"ready\":true'",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
