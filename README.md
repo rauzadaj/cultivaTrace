@@ -51,13 +51,17 @@ Si vous migrez depuis un runtime plus ancien, forcez le rebuild des services PHP
 docker compose up -d --build --force-recreate app web
 ```
 
-Le service `app` attend maintenant PostgreSQL, applique automatiquement les migrations Doctrine en `dev`, puis recharge le dataset de démonstration si le bootstrap auto reste activé.
+Le service `app` attend maintenant PostgreSQL, applique automatiquement les migrations Doctrine en `dev`, puis recharge le dataset de démonstration si le bootstrap auto reste activé. La disponibilité locale de l'application ne dépend plus de la synchronisation du catalogue graines fournisseur.
 
 Variables utiles dans `docker-compose.yml` :
 
 - `APP_AUTO_BOOTSTRAP=1` : initialise automatiquement le schéma local au démarrage.
 - `APP_BOOTSTRAP_SEED_DEMO=1` : rejoue le seed de démonstration idempotent au démarrage du conteneur `app`.
-- `APP_BOOTSTRAP_SEED_CATALOG=1` : synchronise aussi le catalogue graines vérifié pour alimenter la vue frontend `Catalog`.
+
+Healthchecks Docker :
+
+- `app` est sain dès que PostgreSQL est joignable avec la configuration applicative.
+- `web` est sain dès que `GET /api/health` répond avec un backend prêt.
 
 Variables à définir hors Git :
 
@@ -166,7 +170,7 @@ Flux de démo local :
    - `Overview` : ajout append-only d’entrées de journal
    - `Catalog` : bibliothèque visuelle des graines synchronisées avec image, génétique, description et lien source
 
-Si `Catalog` affiche `0 entries`, le bootstrap local n'a pas encore synchronisé le catalogue graines. En environnement Docker local standard, cette sync est désormais automatique tant que `APP_BOOTSTRAP_SEED_CATALOG=1`.
+Si `Catalog` affiche `0 entries`, le bootstrap local n'a pas encore synchronisé le catalogue graines. C'est désormais attendu : la sync du catalogue fournisseur est une opération manuelle explicite et ne bloque plus la disponibilité de l'application.
 
 ## Tests
 
@@ -203,12 +207,18 @@ npm run build
 
 ## Catalogue graines verifie
 
-CultivaTrace embarque maintenant une sync de catalogue graines vers `Genetic` et un export JSON versionne.
+CultivaTrace expose une sync manuelle du catalogue graines vers `Genetic` et un export JSON versionné. Cette opération n'est plus exécutée pendant le bootstrap Docker.
 
 Commande :
 
 ```bash
 php bin/console app:sync-seed-catalog
+```
+
+Depuis Docker :
+
+```bash
+docker exec -it cultivatrace_app php bin/console app:sync-seed-catalog
 ```
 
 Mode export seul :
@@ -220,6 +230,12 @@ php bin/console app:sync-seed-catalog --no-upsert
 Snapshot versionne :
 
 - `catalog/seed-catalog/humboldt-california-canada.json`
+
+Statut observable :
+
+- la commande retourne un code de sortie explicite en cas d'échec réseau ou d'upstream vide ;
+- le snapshot JSON embarque `generatedAt`, utile pour vérifier la dernière sync réussie ;
+- l'état de disponibilité de l'app reste observable via `GET /api/health`, indépendamment du catalogue fournisseur.
 
 Source amont unique retenue :
 
