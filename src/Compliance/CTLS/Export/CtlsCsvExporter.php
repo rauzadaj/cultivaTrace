@@ -22,8 +22,8 @@ final class CtlsCsvExporter
         }
 
         fwrite($handle, "\xEF\xBB\xBF");
-        fputcsv($handle, $this->templateProvider->getHeaders());
-        fputcsv($handle, array_map(static fn (string $header): string => $row[$header] ?? '', $this->templateProvider->getHeaders()));
+        fputcsv($handle, $this->templateProvider->getHeaders(), escape: '');
+        fputcsv($handle, array_map(static fn (string $header): string => $row[$header] ?? '', $this->templateProvider->getHeaders()), escape: '');
         rewind($handle);
 
         $csv = stream_get_contents($handle);
