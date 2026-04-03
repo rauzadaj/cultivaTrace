@@ -49,7 +49,7 @@ class StripeController extends AbstractController
             $checkoutUrl = $this->billingCheckoutService->createCheckoutUrl(
                 $user->getOrganization(),
                 $plan,
-                (string) $_ENV['FRONTEND_URL'],
+                $this->getFrontendUrl(),
             );
         } catch (\InvalidArgumentException $exception) {
             return $this->json([
@@ -89,7 +89,7 @@ class StripeController extends AbstractController
         try {
             $portalUrl = $this->stripe->createPortalSession(
                 customerId: $org->getStripeCustomerId(),
-                returnUrl: $_ENV['FRONTEND_URL'] . '/billing',
+                returnUrl: $this->getFrontendUrl() . '/billing',
             );
         } catch (ApiErrorException $exception) {
             $this->logger->error('[Stripe] Portal session creation failed', [
@@ -204,5 +204,10 @@ class StripeController extends AbstractController
             'hasActiveSubscription' => $org->getStripeCustomerId() !== null,
             'limits'             => $this->planLimits->getLimits($org),
         ]);
+    }
+
+    private function getFrontendUrl(): string
+    {
+        return (string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:5173');
     }
 }

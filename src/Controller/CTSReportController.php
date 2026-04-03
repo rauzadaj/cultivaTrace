@@ -70,10 +70,10 @@ class CTSReportController extends AbstractController
                 'Destruction Reason',
                 'Quarantined',
                 'Notes',
-            ]);
+            ], escape: '');
 
             foreach ($plants as $row) {
-                fputcsv($handle, $row);
+                fputcsv($handle, $row, escape: '');
             }
 
             fclose($handle);

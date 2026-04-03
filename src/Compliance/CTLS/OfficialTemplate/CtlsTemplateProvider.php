@@ -32,7 +32,7 @@ final class CtlsTemplateProvider
             throw new \RuntimeException(sprintf('Unable to read CTLS template snapshot at "%s".', $this->getLocalTemplatePath()));
         }
 
-        $headers = str_getcsv(trim($contents));
+        $headers = str_getcsv(trim($contents), escape: '');
         if ($headers === [] || count($headers) < 10) {
             throw new \RuntimeException('The CTLS template snapshot is empty or malformed.');
         }
