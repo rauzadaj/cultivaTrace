@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Application\Catalog\SeedCatalog\SeedCatalogProvider;
-use App\Domain\Cultivation\Model\Genetic;
+use App\Domain\Catalog\Model\ExternalCatalogEntry;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -16,11 +16,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:sync-seed-catalog',
-    description: 'Synchronize the verified cannabis seed catalog snapshot into Genetic metadata and export a JSON snapshot.',
+    description: 'Synchronize the verified cannabis seed catalog snapshot into the external catalog store and export a JSON snapshot.',
 )]
 final class SyncSeedCatalogCommand extends Command
 {
     private const DEFAULT_EXPORT_PATH = 'catalog/seed-catalog/humboldt-california-canada.json';
+    private const SOURCE_PROVIDER = 'humboldtseedcompany.com';
 
     public function __construct(
         private readonly SeedCatalogProvider $seedCatalogProvider,
@@ -33,7 +34,7 @@ final class SyncSeedCatalogCommand extends Command
     {
         $this
             ->addOption('export-path', null, InputOption::VALUE_REQUIRED, 'Path of the JSON snapshot to write.', self::DEFAULT_EXPORT_PATH)
-            ->addOption('no-upsert', null, InputOption::VALUE_NONE, 'Skip Genetic upsert and only write the JSON snapshot.');
+            ->addOption('no-upsert', null, InputOption::VALUE_NONE, 'Skip external catalog upsert and only write the JSON snapshot.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -49,18 +50,42 @@ final class SyncSeedCatalogCommand extends Command
 
         if (!$input->getOption('no-upsert')) {
             foreach ($entries as $entry) {
-                /** @var Genetic|null $genetic */
-                $genetic = $this->entityManager->getRepository(Genetic::class)->findOneBy(['code' => $entry->code]);
+                /** @var ExternalCatalogEntry|null $catalogEntry */
+                $catalogEntry = $this->entityManager->getRepository(ExternalCatalogEntry::class)->findOneBy([
+                    'sourceProvider' => self::SOURCE_PROVIDER,
+                    'externalCode' => $entry->code,
+                ]);
 
-                if (!$genetic instanceof Genetic) {
-                    $genetic = (new Genetic())->setCode($entry->code);
-                    $this->entityManager->persist($genetic);
+                if (!$catalogEntry instanceof ExternalCatalogEntry) {
+                    $catalogEntry = new ExternalCatalogEntry();
+                    $catalogEntry
+                        ->setSourceProvider(self::SOURCE_PROVIDER)
+                        ->setExternalCode($entry->code);
+
+                    $this->entityManager->persist($catalogEntry);
                 }
 
-                $genetic
+                $rawSourceModifiedAt = trim($entry->sourceModifiedAt);
+                if ('' === $rawSourceModifiedAt) {
+                    $sourceModifiedAt = null;
+                } else {
+                    try {
+                        $sourceModifiedAt = new \DateTimeImmutable($rawSourceModifiedAt);
+                    } catch (\Throwable) {
+                        $sourceModifiedAt = null;
+                    }
+                }
+
+                $catalogEntry
                     ->setName($entry->name)
                     ->setVendor($entry->vendor)
-                    ->setMetadata($entry->toArray());
+                    ->setGenetics($entry->genetics)
+                    ->setDescription($entry->description)
+                    ->setImageUrl($entry->imageUrl)
+                    ->setSourceUrl($entry->sourceUrl)
+                    ->setSourceModifiedAt($sourceModifiedAt)
+                    ->setMarkets($entry->markets)
+                    ->setRawMetadata($entry->toArray());
             }
 
             $this->entityManager->flush();
