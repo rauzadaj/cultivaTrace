@@ -65,10 +65,15 @@ final class SyncSeedCatalogCommand extends Command
                     $this->entityManager->persist($catalogEntry);
                 }
 
-                try {
-                    $sourceModifiedAt = new \DateTimeImmutable($entry->sourceModifiedAt);
-                } catch (\Throwable) {
+                $rawSourceModifiedAt = trim($entry->sourceModifiedAt);
+                if ('' === $rawSourceModifiedAt) {
                     $sourceModifiedAt = null;
+                } else {
+                    try {
+                        $sourceModifiedAt = new \DateTimeImmutable($rawSourceModifiedAt);
+                    } catch (\Throwable) {
+                        $sourceModifiedAt = null;
+                    }
                 }
 
                 $catalogEntry
