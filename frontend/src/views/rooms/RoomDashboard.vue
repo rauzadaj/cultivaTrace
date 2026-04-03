@@ -329,7 +329,7 @@ async function ensureRoomContext(): Promise<void> {
   }
 
   if (!plantsStore.rooms.length || !plantsStore.plants.length) {
-    await plantsStore.bootstrap()
+    await Promise.all([plantsStore.fetchRooms(), plantsStore.fetchPlants()])
   }
 
   if (currentRoomId.value) {
@@ -389,7 +389,7 @@ function openThresholdsDialog(sensor: Sensor): void {
 }
 
 async function handleRoomCreated(): Promise<void> {
-  await plantsStore.bootstrap()
+  await plantsStore.fetchRooms()
 }
 
 async function handleSensorCreated(): Promise<void> {
