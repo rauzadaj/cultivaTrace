@@ -8,6 +8,7 @@ use App\Service\StripeService;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,8 @@ class StripeController extends AbstractController
         private readonly PlanLimitsService $planLimits,
         private readonly BillingCheckoutService $billingCheckoutService,
         private readonly LoggerInterface $logger,
+        #[Autowire('%env(FRONTEND_URL)%')]
+        private readonly string $frontendUrl,
     ) {}
 
     /**
@@ -49,7 +52,7 @@ class StripeController extends AbstractController
             $checkoutUrl = $this->billingCheckoutService->createCheckoutUrl(
                 $user->getOrganization(),
                 $plan,
-                $this->getFrontendUrl(),
+                $this->frontendUrl,
             );
         } catch (\InvalidArgumentException $exception) {
             return $this->json([
@@ -89,7 +92,7 @@ class StripeController extends AbstractController
         try {
             $portalUrl = $this->stripe->createPortalSession(
                 customerId: $org->getStripeCustomerId(),
-                returnUrl: $this->getFrontendUrl() . '/billing',
+                returnUrl: $this->frontendUrl . '/billing',
             );
         } catch (ApiErrorException $exception) {
             $this->logger->error('[Stripe] Portal session creation failed', [
@@ -204,10 +207,5 @@ class StripeController extends AbstractController
             'hasActiveSubscription' => $org->getStripeCustomerId() !== null,
             'limits'             => $this->planLimits->getLimits($org),
         ]);
-    }
-
-    private function getFrontendUrl(): string
-    {
-        return (string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:5173');
     }
 }
