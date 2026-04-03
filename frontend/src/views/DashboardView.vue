@@ -17,7 +17,7 @@
       />
     </header>
 
-    <div v-if="plantsStore.loading" class="dashboard-skeleton">
+    <div v-if="loading" class="dashboard-skeleton">
       <q-skeleton v-for="index in 6" :key="index" height="132px" class="dashboard-skeleton__item" />
     </div>
 
@@ -147,7 +147,7 @@
               <span>Contexte</span>
               <span>Date</span>
             </header>
-            <article v-for="entry in plantsStore.recentEvents.slice(0, 6)" :key="entry.id" class="action-table__row">
+            <article v-for="entry in recentEvents" :key="entry.id" class="action-table__row">
               <span>{{ entry.eventType }}</span>
               <span>{{ entry.notes || eventContext(entry) }}</span>
               <span>{{ formatDateTime(entry.occurredAt) }}</span>
@@ -161,22 +161,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { PlantEvent } from '@/types/api'
+import { computed, onMounted, ref } from 'vue'
+import { dashboardApi } from '@/services/api'
+import type {
+  DashboardAlert,
+  DashboardOverviewResponse,
+  DashboardRecentEvent,
+  DashboardSpotlightPlant,
+  PlantEvent,
+  PlantStage,
+} from '@/types/api'
 import FarmForm from '@/components/farms/FarmForm.vue'
 import AlertBadge from '../components/ui/AlertBadge.vue'
 import CCard from '../components/ui/CCard.vue'
 import PlantStageChip from '../components/ui/PlantStageChip.vue'
 import { useDisplay } from '../composables/useDisplay'
 import { useAuthStore } from '../stores/auth'
-import { usePlantsStore } from '../stores/plants'
-import type { AlertItem, DashboardStatChip, PlantCardSummary, PlantStage } from '../types/api'
+import type { DashboardStatChip } from '../types/api'
 
-const plantsStore = usePlantsStore()
 const authStore = useAuthStore()
 const { xs } = useDisplay()
 
 const farmDialogOpen = ref(false)
+const loading = ref(true)
+const loadError = ref<string | null>(null)
+const overview = ref<DashboardOverviewResponse | null>(null)
 const isMobile = computed(() => xs.value)
 const firstName = computed(() => {
   const identity = authStore.user?.email || 'operateur'
@@ -185,52 +194,34 @@ const firstName = computed(() => {
 })
 const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
 
-const roomOccupancy = computed(() => plantsStore.rooms.map((room) => ({
-  room,
-  count: plantsStore.plants.filter((plant) => {
-    if (typeof plant.room === 'string') {
-      return plant.room.endsWith(`/${room.id}`)
-    }
+const alerts = computed<DashboardAlert[]>(() => {
+  const items: DashboardAlert[] = []
 
-    return plant.room.id === room.id
-  }).length,
-})))
-
-const alerts = computed<AlertItem[]>(() => {
-  const items: AlertItem[] = []
-
-  if (plantsStore.error) {
+  if (loadError.value) {
     items.push({
       id: 'dashboard-error',
       title: 'Erreur de synchronisation',
-      message: plantsStore.error,
+      message: loadError.value,
       severity: 'critical',
       context: 'Verifiez la connectivite et le backend',
     })
   }
 
-  roomOccupancy.value
-    .filter(({ room, count }) => count >= room.capacityMax)
-    .forEach(({ room, count }) => {
-      items.push({
-        id: `room-capacity-${room.id}`,
-        title: room.name,
-        message: `${count}/${room.capacityMax} plants actifs`,
-        severity: 'warning',
-        context: 'Capacite maximale atteinte',
-      })
-    })
+  if (overview.value?.alerts.items.length) {
+    items.push(...overview.value.alerts.items)
+  }
 
   return items
 })
 
 const statChips = computed<DashboardStatChip[]>(() => [
-  { id: 'active', label: 'Plants actifs', value: String(plantsStore.activePlants.length), tone: 'positive' },
-  { id: 'rooms', label: 'Salles', value: String(plantsStore.rooms.length), tone: 'default' },
+  { id: 'active', label: 'Plants actifs', value: String(overview.value?.plants.total ?? 0), tone: 'positive' },
+  { id: 'rooms', label: 'Salles', value: String(overview.value?.rooms.total ?? 0), tone: 'default' },
   { id: 'alerts', label: 'Alertes', value: String(alerts.value.length), tone: alerts.value.length ? 'warning' : 'default' },
 ])
 
-const spotlightPlants = computed<PlantCardSummary[]>(() => plantsStore.activePlants.slice(0, 3))
+const spotlightPlants = computed<DashboardSpotlightPlant[]>(() => overview.value?.overview.spotlightPlants ?? [])
+const recentEvents = computed<DashboardRecentEvent[]>(() => overview.value?.overview.recentEvents ?? [])
 
 const stageBars = computed(() => {
   const stages: Array<{ id: PlantStage; stage: PlantStage }> = [
@@ -241,7 +232,7 @@ const stageBars = computed(() => {
   ]
   const counts = stages.map((item) => ({
     ...item,
-    count: plantsStore.plants.filter((plant) => plant.stage === item.stage).length,
+    count: overview.value?.plants.byStage[item.stage] ?? 0,
   }))
   const maxCount = Math.max(...counts.map((item) => item.count), 1)
 
@@ -272,14 +263,39 @@ function formatDateTime(value: string) {
   })
 }
 
+async function fetchOverview(): Promise<void> {
+  loading.value = true
+  loadError.value = null
+
+  try {
+    const { data } = await dashboardApi.overview()
+    overview.value = data
+  } catch (error) {
+    loadError.value = error instanceof Error ? error.message : 'Impossible de charger le dashboard.'
+    throw error
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    await fetchOverview()
+  } catch (error) {
+    console.error('Dashboard overview failed', error)
+  }
+})
 
 async function handleFarmCreated() {
-  await plantsStore.bootstrap()
+  await fetchOverview()
 }
 
 async function refreshDashboard(done: () => void) {
-  await plantsStore.bootstrap()
-  done()
+  try {
+    await fetchOverview()
+  } finally {
+    done()
+  }
 }
 </script>
 

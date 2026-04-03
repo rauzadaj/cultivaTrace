@@ -480,7 +480,7 @@ function openStageDialog() {
 onMounted(async () => {
   try {
     await authStore.fetchMe()
-    await plantsStore.bootstrap()
+    await Promise.all([plantsStore.ensureSupportData(), plantsStore.fetchPlants()])
     if (route.name === 'plant-detail' && typeof route.params.id === 'string') {
       await Promise.all([plantsStore.fetchPlant(route.params.id), plantsStore.fetchEvents(route.params.id)])
     }
@@ -543,9 +543,9 @@ async function submitCreatePlant() {
       germinatedAt: new Date(createPlantForm.germinatedAt).toISOString(),
       rfidTag: createPlantForm.rfidTag,
     })
+    await plantsStore.fetchPlants()
     createPlantOpen.value = false
     createPlantForm.rfidTag = ''
-    await plantsStore.fetchPlants()
     $q.notify({ type: 'positive', message: 'Plant cree.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 2000 })
     await router.push({ name: 'plant-detail', params: { id: plant.id } })
   } catch (error) {
