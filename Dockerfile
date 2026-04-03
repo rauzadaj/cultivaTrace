@@ -20,12 +20,13 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     openssl \
+    libicu-dev \
     libpq-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
     libsodium-dev \
-    && docker-php-ext-install pdo pdo_pgsql zip mbstring xml opcache sodium \
+    && docker-php-ext-install intl pdo pdo_pgsql zip mbstring xml opcache sodium \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
 

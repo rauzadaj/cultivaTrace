@@ -26,7 +26,7 @@ final class InternalPlantCsvReader
         }
 
         try {
-            $header = fgetcsv($handle);
+            $header = fgetcsv($handle, escape: '');
             if ($header === false) {
                 throw new \RuntimeException('The input CSV is empty.');
             }
@@ -37,7 +37,7 @@ final class InternalPlantCsvReader
             }
 
             $rows = [];
-            while (($data = fgetcsv($handle)) !== false) {
+            while (($data = fgetcsv($handle, escape: '')) !== false) {
                 $data = array_map(static fn (?string $value): string => trim((string) $value), $data);
                 $data = array_pad($data, count($normalizedHeader), '');
                 $rows[] = array_combine($normalizedHeader, $data);

@@ -270,6 +270,7 @@ final class StripeControllerTest extends KernelTestCase
             $planLimits,
             $billingCheckoutService,
             $logger,
+            'http://localhost:5173',
         );
         $controller->setContainer(static::getContainer());
 
