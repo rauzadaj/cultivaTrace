@@ -13,7 +13,7 @@ import type {
   HydraCollection,
   Plant, PlantEvent, Farm, Room, Strain,
   InputRecord, HarvestRecord, Sensor, SensorHistoryResponse,
-  User, Organization, JwtResponse, LoginCredentials, ApiError,
+  User, Organization, JwtResponse, LoginCredentials, ApiError, DashboardOverviewResponse,
 } from '@/types/api'
 
 const TOKEN_KEY = 'cultivatrace_token'
@@ -122,6 +122,11 @@ export const billingApi = {
 
   status: () =>
     http.get('/billing/status'),
+}
+
+export const dashboardApi = {
+  overview: () =>
+    http.get<DashboardOverviewResponse>('/dashboard'),
 }
 
 // ── Plants ────────────────────────────────────────────────────────────────
