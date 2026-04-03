@@ -27,11 +27,6 @@ use Symfony\Component\Uid\Uuid;
  * Types d'événements valides :
  *   germination | stage_change | note | photo | input_record |
  *   harvest | destruction_intent | destruction_confirmed | room_move
- *
- * Migration depuis CropActivity :
- *   Les CropActivity existantes peuvent être migrées en PlantEvent de type 'legacy_activity'
- *   avec payload = {"original_type": "...", "migrated": true}
- *   MAIS elles doivent d'abord être liées à un Plant (créer les Plants manquants si besoin)
  */
 #[ORM\Entity(repositoryClass: \App\Repository\PlantEventRepository::class)]
 #[ORM\Table(name: 'plant_event')]
