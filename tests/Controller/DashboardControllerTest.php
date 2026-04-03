@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Controller;
 
 use App\Entity\Farm;
 use App\Entity\HarvestRecord;
 use App\Entity\Organization;
 use App\Entity\Plant;
+use App\Entity\PlantEvent;
 use App\Entity\Room;
 use App\Entity\Sensor;
 use App\Entity\Strain;
@@ -26,6 +29,7 @@ final class DashboardControllerTest extends ApiTestCase
             Room::class,
             Strain::class,
             Plant::class,
+            PlantEvent::class,
             HarvestRecord::class,
             Sensor::class,
         ]);
@@ -47,6 +51,18 @@ final class DashboardControllerTest extends ApiTestCase
             $this->createPlant($room, $user, $strain, rfidTag: sprintf('PLANT-%02d', $index));
         }
 
+        $plant = $this->createPlant($roomVeg, $user, $strain, rfidTag: 'PLANT-EVENT');
+        $event = (new PlantEvent())
+            ->setTenantId($organization->getId())
+            ->setPlant($plant)
+            ->setUser($user)
+            ->setEventType('note')
+            ->setNotes('Observation recente')
+            ->setOccurredAt(new \DateTimeImmutable())
+            ->setHashSelf(str_repeat('a', 64))
+            ->setIpAddress('127.0.0.1');
+        $this->entityManager->persist($event);
+
         $this->entityManager->flush();
         $this->authorizeClient($user);
 
@@ -57,11 +73,16 @@ final class DashboardControllerTest extends ApiTestCase
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame('pro', $payload['organization']['plan']);
-        self::assertSame(10, $payload['limits']['plants']['current']);
+        self::assertSame(11, $payload['limits']['plants']['current']);
         self::assertSame('pro', $payload['limits']['plan']);
         self::assertArrayHasKey('alerts', $payload);
         self::assertArrayHasKey('harvests', $payload);
         self::assertArrayHasKey('plants', $payload);
+        self::assertArrayHasKey('rooms', $payload);
+        self::assertArrayHasKey('overview', $payload);
+        self::assertCount(3, $payload['overview']['spotlightPlants']);
+        self::assertCount(1, $payload['overview']['recentEvents']);
+        self::assertSame('Observation recente', $payload['overview']['recentEvents'][0]['notes']);
     }
 
     public function testDashboardRequiresAuthentication(): void

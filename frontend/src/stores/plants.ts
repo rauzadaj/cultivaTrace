@@ -101,14 +101,26 @@ export const usePlantsStore = defineStore('plants', () => {
   const activePlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'active'))
   const harvestedPlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'harvested'))
 
-  async function fetchSupportData(): Promise<void> {
-    const [roomsResponse, strainsResponse] = await Promise.all([
-      roomsApi.list({ itemsPerPage: 100 }),
-      strainsApi.list({ itemsPerPage: 100 }),
-    ])
+  async function fetchRooms(): Promise<void> {
+    const { data } = await roomsApi.list({ itemsPerPage: 100 })
+    rooms.value = collectionMembers(data)
+  }
 
-    rooms.value = collectionMembers(roomsResponse.data)
-    strains.value = collectionMembers(strainsResponse.data)
+  async function fetchStrains(): Promise<void> {
+    const { data } = await strainsApi.list({ itemsPerPage: 100 })
+    strains.value = collectionMembers(data)
+  }
+
+  async function fetchSupportData(): Promise<void> {
+    await Promise.all([fetchRooms(), fetchStrains()])
+  }
+
+  async function ensureSupportData(): Promise<void> {
+    if (rooms.value.length && strains.value.length) {
+      return
+    }
+
+    await fetchSupportData()
   }
 
   async function fetchPlants(): Promise<void> {
@@ -146,7 +158,7 @@ export const usePlantsStore = defineStore('plants', () => {
     try {
       const [{ data }] = await Promise.all([
         plantsApi.get(id),
-        rooms.value.length && strains.value.length ? Promise.resolve(null) : fetchSupportData(),
+        rooms.value.length && strains.value.length ? Promise.resolve(null) : ensureSupportData(),
       ])
       currentPlant.value = data
     } catch (caughtError) {
@@ -289,6 +301,9 @@ export const usePlantsStore = defineStore('plants', () => {
     strainsById,
     bootstrap,
     fetchSupportData,
+    ensureSupportData,
+    fetchRooms,
+    fetchStrains,
     fetchPlants,
     fetchPlant,
     fetchEvents,
