@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
+use App\Entity\PlantEvent;
+use App\Entity\User;
 use App\Service\PlanLimitsService;
 use Doctrine\ORM\EntityManagerInterface;
 use BackedEnum;
@@ -22,14 +26,21 @@ class DashboardController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly PlanLimitsService $planLimits,
-    ) {}
+    ) {
+    }
 
-    public function __invoke(#[CurrentUser] $user): JsonResponse
+    public function __invoke(#[CurrentUser] ?User $user): JsonResponse
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException('Authenticated user required.');
+        }
+
         $org      = $user->getOrganization();
-        $tenantId = (string) $org->getId();
+        if ($org === null) {
+            throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');
+        }
 
         // Plants actifs par stade
         $plantsByStage = $this->em->createQuery(
@@ -80,6 +91,51 @@ class DashboardController extends AbstractController
         ->setParameter('status', 'warning')
         ->getSingleScalarResult();
 
+        $roomsCount = (int) $this->em->createQuery(
+            'SELECT COUNT(r.id)
+             FROM App\Entity\Room r
+             WHERE r.tenantId = :tenantId'
+        )
+        ->setParameter('tenantId', $org->getId(), 'uuid')
+        ->getSingleScalarResult();
+
+        $roomAlerts = $this->em->createQuery(
+            'SELECT r.id AS roomId, r.name AS roomName, r.capacityMax AS capacityMax, COUNT(p.id) AS activePlantCount
+             FROM App\Entity\Room r
+             LEFT JOIN r.plants p WITH p.status = :status
+             WHERE r.tenantId = :tenantId
+             GROUP BY r.id, r.name, r.capacityMax
+             HAVING COUNT(p.id) >= r.capacityMax
+             ORDER BY r.name ASC'
+        )
+        ->setParameter('tenantId', $org->getId(), 'uuid')
+        ->setParameter('status', 'active')
+        ->getResult();
+
+        $spotlightPlants = $this->em->createQuery(
+            'SELECT p.id AS id, p.rfidTag AS rfidTag, p.stage AS stage, p.status AS status, p.germinatedAt AS germinatedAt, s.name AS strainName, r.name AS roomName
+             FROM App\Entity\Plant p
+             LEFT JOIN p.strain s
+             LEFT JOIN p.room r
+             WHERE p.tenantId = :tenantId
+               AND p.status = :status
+             ORDER BY p.createdAt DESC'
+        )
+        ->setParameter('tenantId', $org->getId(), 'uuid')
+        ->setParameter('status', 'active')
+        ->setMaxResults(3)
+        ->getResult();
+
+        $recentEvents = $this->em->createQuery(
+            'SELECT e.id AS id, e.eventType AS eventType, e.notes AS notes, e.occurredAt AS occurredAt, e.payload AS payload
+             FROM App\Entity\PlantEvent e
+             WHERE e.tenantId = :tenantId
+             ORDER BY e.occurredAt DESC'
+        )
+        ->setParameter('tenantId', $org->getId(), 'uuid')
+        ->setMaxResults(6)
+        ->getResult();
+
         // Limites du plan
         $limits = $this->planLimits->getLimits($org);
 
@@ -92,6 +148,47 @@ class DashboardController extends AbstractController
                 : (string) $stage;
             $stagesMap[$stageKey] = (int) $row['count'];
         }
+
+        $roomAlertItems = array_map(static function (array $row): array {
+            return [
+                'id' => sprintf('room-capacity-%s', (string) $row['roomId']),
+                'title' => (string) $row['roomName'],
+                'message' => sprintf('%d/%d plants actifs', (int) $row['activePlantCount'], (int) $row['capacityMax']),
+                'severity' => 'warning',
+                'context' => 'Capacite maximale atteinte',
+            ];
+        }, $roomAlerts);
+
+        $spotlightItems = array_map(static function (array $row): array {
+            $id = (string) $row['id'];
+            $rfidTag = isset($row['rfidTag']) ? trim((string) $row['rfidTag']) : '';
+            $strainName = isset($row['strainName']) ? trim((string) $row['strainName']) : '';
+            $germinatedAt = $row['germinatedAt'] instanceof \DateTimeInterface
+                ? $row['germinatedAt']
+                : new \DateTimeImmutable((string) $row['germinatedAt']);
+
+            return [
+                'id' => $id,
+                'name' => '' !== $rfidTag ? $rfidTag : ('' !== $strainName ? sprintf('%s · %s', $strainName, substr($id, 0, 8)) : sprintf('Plant %s', substr($id, 0, 8))),
+                'strain' => '' !== $strainName ? $strainName : 'Genetique non renseignee',
+                'room' => isset($row['roomName']) ? (string) $row['roomName'] : 'Salle non renseignee',
+                'stage' => self::normalizeValue($row['stage']),
+                'status' => self::normalizeValue($row['status']),
+                'ageInDays' => (int) $germinatedAt->diff(new \DateTimeImmutable())->days,
+            ];
+        }, $spotlightPlants);
+
+        $recentEventItems = array_map(static function (array $row): array {
+            return [
+                'id' => (string) $row['id'],
+                'eventType' => (string) $row['eventType'],
+                'notes' => $row['notes'],
+                'occurredAt' => $row['occurredAt'] instanceof \DateTimeInterface
+                    ? $row['occurredAt']->format(\DateTimeInterface::ATOM)
+                    : (string) $row['occurredAt'],
+                'payload' => is_array($row['payload']) ? $row['payload'] : null,
+            ];
+        }, $recentEvents);
 
         return $this->json([
             'organization' => [
@@ -110,9 +207,27 @@ class DashboardController extends AbstractController
             ],
             'alerts' => [
                 'sensorsInAlert' => (int) $sensorsInAlert,
+                'saturatedRooms' => count($roomAlertItems),
+                'items' => $roomAlertItems,
+            ],
+            'rooms' => [
+                'total' => $roomsCount,
+            ],
+            'overview' => [
+                'spotlightPlants' => $spotlightItems,
+                'recentEvents' => $recentEventItems,
             ],
             'limits' => $limits,
             'generatedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
         ]);
+    }
+
+    private static function normalizeValue(mixed $value): string
+    {
+        if ($value instanceof BackedEnum) {
+            return (string) $value->value;
+        }
+
+        return (string) $value;
     }
 }
