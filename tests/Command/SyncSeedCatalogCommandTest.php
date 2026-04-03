@@ -7,7 +7,7 @@ namespace App\Tests\Command;
 use App\Application\Catalog\SeedCatalog\SeedCatalogEntry;
 use App\Application\Catalog\SeedCatalog\SeedCatalogProvider;
 use App\Command\SyncSeedCatalogCommand;
-use App\Domain\Cultivation\Model\Genetic;
+use App\Domain\Catalog\Model\ExternalCatalogEntry;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\TestCase;
@@ -65,13 +65,19 @@ final class SyncSeedCatalogCommandTest extends TestCase
         @unlink($exportPath);
     }
 
-    public function testItUpsertsEntriesIntoGenetics(): void
+    public function testItUpsertsEntriesIntoExternalCatalog(): void
     {
-        $existing = (new Genetic())
-            ->setCode('HSC_EXISTING')
+        $existing = (new ExternalCatalogEntry())
+            ->setSourceProvider('humboldtseedcompany.com')
+            ->setExternalCode('HSC_EXISTING')
             ->setName('Legacy Name')
             ->setVendor('Legacy Vendor')
-            ->setMetadata(['legacy' => true]);
+            ->setGenetics('Legacy Parent A x Parent B')
+            ->setDescription('Legacy description.')
+            ->setImageUrl('https://example.test/legacy.jpg')
+            ->setSourceUrl('https://example.test/legacy')
+            ->setMarkets(['california'])
+            ->setRawMetadata(['legacy' => true]);
 
         $repository = $this->getMockBuilder(EntityRepository::class)
             ->disableOriginalConstructor()
@@ -84,9 +90,9 @@ final class SyncSeedCatalogCommandTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects(self::exactly(2))
             ->method('getRepository')
-            ->with(Genetic::class)
+            ->with(ExternalCatalogEntry::class)
             ->willReturn($repository);
-        $entityManager->expects(self::once())->method('persist')->with(self::isInstanceOf(Genetic::class));
+        $entityManager->expects(self::once())->method('persist')->with(self::isInstanceOf(ExternalCatalogEntry::class));
         $entityManager->expects(self::once())->method('flush');
 
         $provider = new class() implements SeedCatalogProvider {
@@ -131,9 +137,10 @@ final class SyncSeedCatalogCommandTest extends TestCase
         ]));
         self::assertSame('Updated Cultivar', $existing->getName());
         self::assertSame('Humboldt Seed Company', $existing->getVendor());
-        self::assertSame('HSC_EXISTING', $existing->getMetadata()['code']);
-        self::assertSame('Updated Cultivar', $existing->getMetadata()['name']);
-        self::assertSame(['source' => 'fixture'], $existing->getMetadata()['metadata']);
+        self::assertSame('Parent A x Parent B', $existing->getGenetics());
+        self::assertSame('HSC_EXISTING', $existing->getRawMetadata()['code']);
+        self::assertSame('Updated Cultivar', $existing->getRawMetadata()['name']);
+        self::assertSame(['source' => 'fixture'], $existing->getRawMetadata()['metadata']);
 
         @unlink($exportPath);
     }
