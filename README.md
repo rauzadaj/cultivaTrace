@@ -207,7 +207,7 @@ npm run build
 
 ## Catalogue graines verifie
 
-CultivaTrace expose une sync manuelle du catalogue graines vers `Genetic` et un export JSON versionné. Cette opération n'est plus exécutée pendant le bootstrap Docker.
+CultivaTrace expose une sync manuelle du catalogue graines vers un stockage externe dédié et un export JSON versionné. Les fiches fournisseur ne sont plus persistées directement dans `Genetic`, qui reste réservé aux variétés internes utilisées par les workflows métier.
 
 Commande :
 
