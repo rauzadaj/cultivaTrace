@@ -95,7 +95,6 @@ final class Version20260318094532 extends AbstractMigration
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE crop_activity DROP CONSTRAINT FK_25E4508B680D0B01');
         $this->addSql('ALTER TABLE destruction_intent DROP CONSTRAINT FK_7A2AE4E11D935652');
         $this->addSql('ALTER TABLE destruction_intent DROP CONSTRAINT FK_7A2AE4E1C48B85B0');
         $this->addSql('ALTER TABLE destruction_intent DROP CONSTRAINT FK_7A2AE4E16F45385D');
@@ -110,16 +109,17 @@ final class Version20260318094532 extends AbstractMigration
         $this->addSql('ALTER TABLE plant_event DROP CONSTRAINT FK_C874932FA76ED395');
         $this->addSql('ALTER TABLE room DROP CONSTRAINT FK_729F519B65FCFA0D');
         $this->addSql('ALTER TABLE sensor DROP CONSTRAINT FK_BC8617B054177093');
-        $this->addSql('DROP TABLE crop_activity');
         $this->addSql('DROP TABLE destruction_intent');
         $this->addSql('DROP TABLE harvest_record');
         $this->addSql('DROP TABLE input_record');
         $this->addSql('DROP TABLE plant');
         $this->addSql('DROP TABLE plant_event');
-        $this->addSql('DROP TABLE plot');
         $this->addSql('DROP TABLE room');
         $this->addSql('DROP TABLE sensor');
         $this->addSql('DROP TABLE strain');
+        // Legacy tables "crop_activity" and "plot" were removed by an earlier migration path.
+        // This down() cannot safely recreate them because the original data and schema evolution
+        // history are no longer available from this migration alone.
         $this->addSql('ALTER INDEX idx_edc23d9b6ea87c7b RENAME TO idx_crop_genetic');
         $this->addSql('CREATE INDEX idx_54c1b93e2c2ac5d3 ON farm (tenant_id)');
         $this->addSql('ALTER INDEX idx_5816d04532c8a3de RENAME TO idx_54c1b93e32c8a3de');

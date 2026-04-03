@@ -15,15 +15,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Room = ancienne entité Plot, renommée et enrichie.
- *
- * Migration SQL requise :
- *   ALTER TABLE plot RENAME TO room;
- *   ALTER TABLE room ADD COLUMN tenant_id UUID NOT NULL;
- *   ALTER TABLE room ADD COLUMN farm_id UUID NOT NULL;
- *   ALTER TABLE room ADD COLUMN type VARCHAR(50) NOT NULL DEFAULT 'veg';
- *   ALTER TABLE room ADD COLUMN capacity_max INT NOT NULL DEFAULT 100;
- *   -- Migrer les données existantes de Plot vers Room avant de déployer
+ * Room représente une salle de culture rattachée à une ferme.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'room')]
