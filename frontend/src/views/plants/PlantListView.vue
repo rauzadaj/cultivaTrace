@@ -161,7 +161,7 @@ const filteredPlants = computed<PlantCardSummary[]>(() => plantsStore.plantCards
 onMounted(async () => {
   if (!plantsStore.plants.length) {
     try {
-      await plantsStore.bootstrap()
+      await Promise.all([plantsStore.ensureSupportData(), plantsStore.fetchPlants()])
     } catch (error) {
       console.error('Plant list bootstrap failed', error)
     }

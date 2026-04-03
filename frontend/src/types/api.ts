@@ -40,10 +40,10 @@ export type SubscriptionPlan =
   | 'enterprise'
 
 export type UserRole =
-  | 'ROLE_ADMIN'
-  | 'ROLE_MANAGER'
-  | 'ROLE_OPERATOR'
-  | 'ROLE_OBSERVER'
+  | 'ROLE_SUPER_ADMIN'
+  | 'ROLE_ORG_ADMIN'
+  | 'ROLE_ORG_USER'
+  | 'ROLE_API'
 
 export type SensorType =
   | 'temperature'
@@ -223,6 +223,63 @@ export interface SensorLiveReading {
   recordedAt: string
   status: 'normal' | 'warning' | 'critical'
   vpd?: SensorVpdSnapshot | null
+}
+
+export interface DashboardAlert {
+  id: string
+  title: string
+  message: string
+  severity: 'warning' | 'critical' | 'default'
+  context?: string
+}
+
+export interface DashboardSpotlightPlant {
+  id: string
+  name: string
+  strain: string
+  room: string
+  stage: PlantStage
+  status: PlantStatus
+  ageInDays: number
+}
+
+export interface DashboardRecentEvent {
+  id: string
+  eventType: PlantEvent['eventType']
+  notes?: string | null
+  occurredAt: string
+  payload?: PlantEventPayload | null
+}
+
+export interface DashboardOverviewResponse {
+  organization: {
+    name: string
+    plan: SubscriptionPlan
+    licenseStatus: LicenseStatus
+  }
+  plants: {
+    byStage: Partial<Record<PlantStage, number>>
+    total: number
+    inFlowering: number
+  }
+  harvests: {
+    last30Days: number
+    totalGrams: number
+  }
+  alerts: {
+    sensorsInAlert: number
+    saturatedRooms: number
+    items: DashboardAlert[]
+  }
+  rooms: {
+    total: number
+  }
+  overview: {
+    spotlightPlants: DashboardSpotlightPlant[]
+    recentEvents: DashboardRecentEvent[]
+  }
+  limits: Record<string, unknown>
+  generatedAt: string
 }
 
 export interface User {
