@@ -20,6 +20,11 @@ final class PlantReportControllerTest extends ApiTestCase
 {
     protected function setUp(): void
     {
+        if ($this->isGitHubActionsCi()) {
+            $_ENV['GOTENBERG_URL'] = 'http://127.0.0.1:3000';
+            $_SERVER['GOTENBERG_URL'] = 'http://127.0.0.1:3000';
+        }
+
         parent::setUp();
 
         $this->resetSchema([
@@ -33,6 +38,12 @@ final class PlantReportControllerTest extends ApiTestCase
             InputRecord::class,
             HarvestRecord::class,
         ]);
+    }
+
+    private function isGitHubActionsCi(): bool
+    {
+        return ($_ENV['CI'] ?? $_SERVER['CI'] ?? null) === 'true'
+            || ($_ENV['GITHUB_ACTIONS'] ?? $_SERVER['GITHUB_ACTIONS'] ?? null) === 'true';
     }
 
     public function testPlantPdfReportDownloadsInLessThanTenSeconds(): void
