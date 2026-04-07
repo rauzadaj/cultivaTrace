@@ -2,6 +2,7 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Alert;
 use App\Entity\Farm;
 use App\Entity\Organization;
 use App\Entity\Room;
@@ -31,6 +32,7 @@ final class SensorControllerTest extends ApiTestCase
             Farm::class,
             Room::class,
             Sensor::class,
+            Alert::class,
         ]);
 
         $this->entityManager->getConnection()->executeStatement(
@@ -67,6 +69,23 @@ final class SensorControllerTest extends ApiTestCase
 
         self::assertNotNull($latest);
         self::assertSame(25.5, (float) $latest['value']);
+    }
+
+    public function testPostReadingPersistsAlertWhenThresholdIsExceeded(): void
+    {
+        [$user, $sensor] = $this->createSensorFixture('sensor-alert@test.local', 'temperature');
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/sensors/%s/reading', $sensor->getId()), [
+            'value' => 40.0,
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_CREATED);
+
+        $alerts = $this->entityManager->getRepository(Alert::class)->findAll();
+        self::assertCount(1, $alerts);
+        self::assertSame('sensor_threshold', $alerts[0]->getType());
+        self::assertSame((string) $sensor->getTenantId(), (string) $alerts[0]->getTenantId());
     }
 
     public function testPostReadingWithoutValueReturns422(): void
