@@ -10,7 +10,15 @@
       </q-card-section>
 
       <q-form class="room-form__body" @submit.prevent="submit">
-        <q-input v-model="form.name" label="Nom *" outlined lazy-rules :rules="requiredRule" />
+        <q-input
+          v-model="form.name"
+          label="Nom *"
+          outlined
+          :error="!!fieldErrors.name"
+          :error-message="fieldErrors.name"
+          @blur="validateField('name')"
+          @update:model-value="clearFieldError('name')"
+        />
 
         <q-select
           v-model="form.type"
@@ -19,8 +27,9 @@
           emit-value
           map-options
           outlined
-          lazy-rules
-          :rules="requiredRule"
+          :error="!!fieldErrors.type"
+          :error-message="fieldErrors.type"
+          @update:model-value="clearFieldError('type')"
         />
 
         <q-input
@@ -29,8 +38,10 @@
           type="number"
           min="1"
           outlined
-          lazy-rules
-          :rules="[(v: number | null) => !!v || 'Capacité obligatoire']"
+          :error="!!fieldErrors.capacityMax"
+          :error-message="fieldErrors.capacityMax"
+          @blur="validateField('capacityMax')"
+          @update:model-value="clearFieldError('capacityMax')"
         />
 
         <q-input v-model="form.description" label="Description" outlined type="textarea" autogrow />
@@ -43,9 +54,14 @@
           map-options
           outlined
           :loading="farmsLoading"
-          lazy-rules
-          :rules="requiredRule"
+          :error="!!fieldErrors.farm"
+          :error-message="fieldErrors.farm"
+          @update:model-value="clearFieldError('farm')"
         />
+
+        <q-banner v-if="formError" rounded class="room-form__error">
+          {{ formError }}
+        </q-banner>
 
         <div class="room-form__actions">
           <q-btn flat label="Annuler" class="action-btn" @click="close" />
@@ -61,6 +77,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { farmsApi, roomsApi } from '@/services/api'
 import type { Farm, RoomType } from '@/types/api'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -73,8 +90,6 @@ const isMobile = computed(() => $q.screen.width < 768)
 const submitting = ref(false)
 const farmsLoading = ref(false)
 
-const requiredRule = [(v: unknown) => !!v || 'Champ obligatoire']
-
 const form = reactive({
   name: '',
   type: 'veg' as RoomType,
@@ -82,6 +97,15 @@ const form = reactive({
   description: '',
   farm: '',
 })
+const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
+  form,
+  {
+    name: [validators.required('Nom obligatoire.')],
+    type: [validators.required('Type obligatoire.')],
+    capacityMax: [validators.positiveInteger('Capacité obligatoire.')],
+    farm: [validators.required('Ferme obligatoire.')],
+  },
+)
 
 const typeOptions: Array<{ label: string; value: RoomType }> = [
   { label: 'Vegetative', value: 'veg' },
@@ -133,8 +157,16 @@ function resetForm() {
 async function submit() {
   submitting.value = true
   try {
+    clearAllErrors()
+    form.name = form.name.trim()
+
+    if (!validateAll()) {
+      setFormError('Corrigez les champs invalides avant de créer la salle.')
+      return
+    }
+
     await roomsApi.create({
-      name: form.name.trim(),
+      name: form.name,
       type: form.type,
       capacityMax: Number(form.capacityMax),
       description: form.description.trim() || undefined,
@@ -145,7 +177,8 @@ async function submit() {
     resetForm()
     $q.notify({ type: 'positive', message: 'Salle créée.' })
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Création de salle impossible.' })
+    applyApiError(error, 'Création de salle impossible.')
+    $q.notify({ type: 'negative', message: formError.value || 'Création de salle impossible.' })
   } finally {
     submitting.value = false
   }
@@ -172,6 +205,11 @@ async function submit() {
   display: grid;
   gap: 12px;
   padding: 0 16px 16px;
+}
+.room-form__error {
+  color: #8c2f39;
+  background: #fdecec;
+  border: 1px solid #f3c9cf;
 }
 .room-form__actions {
   display: grid;

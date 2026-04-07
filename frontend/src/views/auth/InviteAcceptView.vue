@@ -13,10 +13,14 @@
           type="password"
           autocomplete="new-password"
           outlined
+          :error="!!fieldErrors.password"
+          :error-message="fieldErrors.password"
+          @blur="validateField('password')"
+          @update:model-value="clearFieldError('password')"
         />
 
-        <q-banner v-if="error" rounded class="invite-error">
-          {{ error }}
+        <q-banner v-if="formError" rounded class="invite-error">
+          {{ formError }}
         </q-banner>
 
         <q-banner v-if="successMessage" rounded class="invite-success">
@@ -40,17 +44,27 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi } from '@/services/api'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const route = useRoute()
 const router = useRouter()
 
 const password = ref('')
 const loading = ref(false)
-const error = ref('')
 const successMessage = ref('')
+const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
+  {
+    get password() {
+      return password.value
+    },
+  },
+  {
+    password: [validators.required('Mot de passe requis.'), validators.minLength(8, 'Minimum 8 caractères.')],
+  },
+)
 
 async function submit() {
-  error.value = ''
+  clearAllErrors()
   successMessage.value = ''
   loading.value = true
 
@@ -58,11 +72,12 @@ async function submit() {
     const token = String(route.query.token ?? '').trim()
 
     if (!token) {
-      throw new Error('Invitation invalide ou expirée.')
+      setFormError('Invitation invalide ou expirée.')
+      return
     }
 
-    if (!password.value.trim()) {
-      throw new Error('Mot de passe requis.')
+    if (!validateAll()) {
+      return
     }
 
     const { data } = await authApi.acceptInvitation(token, password.value)
@@ -71,9 +86,7 @@ async function submit() {
       void router.push('/auth')
     }, 1200)
   } catch (caughtError) {
-    error.value = caughtError instanceof Error
-      ? caughtError.message
-      : 'Impossible d’activer l’invitation.'
+    applyApiError(caughtError, 'Impossible d’activer l’invitation.')
   } finally {
     loading.value = false
   }
