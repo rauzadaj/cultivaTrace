@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Harvest Summary</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #1f2937; font-size: 12px; }
+    h1, h2 { margin: 0 0 8px; }
+    .meta { margin-bottom: 20px; color: #4b5563; }
+    .stats { display: flex; gap: 16px; margin: 16px 0 24px; }
+    .stat { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; min-width: 140px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 6px; text-align: left; }
+    th { background: #f3f4f6; }
+  </style>
+</head>
+<body>
+  <h1>Harvest Summary</h1>
+  <div class="meta">
+    <div>{{ organization.name }}</div>
+    <div>Période : {{ filters.dateFrom }} → {{ filters.dateTo }}</div>
+    <div>Généré le {{ generatedAt|date('d/m/Y H:i') }}</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><strong>Récoltes</strong><div>{{ summary.harvestCount }}</div></div>
+    <div class="stat"><strong>Poids brut</strong><div>{{ summary.grossWeightG }} g</div></div>
+    <div class="stat"><strong>Poids net</strong><div>{{ summary.netWeightG }} g</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Plant</th>
+        <th>Génétique</th>
+        <th>Ferme</th>
+        <th>Salle</th>
+        <th>Brut (g)</th>
+        <th>Net (g)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.harvestedAt|date('d/m/Y') }}</td>
+          <td>{{ row.rfidTag ?: row.plantId|slice(0, 8) }}</td>
+          <td>{{ row.strainName ?: 'N/A' }}</td>
+          <td>{{ row.farmName }}</td>
+          <td>{{ row.roomName }}</td>
+          <td>{{ row.grossWeightG }}</td>
+          <td>{{ row.netWeightG }}</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="7">Aucune récolte sur cette période.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
