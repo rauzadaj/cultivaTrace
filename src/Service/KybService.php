@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\LicenseDocument;
@@ -33,7 +35,12 @@ class KybService
         private readonly LoggerInterface $logger,
         private readonly string $appEnv = 'dev',
         private readonly string $metrcApiKey = '',
-        private readonly string $alertFromEmail = 'kyb@cannas.app',
+        private readonly string $alertFromEmail = '',
+        private readonly string $adminReviewEmail = '',
+        private readonly string $adminReviewUrl = '',
+        private readonly string $appUrl = '',
+        private readonly string $supportEmail = '',
+        private readonly bool $devSimulationEnabled = false,
     ) {}
 
     /**
@@ -44,8 +51,7 @@ class KybService
      */
     public function verify(LicenseDocument $license): array
     {
-        // En dev : simulation immédiate
-        if ($this->appEnv === 'dev') {
+        if ($this->devSimulationEnabled && $license->getLicenseType() === 'ctls_dev') {
             return $this->simulateVerification($license);
         }
 
@@ -53,8 +59,15 @@ class KybService
             'health_canada' => $this->verifyHealthCanada($license),
             'metrc_usa'     => $this->verifyMetrc($license),
             'bfarm_de'      => $this->fallbackManual($license, 'BfArM ne dispose pas d\'API publique'),
+            'ansm_fr'       => $this->fallbackManual($license, 'ANSM nécessite une revue manuelle.'),
+            'ctls_dev'      => $this->fallbackManual($license, 'Dev-only CTLS simulation is disabled in this environment.'),
             default         => $this->fallbackManual($license, 'Type de licence non reconnu'),
         };
+    }
+
+    public function isDevSimulationEnabled(): bool
+    {
+        return $this->devSimulationEnabled;
     }
 
     /**
@@ -220,10 +233,22 @@ class KybService
 
     private function notifyAdminForManualReview(LicenseDocument $license, string $reason): void
     {
+        if ($this->adminReviewEmail === '' || $this->alertFromEmail === '') {
+            $this->logger->warning('[KYB] Manual review notification skipped because KYB email configuration is incomplete.', [
+                'licenseId' => (string) $license->getId(),
+            ]);
+
+            return;
+        }
+
         try {
+            $reviewInstruction = $this->adminReviewUrl !== ''
+                ? sprintf("Traitez cette demande : %s", $this->adminReviewUrl)
+                : 'Traitez cette demande via le backoffice KYB configuré pour cet environnement.';
+
             $email = (new Email())
                 ->from($this->alertFromEmail)
-                ->to('admin@cannas.app') // À remplacer par l'email admin réel
+                ->to($this->adminReviewEmail)
                 ->subject('[KYB] Vérification manuelle requise — ' . $license->getLicenseNumber())
                 ->text(sprintf(
                     "Une vérification manuelle est requise.\n\n" .
@@ -232,12 +257,13 @@ class KybService
                     "Type : %s\n" .
                     "Raison : %s\n" .
                     "Soumis le : %s\n\n" .
-                    "Connectez-vous au backoffice CannaSaaS pour traiter cette demande.",
+                    "%s",
                     $license->getOrganization()->getName(),
                     $license->getLicenseNumber(),
                     $license->getLicenseType(),
                     $reason,
                     $license->getSubmittedAt()->format('d/m/Y H:i'),
+                    $reviewInstruction,
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
@@ -247,6 +273,14 @@ class KybService
 
     private function notifyUserActivated(LicenseDocument $license): void
     {
+        if ($this->alertFromEmail === '' || $this->appUrl === '') {
+            $this->logger->warning('[KYB] Activation email skipped because KYB user notification configuration is incomplete.', [
+                'licenseId' => (string) $license->getId(),
+            ]);
+
+            return;
+        }
+
         try {
             $firstUser = $license->getOrganization()->getUsers()->first();
             $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
@@ -260,7 +294,8 @@ class KybService
                     "Bonne nouvelle !\n\n" .
                     "Votre licence %s a été vérifiée et validée.\n" .
                     "Vous avez maintenant accès à toutes les fonctionnalités CannaSaaS.\n\n" .
-                    "Connectez-vous sur https://app.cannas.app",
+                    "Connectez-vous sur %s",
+                    rtrim($this->appUrl, '/'),
                     $license->getLicenseNumber()
                 ));
             $this->mailer->send($email);
@@ -271,6 +306,14 @@ class KybService
 
     private function notifyUserRejected(LicenseDocument $license): void
     {
+        if ($this->alertFromEmail === '' || $this->supportEmail === '') {
+            $this->logger->warning('[KYB] Rejection email skipped because KYB user notification configuration is incomplete.', [
+                'licenseId' => (string) $license->getId(),
+            ]);
+
+            return;
+        }
+
         try {
             $firstUser = $license->getOrganization()->getUsers()->first();
             $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
@@ -285,9 +328,10 @@ class KybService
                     "Licence soumise : %s\n" .
                     "Raison : %s\n\n" .
                     "Veuillez vérifier votre numéro de licence et soumettre à nouveau.\n" .
-                    "Si le problème persiste, contactez support@cannas.app",
+                    "Si le problème persiste, contactez %s",
                     $license->getLicenseNumber(),
-                    $license->getRejectionReason() ?? 'Licence non reconnue'
+                    $license->getRejectionReason() ?? 'Licence non reconnue',
+                    $this->supportEmail,
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
