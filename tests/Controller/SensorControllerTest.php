@@ -80,6 +80,20 @@ final class SensorControllerTest extends ApiTestCase
         self::assertStringContainsString('value est obligatoire', $this->client->getResponse()->getContent() ?: '');
     }
 
+    public function testPostReadingRejectsUserWithoutWriteRole(): void
+    {
+        [$organization, $sensor] = $this->createSensorEntityFixture('sensor-writer@test.local', 'temperature');
+        $user = $this->createUser($organization, 'viewer@test.local', role: 'ROLE_USER');
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/sensors/%s/reading', $sensor->getId()), [
+            'value' => 25.5,
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
     public function testGetReadingsReturnsHistoryData(): void
     {
         [$user, $sensor] = $this->createSensorFixture('sensor-history@test.local', 'humidity');

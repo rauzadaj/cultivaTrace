@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Organization;
+use App\Entity\User;
 use App\Service\BillingCheckoutService;
 use App\Service\PlanLimitsService;
 use App\Service\StripeService;
@@ -35,8 +37,9 @@ class StripeController extends AbstractController
      *   plan : starter | pro | business
      */
     #[Route('/api/billing/checkout', methods: ['POST'])]
-    public function checkout(Request $request, #[CurrentUser] $user): JsonResponse
+    public function checkout(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
+        $organization = $this->assertOrganizationWriter($user);
         $data = json_decode($request->getContent(), true) ?? [];
         $plan = $data['plan'] ?? null;
 
@@ -50,7 +53,7 @@ class StripeController extends AbstractController
 
         try {
             $checkoutUrl = $this->billingCheckoutService->createCheckoutUrl(
-                $user->getOrganization(),
+                $organization,
                 $plan,
                 $this->frontendUrl,
             );
@@ -78,9 +81,9 @@ class StripeController extends AbstractController
      * Crée une session Stripe Customer Portal (gérer l'abonnement, factures).
      */
     #[Route('/api/billing/portal', methods: ['POST'])]
-    public function portal(#[CurrentUser] $user): JsonResponse
+    public function portal(#[CurrentUser] ?User $user): JsonResponse
     {
-        $org = $user->getOrganization();
+        $org = $this->assertOrganizationWriter($user);
 
         if (!$org->getStripeCustomerId()) {
             return $this->json(
@@ -109,8 +112,9 @@ class StripeController extends AbstractController
     }
 
     #[Route('/api/billing/checkout/confirm', methods: ['POST'])]
-    public function confirmCheckout(Request $request, #[CurrentUser] $user): JsonResponse
+    public function confirmCheckout(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
+        $organization = $this->assertOrganizationWriter($user);
         $data = json_decode($request->getContent(), true) ?? [];
         $sessionId = $data['sessionId'] ?? null;
 
@@ -121,14 +125,14 @@ class StripeController extends AbstractController
         try {
             $plan = $this->billingCheckoutService->confirmCheckout(
                 trim($sessionId),
-                $user->getOrganization(),
+                $organization,
             );
         } catch (\InvalidArgumentException $exception) {
             return $this->json(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (ApiErrorException $exception) {
             $this->logger->error('[Stripe] Checkout confirmation failed', [
                 'sessionId' => trim($sessionId),
-                'organizationId' => (string) $user->getOrganization()->getId(),
+                'organizationId' => (string) $organization->getId(),
                 'error' => $exception->getMessage(),
             ]);
 
@@ -207,5 +211,23 @@ class StripeController extends AbstractController
             'hasActiveSubscription' => $org->getStripeCustomerId() !== null,
             'limits'             => $this->planLimits->getLimits($org),
         ]);
+    }
+
+    private function assertOrganizationWriter(?User $user): Organization
+    {
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException('Authenticated user required.');
+        }
+
+        if (!array_intersect($user->getRoles(), ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
+            throw $this->createAccessDeniedException('Insufficient role for billing writes.');
+        }
+
+        $organization = $user?->getOrganization();
+        if (!$organization instanceof Organization) {
+            throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');
+        }
+
+        return $organization;
     }
 }
