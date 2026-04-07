@@ -26,12 +26,23 @@ final class RegisterUserControllerTest extends TestCase
         $organization = (new Organization())
             ->setName('CultivaTrace')
             ->setCountry('FR');
+        $persistedUser = null;
 
         $userRepository = $this->createRepositoryMock(null);
         $organizationRepository = $this->createRepositoryMock($organization);
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::once())->method('persist')->with(self::isInstanceOf(User::class));
+        $entityManager->expects(self::once())
+            ->method('persist')
+            ->with(self::callback(static function (mixed $user) use (&$persistedUser): bool {
+                if (!$user instanceof User) {
+                    return false;
+                }
+
+                $persistedUser = $user;
+
+                return true;
+            }));
         $entityManager->expects(self::once())->method('flush');
         $entityManager->method('getRepository')->willReturnMap([
             [User::class, $userRepository],
@@ -65,6 +76,8 @@ final class RegisterUserControllerTest extends TestCase
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertStringContainsString('verification email', (string) $response->getContent());
+        self::assertInstanceOf(User::class, $persistedUser);
+        self::assertSame(['ROLE_ORG_USER'], $persistedUser->getRoles());
     }
 
     public function testItReturnsTheSameGenericResponseForDuplicateEmails(): void
