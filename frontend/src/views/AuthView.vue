@@ -63,6 +63,11 @@
           <span>Compte de demo local:</span>
           <strong>demo@cultivatrace.local / demo123</strong>
         </div>
+
+        <div class="auth-footer auth-footer--link">
+          <span>Nouvelle organisation ?</span>
+          <RouterLink to="/onboarding">Lancer l’onboarding</RouterLink>
+        </div>
       </q-card>
     </div>
   </div>
