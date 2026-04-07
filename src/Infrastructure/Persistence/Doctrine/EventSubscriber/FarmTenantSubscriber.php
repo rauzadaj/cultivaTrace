@@ -37,10 +37,11 @@ final class FarmTenantSubscriber implements EventSubscriber
             throw new InvalidArgumentException('An authenticated user is required to create a farm.');
         }
 
-        $organization = $user->getOrganization();
-        if ($organization === null) {
+        if (!$user->hasOrganization()) {
             throw new InvalidArgumentException('The authenticated user must belong to an organization.');
         }
+
+        $organization = $user->getOrganization();
 
         $farm->setOrganization($organization);
         $farm->setTenantId($organization->getId());

@@ -25,7 +25,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private array $roles = [];
 
     #[ORM\ManyToOne(targetEntity: Organization::class, inversedBy: 'users')]
-    #[ORM\JoinColumn(nullable: true)]
+    #[ORM\JoinColumn(nullable: false)]
     private ?Organization $organization = null;
 
     #[ORM\Column]
@@ -85,12 +85,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getOrganization(): ?Organization
+    public function hasOrganization(): bool
     {
+        return $this->organization instanceof Organization;
+    }
+
+    public function getOrganization(): Organization
+    {
+        if (!$this->organization instanceof Organization) {
+            throw new \LogicException('User must belong to an organization.');
+        }
+
         return $this->organization;
     }
 
-    public function setOrganization(?Organization $org): self
+    public function setOrganization(Organization $org): self
     {
         $this->organization = $org;
 

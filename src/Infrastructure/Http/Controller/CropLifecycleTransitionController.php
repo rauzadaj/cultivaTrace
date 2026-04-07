@@ -75,10 +75,11 @@ final readonly class CropLifecycleTransitionController
             return;
         }
 
-        $organization = $user->getOrganization();
-        if ($organization === null || $crop->getTenantId() === null) {
+        if (!$user->hasOrganization() || $crop->getTenantId() === null) {
             throw new AccessDeniedHttpException('Tenant context is required.');
         }
+
+        $organization = $user->getOrganization();
 
         if ((string) $crop->getTenantId() !== (string) $organization->getId()) {
             throw new AccessDeniedHttpException('Cross-tenant crop workflow writes are forbidden.');
