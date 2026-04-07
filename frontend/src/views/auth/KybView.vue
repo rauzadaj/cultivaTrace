@@ -27,6 +27,11 @@
         </div>
       </q-banner>
 
+      <q-banner v-if="statusError" rounded class="bg-negative text-white q-mb-lg">
+        <div class="text-weight-medium">{{ statusError }}</div>
+        <q-btn flat color="white" no-caps label="Réessayer" class="q-mt-sm" @click="retryStatus" />
+      </q-banner>
+
       <!-- Formulaire de soumission -->
       <q-card v-if="showForm" flat bordered class="kyb-form-card">
         <q-card-section>
@@ -80,6 +85,16 @@
             style="height: 48px"
             @click="submitLicense"
           />
+
+          <q-btn
+            v-if="submitError"
+            flat
+            color="primary"
+            no-caps
+            label="Réessayer l’envoi"
+            class="full-width q-mt-sm"
+            @click="submitLicense"
+          />
         </q-card-section>
       </q-card>
 
@@ -110,6 +125,10 @@
         </q-card-actions>
       </q-card>
 
+      <q-banner v-if="submitError" rounded class="bg-negative text-white q-mt-lg">
+        <div class="text-weight-medium">{{ submitError }}</div>
+      </q-banner>
+
     </div>
   </q-page>
 </template>
@@ -128,6 +147,8 @@ const authStore = useAuthStore()
 const loading    = ref(false)
 const kybStatus  = ref<any>(null)
 const result     = ref<any>(null)
+const statusError = ref('')
+const submitError = ref('')
 
 const form = ref({
   licenseType:   '',
@@ -135,12 +156,14 @@ const form = ref({
   file:          null as File | null,
 })
 
+const devSimulationEnabled = import.meta.env.VITE_KYB_ENABLE_DEV_SIMULATION === '1'
+
 const licenseTypeOptions = [
   { label: 'Health Canada (Canada)', value: 'health_canada' },
-  { label: 'CTLS fictive (dev)', value: 'ctls_dev' },
   { label: 'METRC (USA)', value: 'metrc_usa' },
   { label: 'BfArM (Allemagne)', value: 'bfarm_de' },
   { label: 'ANSM (France)', value: 'ansm_fr' },
+  ...(devSimulationEnabled ? [{ label: 'CTLS fictive (dev)', value: 'ctls_dev' }] : []),
 ]
 
 const licenseNumberHint = computed(() => {
@@ -189,17 +212,18 @@ const statusMessage = computed(() => {
     pending:   'Vérification en cours — Accès limité',
     rejected:  'Licence rejetée — Veuillez soumettre une nouvelle licence valide',
     expired:   'Licence expirée — Renouvelez votre licence',
-    suspended: 'Compte suspendu — Contactez support@cannas.app',
+    suspended: 'Compte suspendu — contactez l’équipe conformité.',
   }
   return map[kybStatus.value?.licenseStatus] ?? 'Statut inconnu'
 })
 
 async function loadStatus(): Promise<void> {
+  statusError.value = ''
   try {
     const { data } = await kybApi.status()
     kybStatus.value = data
-  } catch {
-    // Pas de statut KYB encore
+  } catch (error: any) {
+    statusError.value = error.response?.data?.error ?? 'Impossible de charger le statut KYB.'
   }
 }
 
@@ -207,6 +231,7 @@ async function submitLicense(): Promise<void> {
   if (!form.value.licenseNumber || !form.value.licenseType) return
 
   loading.value = true
+  submitError.value = ''
   try {
     const formData = new FormData()
     formData.append('licenseNumber', form.value.licenseNumber)
@@ -225,12 +250,19 @@ async function submitLicense(): Promise<void> {
       $q.notify({ type: 'positive', message: '✅ Licence validée ! Accès complet activé.' })
     } else if (data.status === 'pending') {
       $q.notify({ type: 'warning', message: '⏳ Vérification manuelle en cours (24-48h).' })
+    } else if (data.status === 'rejected') {
+      $q.notify({ type: 'negative', message: 'Licence rejetée. Corrigez les informations avant une nouvelle tentative.' })
     }
   } catch (e: any) {
-    $q.notify({ type: 'negative', message: e.response?.data?.error ?? 'Erreur lors de la soumission' })
+    submitError.value = e.response?.data?.error ?? 'Erreur lors de la soumission.'
+    $q.notify({ type: 'negative', message: submitError.value })
   } finally {
     loading.value = false
   }
+}
+
+async function retryStatus(): Promise<void> {
+  await loadStatus()
 }
 
 function formatDate(dateStr: string): string {
