@@ -136,7 +136,7 @@ final class StripeControllerTest extends KernelTestCase
 
         $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
 
-        $controller->checkout($request, $this->createUserWithOrganization(role: 'ROLE_USER'));
+        $controller->checkout($request, $this->createUserWithOrganization(roles: []));
     }
 
     public function testWebhookReturnsOkOnInvalidSignature(): void
@@ -261,7 +261,7 @@ final class StripeControllerTest extends KernelTestCase
         self::assertTrue($payload['hasActiveSubscription']);
     }
 
-    private function createUserWithOrganization(?string $stripeCustomerId = null, string $role = 'ROLE_ORG_ADMIN'): User
+    private function createUserWithOrganization(?string $stripeCustomerId = null, array $roles = ['ROLE_ORG_ADMIN']): User
     {
         $organization = new Organization();
         $organization->setName('Org Stripe');
@@ -272,7 +272,7 @@ final class StripeControllerTest extends KernelTestCase
         $user = new User();
         $user->setEmail('stripe@test.local');
         $user->setOrganization($organization);
-        $user->setRole($role);
+        $user->setRoles($roles);
 
         return $user;
     }

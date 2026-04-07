@@ -21,9 +21,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Getters ──────────────────────────────────────────────────────────────
   const isAuthenticated = computed(() => !!token.value)
-  const isAdmin = computed(() => user.value?.roles.includes('ROLE_ADMIN') ?? false)
-  const isManager = computed(() => user.value?.roles.some((r: UserRole) => ['ROLE_ADMIN', 'ROLE_MANAGER'].includes(r)) ?? false)
-  const isOperator = computed(() => user.value?.roles.some((r: UserRole) => ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_OPERATOR'].includes(r)) ?? false)
+  const isSuperAdmin = computed(() => user.value?.roles.includes('ROLE_SUPER_ADMIN') ?? false)
+  const isOrgAdmin = computed(() => user.value?.roles.some((r: UserRole) => ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN'].includes(r)) ?? false)
+  const isOrgUser = computed(() => user.value?.roles.some((r: UserRole) => ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN', 'ROLE_ORG_USER'].includes(r)) ?? false)
+  const isApiUser = computed(() => user.value?.roles.includes('ROLE_API') ?? false)
 
   const organization = computed(() => user.value?.organization ?? null)
 
@@ -123,7 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     user, token, loading,
-    isAuthenticated, isAdmin, isManager, isOperator,
+    isAuthenticated, isSuperAdmin, isOrgAdmin, isOrgUser, isApiUser,
     organization, isPlanActive, hasIoT,
     login, logout, fetchMe, init, hasRole,
   }
