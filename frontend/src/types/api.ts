@@ -326,6 +326,8 @@ export interface LoginCredentials {
 
 export interface JwtResponse {
   token: string
+  refreshToken: string
+  expiresIn: number
 }
 
 export type AuthTokenResponse = JwtResponse
