@@ -57,6 +57,12 @@ describe('router guards', () => {
     expect(router.currentRoute.value.fullPath).toBe('/plants')
   })
 
+  it('keeps onboarding public for unauthenticated users', async () => {
+    await router.push('/onboarding')
+
+    expect(router.currentRoute.value.name).toBe('onboarding')
+  })
+
   it('redirects unauthorized users away from admin routes', async () => {
     authStore.token = 'jwt-token'
     authStore.user = buildUser('active', ['ROLE_ORG_USER'])
