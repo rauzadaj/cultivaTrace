@@ -52,6 +52,17 @@ services:
         arguments:
             $alertFromEmail: '%env(LICENSE_ALERT_FROM_EMAIL)%'
 
+    App\Service\KybService:
+        arguments:
+            $appEnv: '%kernel.environment%'
+            $metrcApiKey: '%env(KYB_METRC_API_KEY)%'
+            $alertFromEmail: '%env(KYB_ALERT_FROM_EMAIL)%'
+            $adminReviewEmail: '%env(KYB_ADMIN_REVIEW_EMAIL)%'
+            $adminReviewUrl: '%env(KYB_ADMIN_REVIEW_URL)%'
+            $appUrl: '%env(FRONTEND_URL)%'
+            $supportEmail: '%env(KYB_SUPPORT_EMAIL)%'
+            $devSimulationEnabled: '%env(bool:KYB_ENABLE_DEV_SIMULATION)%'
+
     App\Infrastructure\Http\Controller\RegisterUserController:
         arguments:
             $registerRateLimiter: '@limiter.api_register'
