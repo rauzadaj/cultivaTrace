@@ -37,9 +37,6 @@ class KybController extends AbstractController
     public function upload(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $org = $this->assertOrganizationWriter($user);
-        if (!$org) {
-            return $this->json(['error' => 'Aucune organisation associée à ce compte'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
 
         $payload = [];
         if ($request->request->count() > 0) {
@@ -105,10 +102,11 @@ class KybController extends AbstractController
     #[Route('/api/kyb/status', methods: ['GET'])]
     public function status(#[CurrentUser] $user): JsonResponse
     {
-        $org = $user->getOrganization();
-        if (!$org) {
+        if (!$user->hasOrganization()) {
             return $this->json(['error' => 'Aucune organisation'], Response::HTTP_NOT_FOUND);
         }
+
+        $org = $user->getOrganization();
 
         $license = $this->em->getRepository(LicenseDocument::class)
             ->findOneBy(['organization' => $org], ['submittedAt' => 'DESC']);
@@ -166,7 +164,7 @@ class KybController extends AbstractController
         ]);
     }
 
-    private function assertOrganizationWriter(?User $user): ?\App\Entity\Organization
+    private function assertOrganizationWriter(?User $user): \App\Entity\Organization
     {
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException('Authenticated user required.');
@@ -176,6 +174,10 @@ class KybController extends AbstractController
             throw $this->createAccessDeniedException('Insufficient role for KYB writes.');
         }
 
-        return $user?->getOrganization();
+        if (!$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');
+        }
+
+        return $user->getOrganization();
     }
 }

@@ -223,11 +223,10 @@ class StripeController extends AbstractController
             throw $this->createAccessDeniedException('Insufficient role for billing writes.');
         }
 
-        $organization = $user?->getOrganization();
-        if (!$organization instanceof Organization) {
+        if (!$user->hasOrganization()) {
             throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');
         }
 
-        return $organization;
+        return $user->getOrganization();
     }
 }
