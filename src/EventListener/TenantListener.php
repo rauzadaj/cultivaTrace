@@ -53,14 +53,15 @@ class TenantListener
             return;
         }
 
-        $organization = $user->getOrganization();
-        if ($organization === null) {
+        if (!$user->hasOrganization()) {
             if ($filters->isEnabled('tenant_filter')) {
                 $filters->disable('tenant_filter');
             }
 
-            return;
+            throw new AccessDeniedHttpException('Authenticated user must belong to an organization.');
         }
+
+        $organization = $user->getOrganization();
 
         $filter = $filters->isEnabled('tenant_filter')
             ? $filters->getFilter('tenant_filter')

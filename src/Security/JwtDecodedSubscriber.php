@@ -41,11 +41,16 @@ final readonly class JwtDecodedSubscriber implements EventSubscriberInterface
         }
 
         $user = $refreshToken->getUser();
+        if (!$user->hasOrganization()) {
+            $event->markAsInvalid();
+
+            return;
+        }
+
         $organization = $user->getOrganization();
 
         if (
             $user->getId() !== (int) $payload['userId']
-            || $organization === null
             || (string) $organization->getId() !== (string) $payload['tenantId']
             || $organization->isSuspended()
             || $user->getAccountStatus() !== UserAccountStatus::ACTIVE

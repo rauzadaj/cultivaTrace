@@ -30,10 +30,11 @@ final class FarmStateProcessor implements ProcessorInterface
                 throw new InvalidArgumentException('An authenticated user is required to create or update a farm.');
             }
 
-            $organization = $user->getOrganization();
-            if ($organization === null) {
+            if (!$user->hasOrganization()) {
                 throw new InvalidArgumentException('The authenticated user must belong to an organization.');
             }
+
+            $organization = $user->getOrganization();
 
             if (isset($context['previous_data']) && $context['previous_data'] instanceof Farm) {
                 if ($context['previous_data']->getTenantId() != $organization->getId()) {

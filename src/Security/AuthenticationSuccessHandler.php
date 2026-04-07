@@ -32,8 +32,12 @@ final readonly class AuthenticationSuccessHandler implements AuthenticationSucce
             return new JsonResponse(['error' => 'Invalid credentials.'], Response::HTTP_UNAUTHORIZED);
         }
 
+        if (!$user->hasOrganization()) {
+            return new JsonResponse(['error' => 'Invalid credentials.'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $organization = $user->getOrganization();
-        if ($organization === null || $organization->isSuspended() || $user->getAccountStatus() !== UserAccountStatus::ACTIVE) {
+        if ($organization->isSuspended() || $user->getAccountStatus() !== UserAccountStatus::ACTIVE) {
             return new JsonResponse(['error' => 'Invalid credentials.'], Response::HTTP_UNAUTHORIZED);
         }
 

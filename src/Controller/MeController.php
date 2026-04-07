@@ -13,7 +13,7 @@ final class MeController extends AbstractController
     #[Route('/api/me', methods: ['GET'])]
     public function __invoke(#[CurrentUser] ?User $user): JsonResponse
     {
-        if (!$user || !$user->getOrganization()) {
+        if (!$user || !$user->hasOrganization()) {
             return $this->json(['message' => 'Utilisateur non authentifie'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
