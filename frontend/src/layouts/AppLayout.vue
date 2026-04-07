@@ -155,20 +155,28 @@
           <q-btn flat round icon="mdi-close" @click="notificationsOpen = false" />
         </div>
 
-        <div v-if="appAlerts.length" class="notifications-panel__list">
-          <article v-for="alert in appAlerts" :key="alert.id" class="notifications-panel__item">
+        <div v-if="notifications.length" class="notifications-panel__list">
+          <article v-for="alert in notifications" :key="alert.id" class="notifications-panel__item">
             <div class="notifications-panel__item-top">
               <span class="notifications-panel__severity" :class="`notifications-panel__severity--${alert.severity}`">{{ alert.severity }}</span>
               <strong>{{ alert.title }}</strong>
             </div>
             <p>{{ alert.message }}</p>
             <small v-if="alert.context">{{ alert.context }}</small>
+            <div v-if="alert.acknowledgeable" class="notifications-panel__actions">
+              <q-btn flat dense no-caps color="primary" label="Acquitter" @click="acknowledgeAlert(alert.id)" />
+            </div>
           </article>
         </div>
 
-        <div v-else class="notifications-panel__empty">
+        <div v-else-if="!alertsStore.loading" class="notifications-panel__empty">
           <q-icon name="mdi-check-circle-outline" size="28px" />
           <strong>Aucune alerte en attente</strong>
+        </div>
+
+        <div v-else class="notifications-panel__empty">
+          <q-spinner color="primary" size="28px" />
+          <strong>Chargement des alertes…</strong>
         </div>
       </q-card>
     </q-dialog>
@@ -278,6 +286,7 @@ import { useQuasar } from 'quasar'
 import CBtn from '../components/ui/CBtn.vue'
 import CInput from '../components/ui/CInput.vue'
 import { useOfflineQueue } from '../composables/useOfflineQueue'
+import { useAlertsStore } from '../stores/alerts'
 import { useAuthStore } from '../stores/auth'
 import { usePlantsStore } from '../stores/plants'
 import type { AlertItem, Plant, PlantStage, UserRole } from '../types/api'
@@ -287,6 +296,7 @@ const route = useRoute()
 const router = useRouter()
 const $q = useQuasar()
 const plantsStore = usePlantsStore()
+const alertsStore = useAlertsStore()
 const authStore = useAuthStore()
 const offlineState = useOfflineQueue()
 
@@ -327,7 +337,7 @@ const showDrawerLabels = computed(() => {
   if (isDesktop.value) return true
   return !drawerMini.value || drawerHover.value
 })
-const alertCount = computed(() => appAlerts.value.length)
+const alertCount = computed(() => notifications.value.filter((alert) => !alert.acknowledgedAt).length)
 const restrictedToKyb = computed(() => authStore.isAuthenticated && !authStore.isPlanActive)
 const showLicenseBanner = computed(() => {
   const status = authStore.organization?.licenseStatus
@@ -344,11 +354,7 @@ const currentPlant = computed<Plant | null>(() => {
 
   return plantsStore.plants.find((plant) => plant.id === routeId) ?? null
 })
-const roomOccupancy = computed(() => plantsStore.rooms.map((room) => ({
-  room,
-  count: plantsStore.plants.filter((plant) => typeof plant.room === 'string' ? plant.room.endsWith(`/${room.id}`) : plant.room.id === room.id).length,
-})))
-const appAlerts = computed<AlertItem[]>(() => {
+const notifications = computed<AlertItem[]>(() => {
   const alerts: AlertItem[] = []
 
   if (plantsStore.error) {
@@ -358,16 +364,19 @@ const appAlerts = computed<AlertItem[]>(() => {
       message: plantsStore.error,
       severity: 'critical',
       context: 'Verifiez le backend ou la connectivite.',
+      acknowledgeable: false,
     })
   }
 
-  roomOccupancy.value.filter(({ room, count }) => count >= room.capacityMax).slice(0, 4).forEach(({ room, count }) => {
+  alertsStore.alerts.forEach((alert) => {
     alerts.push({
-      id: `room-${room.id}-capacity`,
-      title: room.name,
-      message: `${count}/${room.capacityMax} plants actifs`,
-      severity: 'warning',
-      context: 'Capacite maximale atteinte',
+      id: alert.id,
+      title: alert.title,
+      message: alert.message,
+      severity: alert.severity,
+      context: alert.context ?? undefined,
+      acknowledgedAt: alert.acknowledgedAt ?? null,
+      acknowledgeable: !alert.acknowledgedAt,
     })
   })
 
@@ -487,7 +496,7 @@ function openStageDialog() {
 onMounted(async () => {
   try {
     await authStore.fetchMe()
-    await Promise.all([plantsStore.ensureSupportData(), plantsStore.fetchPlants()])
+    await Promise.all([plantsStore.ensureSupportData(), plantsStore.fetchPlants(), alertsStore.fetchAlerts()])
     if (route.name === 'plant-detail' && typeof route.params.id === 'string') {
       await Promise.all([plantsStore.fetchPlant(route.params.id), plantsStore.fetchEvents(route.params.id)])
     }
@@ -513,6 +522,16 @@ function handleFab() {
 
 function openNotifications() {
   notificationsOpen.value = true
+  void alertsStore.fetchAlerts()
+}
+
+async function acknowledgeAlert(id: string) {
+  try {
+    await alertsStore.acknowledgeAlert(id)
+    $q.notify({ type: 'positive', message: 'Alerte acquittee.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 1500 })
+  } catch (error) {
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Impossible d’acquitter cette alerte.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 3000 })
+  }
 }
 
 function handleNavigationClick() {
@@ -871,6 +890,11 @@ async function runConfirmedAction() {
 .notifications-panel__severity--critical {
   background: #fff0f0;
   color: #c53030;
+}
+
+.notifications-panel__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .notifications-panel__empty {

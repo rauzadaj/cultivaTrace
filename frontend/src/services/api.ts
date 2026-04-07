@@ -16,6 +16,7 @@ import type {
   User, Organization, JwtResponse, LoginCredentials, ApiError, DashboardOverviewResponse,
   OrganizationRegistrationPayload, RegistrationResponse,
   OrganizationSettingsResponse, OrganizationMember, OrganizationInvitation,
+  PersistentAlert,
 } from '@/types/api'
 import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
 
@@ -230,6 +231,18 @@ export const organizationAdminApi = {
 export const dashboardApi = {
   overview: () =>
     http.get<DashboardOverviewResponse>('/dashboard'),
+}
+
+export const alertsApi = {
+  list: () =>
+    http.get<HydraCollection<PersistentAlert>>('/alerts', {
+      params: { itemsPerPage: 20 },
+    }),
+
+  acknowledge: (id: string) =>
+    http.post<PersistentAlert>(`/alerts/${id}/acknowledge`, {}, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
 }
 
 export { refreshAccessToken }
