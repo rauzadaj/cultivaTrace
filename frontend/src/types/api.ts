@@ -391,6 +391,19 @@ export interface OrganizationSettingsResponse {
   stripeCustomerId?: string | null
 }
 
+export interface ReportExport {
+  '@id'?: string
+  id: string
+  type: 'harvest_summary' | 'audit_export'
+  format: 'pdf' | 'csv'
+  status: 'ready' | string
+  fileName: string
+  filters: Record<string, unknown>
+  summary?: Record<string, unknown> | null
+  createdAt: string
+  generatedBy?: string | Pick<User, 'id' | 'email'>
+}
+
 export interface JwtPayload {
   username?: string
   roles?: UserRole[]

@@ -11,6 +11,7 @@ import SensorsView from '../views/SensorsView.vue'
 import ComplianceView from '../views/compliance/ComplianceView.vue'
 import KybView from '../views/auth/KybView.vue'
 import BillingView from '../views/billing/BillingView.vue'
+import ReportingView from '../views/reporting/ReportingView.vue'
 import SettingsView from '../views/settings/SettingsView.vue'
 import PlantDetailView from '../views/plants/PlantDetailView.vue'
 import PlantListView from '../views/plants/PlantListView.vue'
@@ -117,6 +118,12 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: SettingsView,
+          meta: { roles: ORG_ADMIN_ROLES },
+        },
+        {
+          path: 'reporting',
+          name: 'reporting',
+          component: ReportingView,
           meta: { roles: ORG_ADMIN_ROLES },
         },
         {
