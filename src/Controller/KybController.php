@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
 use App\Entity\LicenseDocument;
@@ -57,8 +59,7 @@ class KybController extends AbstractController
         }
 
         $validTypes = ['metrc_usa', 'health_canada', 'bfarm_de', 'ansm_fr'];
-        $appEnv = (string) $this->getParameter('kernel.environment');
-        if (in_array($appEnv, ['dev', 'test'], true)) {
+        if ($this->kybService->isDevSimulationEnabled()) {
             $validTypes[] = 'ctls_dev';
         }
 
