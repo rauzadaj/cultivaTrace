@@ -5,19 +5,17 @@
  * TOUS les appels API passent par ici — jamais d'Axios direct dans les composants.
  *
  * Le JWT est injecté automatiquement via l'intercepteur.
- * Un 401 déclenche le logout automatique.
+ * Un 401 tente d'abord une rotation silencieuse du refresh token.
  */
 
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 import type {
   HydraCollection,
   Plant, PlantEvent, Farm, Room, Strain,
   InputRecord, HarvestRecord, Sensor, SensorHistoryResponse,
   User, Organization, JwtResponse, LoginCredentials, ApiError, DashboardOverviewResponse,
 } from '@/types/api'
-
-const TOKEN_KEY = 'cultivatrace_token'
-const USER_EMAIL_KEY = 'cultivatrace_user_email'
+import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
 
 function resolveRailwayApiBaseUrl(): string | null {
   if (typeof window === 'undefined') {
@@ -61,26 +59,95 @@ const http: AxiosInstance = axios.create({
   },
 })
 
+const refreshHttp: AxiosInstance = axios.create({
+  baseURL: resolveApiBaseUrl(),
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+})
+
+let refreshPromise: Promise<string | null> | null = null
+
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean
+}
+
 // Injecteur JWT — ajoute le token sur chaque requête
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY)
+  const token = getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handler 401 — logout automatique
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken()
+
+  if (!refreshToken) {
+    return null
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = refreshHttp
+      .post<JwtResponse>('/auth/token/refresh', { refreshToken })
+      .then(({ data }) => {
+        setAuthTokens({
+          token: data.token,
+          refreshToken: data.refreshToken,
+        })
+
+        return data.token
+      })
+      .catch(() => {
+        clearAuthTokens()
+        return null
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+
+  return refreshPromise
+}
+
+function shouldAttemptRefresh(config?: RetryableRequestConfig): boolean {
+  if (!config || config._retry) {
+    return false
+  }
+
+  const requestUrl = config.url ?? ''
+
+  return !requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/token/refresh')
+}
+
+// Handler 401 — tentative de refresh avant logout
 http.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem(USER_EMAIL_KEY)
-      // Redirection vers login sans import circulaire
-      window.location.href = '/auth'
+    const axiosError = error as AxiosError
+    const originalRequest = axiosError.config as RetryableRequestConfig | undefined
+
+    if (axiosError.response?.status === 401 && shouldAttemptRefresh(originalRequest)) {
+      originalRequest._retry = true
+
+      const refreshedAccessToken = await refreshAccessToken()
+
+      if (refreshedAccessToken) {
+        originalRequest.headers = originalRequest.headers ?? {}
+        originalRequest.headers.Authorization = `Bearer ${refreshedAccessToken}`
+
+        return http.request(originalRequest)
+      }
+
+      redirectToAuth()
+    } else if (axiosError.response?.status === 401) {
+      clearAuthTokens()
+      redirectToAuth()
     }
-    return Promise.reject(error)
+
+    return Promise.reject(axiosError)
   }
 )
 
@@ -91,6 +158,9 @@ export const authApi = {
     http.post<JwtResponse>('/auth/login', credentials, {
       headers: { 'Content-Type': 'application/json' },
     }),
+
+  refresh: (refreshToken: string) =>
+    refreshHttp.post<JwtResponse>('/auth/token/refresh', { refreshToken }),
 
   me: () =>
     http.get<User>('/me'),
@@ -128,6 +198,8 @@ export const dashboardApi = {
   overview: () =>
     http.get<DashboardOverviewResponse>('/dashboard'),
 }
+
+export { refreshAccessToken }
 
 // ── Plants ────────────────────────────────────────────────────────────────
 
