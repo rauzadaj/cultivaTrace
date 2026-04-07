@@ -227,6 +227,19 @@ export interface SensorLiveReading {
   vpd?: SensorVpdSnapshot | null
 }
 
+export interface PersistentAlert {
+  '@id'?: string
+  id: string
+  type: string
+  title: string
+  message: string
+  severity: 'warning' | 'critical'
+  context?: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt: string
+  acknowledgedAt?: string | null
+}
+
 export interface DashboardAlert {
   id: string
   title: string
@@ -404,6 +417,8 @@ export interface AlertItem {
   message: string
   severity: AlertSeverity
   context?: string
+  acknowledgedAt?: string | null
+  acknowledgeable?: boolean
 }
 
 export interface DashboardStatChip {
