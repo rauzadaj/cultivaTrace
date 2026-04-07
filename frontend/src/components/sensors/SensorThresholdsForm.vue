@@ -10,10 +10,48 @@
       </q-card-section>
 
       <q-form class="thresholds-form__body" @submit.prevent="submit">
-        <q-input v-model.number="form.min" label="Seuil minimum *" type="number" outlined :rules="requiredRule" lazy-rules />
-        <q-input v-model.number="form.max" label="Seuil maximum *" type="number" outlined :rules="requiredRule" lazy-rules />
-        <q-input v-model="form.unit" label="Unité *" outlined :rules="requiredRule" lazy-rules />
-        <q-input v-model.number="form.cooldownMinutes" label="Cooldown alertes (min) *" type="number" min="1" outlined :rules="requiredRule" lazy-rules />
+        <q-input
+          v-model.number="form.min"
+          label="Seuil minimum *"
+          type="number"
+          outlined
+          :error="!!fieldErrors.min"
+          :error-message="fieldErrors.min"
+          @update:model-value="clearFieldError('min')"
+        />
+        <q-input
+          v-model.number="form.max"
+          label="Seuil maximum *"
+          type="number"
+          outlined
+          :error="!!fieldErrors.max"
+          :error-message="fieldErrors.max"
+          @update:model-value="clearFieldError('max')"
+        />
+        <q-input
+          v-model="form.unit"
+          label="Unité *"
+          outlined
+          :error="!!fieldErrors.unit"
+          :error-message="fieldErrors.unit"
+          @blur="validateField('unit')"
+          @update:model-value="clearFieldError('unit')"
+        />
+        <q-input
+          v-model.number="form.cooldownMinutes"
+          label="Cooldown alertes (min) *"
+          type="number"
+          min="1"
+          outlined
+          :error="!!fieldErrors.cooldownMinutes"
+          :error-message="fieldErrors.cooldownMinutes"
+          @blur="validateField('cooldownMinutes')"
+          @update:model-value="clearFieldError('cooldownMinutes')"
+        />
+
+        <q-banner v-if="formError" rounded class="thresholds-form__error">
+          {{ formError }}
+        </q-banner>
 
         <div class="thresholds-form__actions">
           <q-btn flat label="Annuler" class="action-btn" @click="close" />
@@ -29,6 +67,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { sensorsApi } from '@/services/api'
 import type { Sensor } from '@/types/api'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const props = defineProps<{
   modelValue: boolean
@@ -43,7 +82,6 @@ const emit = defineEmits<{
 const $q = useQuasar()
 const isMobile = computed(() => $q.screen.width < 768)
 const submitting = ref(false)
-const requiredRule = [(v: unknown) => !!v || 'Champ obligatoire']
 
 const form = reactive({
   min: 0,
@@ -51,6 +89,39 @@ const form = reactive({
   unit: '',
   cooldownMinutes: 60,
 })
+const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
+  form,
+  {
+    min: [
+      (value, values) => {
+        if (typeof value !== 'number') {
+          return 'Seuil minimum obligatoire.'
+        }
+
+        if (value > values.max) {
+          return 'Le seuil minimum doit être inférieur au seuil maximum.'
+        }
+
+        return null
+      },
+    ],
+    max: [
+      (value, values) => {
+        if (typeof value !== 'number') {
+          return 'Seuil maximum obligatoire.'
+        }
+
+        if (value < values.min) {
+          return 'Le seuil maximum doit être supérieur au seuil minimum.'
+        }
+
+        return null
+      },
+    ],
+    unit: [validators.required('Unité obligatoire.')],
+    cooldownMinutes: [validators.positiveInteger('Cooldown obligatoire.')],
+  },
+)
 
 watch(() => [props.modelValue, props.sensor] as const, ([open, sensor]) => {
   if (!open || !sensor) return
@@ -73,18 +144,27 @@ async function submit() {
   submitting.value = true
 
   try {
+    clearAllErrors()
+    form.unit = form.unit.trim()
+
+    if (!validateAll()) {
+      setFormError('Corrigez les champs invalides avant d’enregistrer les seuils.')
+      return
+    }
+
     const { data } = await sensorsApi.update(props.sensor.id, {
       thresholds: {
         min: Number(form.min),
         max: Number(form.max),
-        unit: form.unit.trim(),
+        unit: form.unit,
       },
     })
     emit('saved', data)
     close()
     $q.notify({ type: 'positive', message: 'Seuils mis à jour.' })
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Mise à jour impossible.' })
+    applyApiError(error, 'Mise à jour impossible.')
+    $q.notify({ type: 'negative', message: formError.value || 'Mise à jour impossible.' })
   } finally {
     submitting.value = false
   }
@@ -111,6 +191,11 @@ async function submit() {
   display: grid;
   gap: 12px;
   padding: 0 16px 16px;
+}
+.thresholds-form__error {
+  color: #8c2f39;
+  background: #fdecec;
+  border: 1px solid #f3c9cf;
 }
 .thresholds-form__actions {
   display: grid;
