@@ -47,6 +47,9 @@
             emit-value
             map-options
             class="q-mb-md"
+            :error="!!fieldErrors.licenseType"
+            :error-message="fieldErrors.licenseType"
+            @update:model-value="clearFieldError('licenseType')"
           />
 
           <q-input
@@ -56,6 +59,10 @@
             class="q-mb-md"
             :hint="licenseNumberHint"
             placeholder="Ex: HC-LP-12345 / CO-LIC-67890"
+            :error="!!fieldErrors.licenseNumber"
+            :error-message="fieldErrors.licenseNumber"
+            @blur="validateField('licenseNumber')"
+            @update:model-value="clearFieldError('licenseNumber')"
           />
 
           <div class="q-mb-md">
@@ -68,12 +75,19 @@
               outlined
               accept=".pdf,.jpg,.jpeg,.png"
               max-file-size="5242880"
+              :error="!!fieldErrors.file"
+              :error-message="fieldErrors.file"
+              @update:model-value="clearFieldError('file')"
             >
               <template #prepend>
                 <q-icon name="attach_file" />
               </template>
             </q-file>
           </div>
+
+          <q-banner v-if="submitError" rounded class="bg-negative text-white q-mt-md">
+            <div class="text-weight-medium">{{ submitError }}</div>
+          </q-banner>
 
           <q-btn
             label="Soumettre la licence"
@@ -125,10 +139,6 @@
         </q-card-actions>
       </q-card>
 
-      <q-banner v-if="submitError" rounded class="bg-negative text-white q-mt-lg">
-        <div class="text-weight-medium">{{ submitError }}</div>
-      </q-banner>
-
     </div>
   </q-page>
 </template>
@@ -139,6 +149,7 @@ import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { kybApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -155,6 +166,32 @@ const form = ref({
   licenseNumber: '',
   file:          null as File | null,
 })
+const { fieldErrors, validateField, validateAll, clearFieldError, clearAllErrors, applyApiError } = useFormValidation(
+  {
+    get licenseType() {
+      return form.value.licenseType
+    },
+    get licenseNumber() {
+      return form.value.licenseNumber
+    },
+    get file() {
+      return form.value.file
+    },
+  },
+  {
+    licenseType: [validators.required('Type de licence requis.')],
+    licenseNumber: [validators.required('Numéro de licence requis.')],
+    file: [
+      (value) => {
+        if (!(value instanceof File)) {
+          return null
+        }
+
+        return value.size <= 5 * 1024 * 1024 ? null : 'Fichier trop volumineux (5 Mo max).'
+      },
+    ],
+  },
+)
 
 const devSimulationEnabled = import.meta.env.VITE_KYB_ENABLE_DEV_SIMULATION === '1'
 
@@ -228,11 +265,17 @@ async function loadStatus(): Promise<void> {
 }
 
 async function submitLicense(): Promise<void> {
-  if (!form.value.licenseNumber || !form.value.licenseType) return
-
   loading.value = true
   submitError.value = ''
+  clearAllErrors()
   try {
+    form.value.licenseNumber = form.value.licenseNumber.trim()
+
+    if (!validateAll()) {
+      submitError.value = 'Corrigez les champs invalides avant de soumettre.'
+      return
+    }
+
     const formData = new FormData()
     formData.append('licenseNumber', form.value.licenseNumber)
     formData.append('licenseType', form.value.licenseType)
@@ -254,7 +297,8 @@ async function submitLicense(): Promise<void> {
       $q.notify({ type: 'negative', message: 'Licence rejetée. Corrigez les informations avant une nouvelle tentative.' })
     }
   } catch (e: any) {
-    submitError.value = e.response?.data?.error ?? 'Erreur lors de la soumission.'
+    applyApiError(e, 'Erreur lors de la soumission.')
+    submitError.value = submitError.value || 'Erreur lors de la soumission.'
     $q.notify({ type: 'negative', message: submitError.value })
   } finally {
     loading.value = false

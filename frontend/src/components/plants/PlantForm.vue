@@ -11,9 +11,32 @@
 
       <q-form class="plant-form__body" @submit.prevent="submit">
         <q-select v-model="form.strain" :options="strainOptions" label="Genetique" emit-value map-options outlined clearable />
-        <q-select v-model="form.room" :options="roomOptions" label="Salle *" emit-value map-options outlined :rules="requiredRule" lazy-rules />
-        <q-input v-model="form.germinatedAt" type="date" label="Date de germination *" outlined :rules="requiredRule" lazy-rules />
+        <q-select
+          v-model="form.room"
+          :options="roomOptions"
+          label="Salle *"
+          emit-value
+          map-options
+          outlined
+          :error="!!fieldErrors.room"
+          :error-message="fieldErrors.room"
+          @update:model-value="clearFieldError('room')"
+        />
+        <q-input
+          v-model="form.germinatedAt"
+          type="date"
+          label="Date de germination *"
+          outlined
+          :error="!!fieldErrors.germinatedAt"
+          :error-message="fieldErrors.germinatedAt"
+          @blur="validateField('germinatedAt')"
+          @update:model-value="clearFieldError('germinatedAt')"
+        />
         <q-input v-model="form.rfidTag" label="Numero RFID" outlined />
+
+        <q-banner v-if="formError" rounded class="plant-form__error">
+          {{ formError }}
+        </q-banner>
 
         <div class="plant-form__actions">
           <q-btn flat label="Annuler" class="action-btn" @click="close" />
@@ -29,6 +52,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { usePlantsStore } from '@/stores/plants'
 import type { Plant } from '@/types/api'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -40,7 +64,6 @@ const $q = useQuasar()
 const plantsStore = usePlantsStore()
 const isMobile = computed(() => $q.screen.width < 768)
 const submitting = ref(false)
-const requiredRule = [(value: unknown) => !!value || 'Champ obligatoire']
 
 const form = reactive({
   room: '',
@@ -48,6 +71,13 @@ const form = reactive({
   germinatedAt: new Date().toISOString().slice(0, 10),
   rfidTag: '',
 })
+const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
+  form,
+  {
+    room: [validators.required('Salle obligatoire.')],
+    germinatedAt: [validators.required('Date de germination obligatoire.'), validators.isoDate('Date de germination invalide.')],
+  },
+)
 
 const roomOptions = computed(() => plantsStore.roomIriList())
 const strainOptions = computed(() => plantsStore.strainIriList())
@@ -69,6 +99,13 @@ function close() {
 async function submit() {
   submitting.value = true
   try {
+    clearAllErrors()
+
+    if (!validateAll()) {
+      setFormError('Corrigez les champs obligatoires avant de créer le plant.')
+      return
+    }
+
     const plant = await plantsStore.createPlant({
       room: form.room,
       strain: form.strain || null,
@@ -80,7 +117,8 @@ async function submit() {
     form.rfidTag = ''
     $q.notify({ type: 'positive', message: 'Plant cree.' })
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Creation impossible.' })
+    applyApiError(error, 'Creation impossible.')
+    $q.notify({ type: 'negative', message: formError.value || 'Creation impossible.' })
   } finally {
     submitting.value = false
   }
@@ -98,6 +136,11 @@ async function submit() {
   color: #718096;
 }
 .plant-form__body { display: grid; gap: 12px; padding: 0 16px 16px; }
+.plant-form__error {
+  color: #8c2f39;
+  background: #fdecec;
+  border: 1px solid #f3c9cf;
+}
 .plant-form__actions { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .action-btn { min-height: 48px; }
 </style>

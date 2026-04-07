@@ -34,6 +34,10 @@
             type="email"
             autocomplete="email"
             outlined
+            :error="!!fieldErrors.email"
+            :error-message="fieldErrors.email"
+            @blur="validateField('email')"
+            @update:model-value="clearFieldError('email')"
           />
           <q-input
             v-model="password"
@@ -41,10 +45,14 @@
             type="password"
             autocomplete="current-password"
             outlined
+            :error="!!fieldErrors.password"
+            :error-message="fieldErrors.password"
+            @blur="validateField('password')"
+            @update:model-value="clearFieldError('password')"
           />
 
-          <q-banner v-if="error" inline-actions rounded class="auth-error">
-            {{ error }}
+          <q-banner v-if="formError" inline-actions rounded class="auth-error">
+            {{ formError }}
           </q-banner>
 
           <q-btn
@@ -77,6 +85,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const route = useRoute()
 const router = useRouter()
@@ -85,29 +94,37 @@ const authStore = useAuthStore()
 const email = ref(authStore.user?.email ?? '')
 const password = ref('')
 const loading = ref(false)
-const error = ref('')
+const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, applyApiError } = useFormValidation(
+  {
+    get email() {
+      return email.value
+    },
+    get password() {
+      return password.value
+    },
+  },
+  {
+    email: [validators.required('Email requis.'), validators.email('Email invalide.')],
+    password: [validators.required('Mot de passe requis.')],
+  },
+)
 
 async function submit() {
-  error.value = ''
+  clearAllErrors()
   loading.value = true
 
   try {
     const normalizedEmail = email.value.trim().toLowerCase()
+    email.value = normalizedEmail
 
-    if (!normalizedEmail) {
-      throw new Error('Email requis.')
-    }
-
-    if (!password.value.trim()) {
-      throw new Error('Mot de passe requis.')
+    if (!validateAll()) {
+      return
     }
 
     await authStore.login(normalizedEmail, password.value)
     await router.push(resolveRedirectTarget())
   } catch (caughtError) {
-    error.value = caughtError instanceof Error
-      ? caughtError.message
-      : 'Echec de l’authentification.'
+    applyApiError(caughtError, 'Echec de l’authentification.')
   } finally {
     loading.value = false
   }
