@@ -16,14 +16,15 @@ base64 -w 0 public.pem
 Set these variables in Railway:
 
 ```dotenv
-LEXIK_JWT_PASSPHRASE=
-JWT_SECRET_KEY=/var/www/html/config/jwt/private.pem
-JWT_PUBLIC_KEY=/var/www/html/config/jwt/public.pem
+JWT_PASSPHRASE=
+JWT_SECRET_KEY=/var/www/html/var/jwt/private.pem
+JWT_PUBLIC_KEY=/var/www/html/var/jwt/public.pem
 JWT_SECRET_KEY_BASE64=
 JWT_PUBLIC_KEY_BASE64=
 ```
 
 `docker-entrypoint.sh` decodes `JWT_SECRET_KEY_BASE64` and `JWT_PUBLIC_KEY_BASE64`
 at container startup and writes the files expected by LexikJWTAuthenticationBundle.
+If key files are absent in `prod` and no base64 variables are provided, the container now fails fast.
 
 Do not commit production keys into the repository or bake them into the image.

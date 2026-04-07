@@ -90,7 +90,8 @@ Variables à définir hors Git :
   - `MAILER_DSN`
   - `LICENSE_ALERT_FROM_EMAIL`
   - `STRIPE_ALERT_FROM_EMAIL`
-- En déploiement Railway standard, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY` pointent vers les fichiers PEM lus par Lexik, tandis que `JWT_SECRET_KEY_BASE64` et `JWT_PUBLIC_KEY_BASE64` servent à matérialiser ces fichiers au démarrage via `docker-entrypoint.sh`.
+- En déploiement Railway standard, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY` pointent vers `/var/www/html/var/jwt/*.pem`, tandis que `JWT_SECRET_KEY_BASE64` et `JWT_PUBLIC_KEY_BASE64` servent à matérialiser ces fichiers au démarrage via `docker-entrypoint.sh`.
+- Si les fichiers PEM sont absents en `prod` et qu’aucune variable base64 n’est fournie, le conteneur échoue immédiatement au démarrage.
 
 2. Installer les dépendances Symfony (si nécessaire)
 
@@ -101,7 +102,7 @@ docker exec -it cultivatrace_app composer install
 3. Générer la paire de clés JWT locale (si nécessaire)
 
 ```bash
-docker exec -it cultivatrace_app php bin/console lexik:jwt:generate-keypair --overwrite
+docker exec -it cultivatrace_app php bin/generate-jwt-keys.php
 ```
 
 4. Lancer les migrations (si nécessaire)
@@ -141,7 +142,7 @@ Note :
 - Un `401 JWT Token not found` sur `/api` est normal si vous n’êtes pas authentifié.
 - Le login JWT est exposé sur `POST /api/auth/login`.
 - La création de compte est exposée sur `POST /api/register`.
-- Les clés privées générées localement restent ignorées par Git via `config/jwt/*.pem`.
+- Les clés privées générées localement restent hors Git dans `var/jwt/`.
 
 ## Lancer le frontend (Vue / Quasar)
 
