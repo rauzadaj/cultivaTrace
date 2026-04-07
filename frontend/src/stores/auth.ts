@@ -8,7 +8,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
-import type { JwtPayload, User, UserRole } from '@/types/api'
+import type { JwtPayload, OrganizationRegistrationPayload, User, UserRole } from '@/types/api'
 import { clearAuthTokens, getAccessToken, setAuthTokens } from '@/services/authSession'
 import { canAccessRoles } from '@/router/access'
 
@@ -53,6 +53,24 @@ export const useAuthStore = defineStore('auth', () => {
       })
       token.value = data.token
       await fetchMe()
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function registerOrganization(payload: OrganizationRegistrationPayload): Promise<string> {
+    loading.value = true
+
+    try {
+      const { data } = await authApi.registerOrganization(payload)
+      setAuthTokens({
+        token: data.token,
+        refreshToken: data.refreshToken,
+      })
+      token.value = data.token
+      await fetchMe()
+
+      return data.nextPath
     } finally {
       loading.value = false
     }
@@ -130,6 +148,6 @@ export const useAuthStore = defineStore('auth', () => {
     user, token, loading,
     isAuthenticated, isSuperAdmin, isOrgAdmin, isOrgUser, isApiUser,
     organization, isPlanActive, hasIoT,
-    login, logout, fetchMe, init, hasRole, hasAnyRole,
+    login, registerOrganization, logout, fetchMe, init, hasRole, hasAnyRole,
   }
 })

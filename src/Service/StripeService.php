@@ -8,6 +8,7 @@ use App\Enum\LicenseStatus;
 use App\Enum\SubscriptionPlan;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Stripe\Customer;
 use Stripe\Checkout\Session;
 use Stripe\BillingPortal\Session as PortalSession;
 use Stripe\Event;
@@ -90,6 +91,24 @@ class StripeService
 
         $session = Session::create($params);
         return $session->url;
+    }
+
+    public function createCustomer(
+        Organization $organization,
+        string $email,
+        SubscriptionPlan $selectedPlan = SubscriptionPlan::STARTER,
+    ): string {
+        $customer = Customer::create([
+            'email' => $email,
+            'name' => $organization->getName(),
+            'metadata' => [
+                'organization_id' => (string) $organization->getId(),
+                'organization_name' => $organization->getName(),
+                'selected_plan' => $selectedPlan->value,
+            ],
+        ]);
+
+        return $customer->id;
     }
 
     /**
