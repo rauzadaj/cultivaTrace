@@ -56,6 +56,10 @@ services:
         arguments:
             $registerRateLimiter: '@limiter.api_register'
 
+    App\Infrastructure\Http\Controller\RegisterOrganizationController:
+        arguments:
+            $registerRateLimiter: '@limiter.api_register'
+
     App\Service\Auth\LoginAttemptService:
         arguments:
             $cache: '@cache.app'

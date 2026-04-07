@@ -14,6 +14,7 @@ import type {
   Plant, PlantEvent, Farm, Room, Strain,
   InputRecord, HarvestRecord, Sensor, SensorHistoryResponse,
   User, Organization, JwtResponse, LoginCredentials, ApiError, DashboardOverviewResponse,
+  OrganizationRegistrationPayload, RegistrationResponse,
 } from '@/types/api'
 import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
 
@@ -156,6 +157,11 @@ http.interceptors.response.use(
 export const authApi = {
   login: (credentials: LoginCredentials) =>
     http.post<JwtResponse>('/auth/login', credentials, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  registerOrganization: (payload: OrganizationRegistrationPayload) =>
+    http.post<RegistrationResponse>('/register/organization', payload, {
       headers: { 'Content-Type': 'application/json' },
     }),
 

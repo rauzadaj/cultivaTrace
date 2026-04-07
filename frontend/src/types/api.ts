@@ -324,6 +324,16 @@ export interface LoginCredentials {
   password: string
 }
 
+export type RegistrationPlan = Extract<SubscriptionPlan, 'starter' | 'pro' | 'business'>
+
+export interface OrganizationRegistrationPayload {
+  organizationName: string
+  email: string
+  password: string
+  country: string
+  plan: RegistrationPlan
+}
+
 export interface JwtResponse {
   token: string
   refreshToken: string
@@ -332,8 +342,10 @@ export interface JwtResponse {
 
 export type AuthTokenResponse = JwtResponse
 
-export interface RegistrationResponse {
-  message?: string
+export interface RegistrationResponse extends JwtResponse {
+  organization: Pick<Organization, 'id' | 'name' | 'plan' | 'licenseStatus'>
+  selectedPlan: RegistrationPlan
+  nextPath: string
 }
 
 export interface JwtPayload {
