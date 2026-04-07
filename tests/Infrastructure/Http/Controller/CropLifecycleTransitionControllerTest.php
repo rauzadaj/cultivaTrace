@@ -5,12 +5,16 @@ namespace App\Tests\Infrastructure\Http\Controller;
 use App\Application\Cultivation\Workflow\CropLifecycleManager;
 use App\Domain\Cultivation\Model\Crop;
 use App\Domain\Cultivation\Model\Genetic;
+use App\Entity\Organization;
+use App\Entity\User;
 use App\Infrastructure\Http\Controller\CropLifecycleTransitionController;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 final class CropLifecycleTransitionControllerTest extends TestCase
@@ -23,9 +27,12 @@ final class CropLifecycleTransitionControllerTest extends TestCase
             ->with(Crop::class, 'missing')
             ->willReturn(null);
 
+        $security = $this->createMock(Security::class);
+
         $controller = new CropLifecycleTransitionController(
             $entityManager,
             new CropLifecycleManager($this->createMock(WorkflowInterface::class)),
+            $security,
         );
 
         $this->expectException(NotFoundHttpException::class);
@@ -50,9 +57,32 @@ final class CropLifecycleTransitionControllerTest extends TestCase
             ->with(Crop::class, $crop->getId())
             ->willReturn($crop);
 
+        $organization = (new Organization())
+            ->setName('Org Workflow')
+            ->setCountry('FR');
+        $crop->setTenantId($organization->getId());
+        $user = (new User())
+            ->setEmail('workflow@test.local')
+            ->setOrganization($organization)
+            ->setRole('ROLE_ORG_USER')
+            ->setPassword('hashed-password');
+
+        $security = $this->createMock(Security::class);
+        $security
+            ->method('getUser')
+            ->willReturn($user);
+        $security
+            ->method('isGranted')
+            ->willReturnCallback(static fn (string $attribute): bool => match ($attribute) {
+                'ROLE_ORG_USER' => true,
+                'ROLE_SUPER_ADMIN' => false,
+                default => false,
+            });
+
         $controller = new CropLifecycleTransitionController(
             $entityManager,
             new CropLifecycleManager($this->createMock(WorkflowInterface::class)),
+            $security,
         );
 
         $this->expectException(InvalidArgumentException::class);
@@ -70,6 +100,61 @@ final class CropLifecycleTransitionControllerTest extends TestCase
                 ['CONTENT_TYPE' => 'application/json'],
                 json_encode(['finalYieldGrams' => 'abc'], JSON_THROW_ON_ERROR),
             ),
+        );
+    }
+
+    public function testItRejectsCrossTenantWrites(): void
+    {
+        $crop = (new Crop())
+            ->setBatchCode('LOT-2026-WF-XT')
+            ->setDisplayName('Cross Tenant Crop')
+            ->setGenetic(
+                (new Genetic())
+                    ->setCode('WF-XT')
+                    ->setName('Workflow Cross Tenant'),
+            )
+            ->setTenantId(\Symfony\Component\Uid\Uuid::v4());
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager
+            ->method('find')
+            ->with(Crop::class, $crop->getId())
+            ->willReturn($crop);
+
+        $organization = (new Organization())
+            ->setName('Org Workflow')
+            ->setCountry('FR');
+        $user = (new User())
+            ->setEmail('workflow-xt@test.local')
+            ->setOrganization($organization)
+            ->setRole('ROLE_ORG_USER')
+            ->setPassword('hashed-password');
+
+        $security = $this->createMock(Security::class);
+        $security
+            ->method('getUser')
+            ->willReturn($user);
+        $security
+            ->method('isGranted')
+            ->willReturnCallback(static fn (string $attribute): bool => match ($attribute) {
+                'ROLE_ORG_USER' => true,
+                'ROLE_SUPER_ADMIN' => false,
+                default => false,
+            });
+
+        $controller = new CropLifecycleTransitionController(
+            $entityManager,
+            new CropLifecycleManager($this->createMock(WorkflowInterface::class)),
+            $security,
+        );
+
+        $this->expectException(AccessDeniedHttpException::class);
+        $this->expectExceptionMessage('Cross-tenant');
+
+        $controller->__invoke(
+            $crop->getId(),
+            'start_vegetative',
+            Request::create(sprintf('/api/crops/%s/transitions/start_vegetative', $crop->getId()), 'POST'),
         );
     }
 }
