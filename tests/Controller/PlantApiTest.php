@@ -101,7 +101,7 @@ final class PlantApiTest extends ApiTestCase
     public function testPostPlantsRejectsUserWithoutPlantCreatePermission(): void
     {
         $organization = $this->createOrganization('Org Read Only');
-        $user = $this->createUser($organization, 'readonly@test.local', role: 'ROLE_USER');
+        $user = $this->createUser($organization, 'readonly@test.local', roles: []);
         $farm = $this->createFarm($organization, 'Farm Read Only');
         $room = $this->createRoom($farm, 'Veg Room');
         $strain = $this->createStrain($organization, 'Banana OG');

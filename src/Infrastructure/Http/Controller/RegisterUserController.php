@@ -60,7 +60,7 @@ final readonly class RegisterUserController
         $user = (new User())
             ->setEmail($email)
             ->setOrganization($organization)
-            ->setRoles(['ROLE_USER']);
+            ->setRoles(['ROLE_ORG_USER']);
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
 
         $verificationToken = $this->emailVerificationService->issueToken($user);

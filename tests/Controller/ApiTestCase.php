@@ -95,13 +95,12 @@ abstract class ApiTestCase extends KernelTestCase
         string $email,
         string $plainPassword = 'test123',
         string $role = 'ROLE_ORG_USER',
-        array $roles = [],
+        ?array $roles = null,
     ): User {
         $user = new User();
         $user->setEmail($email);
         $user->setOrganization($organization);
-        $user->setRole($role);
-        $user->setRoles($roles);
+        $user->setRoles($roles ?? [$role]);
         $user->setPassword('test-password');
         $user->setAccountStatus(UserAccountStatus::ACTIVE);
         $user->setEmailVerifiedAt(new \DateTimeImmutable());

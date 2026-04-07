@@ -64,7 +64,7 @@ final class CropLifecycleTransitionControllerTest extends TestCase
         $user = (new User())
             ->setEmail('workflow@test.local')
             ->setOrganization($organization)
-            ->setRole('ROLE_ORG_USER')
+            ->setRoles(['ROLE_ORG_USER'])
             ->setPassword('hashed-password');
 
         $security = $this->createMock(Security::class);
@@ -127,7 +127,7 @@ final class CropLifecycleTransitionControllerTest extends TestCase
         $user = (new User())
             ->setEmail('workflow-xt@test.local')
             ->setOrganization($organization)
-            ->setRole('ROLE_ORG_USER')
+            ->setRoles(['ROLE_ORG_USER'])
             ->setPassword('hashed-password');
 
         $security = $this->createMock(Security::class);
