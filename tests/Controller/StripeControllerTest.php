@@ -119,6 +119,26 @@ final class StripeControllerTest extends KernelTestCase
         self::assertArrayNotHasKey('detail', $payload);
     }
 
+    public function testCheckoutRejectsUserWithoutBillingWriteRole(): void
+    {
+        $stripe = $this->createMock(StripeService::class);
+        $billingCheckoutService = new BillingCheckoutService($stripe);
+
+        $controller = $this->createController(
+            $stripe,
+            $this->createMock(PlanLimitsService::class),
+            $billingCheckoutService,
+            $this->createMock(LoggerInterface::class),
+        );
+
+        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'starter'], JSON_THROW_ON_ERROR));
+        $request->headers->set('CONTENT_TYPE', 'application/json');
+
+        $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
+
+        $controller->checkout($request, $this->createUserWithOrganization(role: 'ROLE_USER'));
+    }
+
     public function testWebhookReturnsOkOnInvalidSignature(): void
     {
         $stripe = $this->createMock(StripeService::class);
@@ -241,7 +261,7 @@ final class StripeControllerTest extends KernelTestCase
         self::assertTrue($payload['hasActiveSubscription']);
     }
 
-    private function createUserWithOrganization(?string $stripeCustomerId = null): User
+    private function createUserWithOrganization(?string $stripeCustomerId = null, string $role = 'ROLE_ORG_ADMIN'): User
     {
         $organization = new Organization();
         $organization->setName('Org Stripe');
@@ -252,7 +272,7 @@ final class StripeControllerTest extends KernelTestCase
         $user = new User();
         $user->setEmail('stripe@test.local');
         $user->setOrganization($organization);
-        $user->setRole('ROLE_ORG_ADMIN');
+        $user->setRole($role);
 
         return $user;
     }
