@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Sensor;
+use App\Entity\User;
 use App\Repository\SensorReadingRepository;
+use App\Security\Voter\TenantAwareVoter;
 use App\Service\AlertService;
 use App\Service\VpdService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -12,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 use Symfony\Component\Routing\Attribute\Route;
@@ -40,8 +43,10 @@ class SensorReadingController extends AbstractController
     public function __invoke(
         Sensor  $sensor,
         Request $request,
-        #[CurrentUser] $user,
+        #[CurrentUser] ?User $user,
     ): JsonResponse {
+        $this->assertWriteAccess($sensor, $user);
+
         $data  = json_decode($request->getContent(), true) ?? [];
         $value = $data['value'] ?? null;
 
@@ -106,6 +111,24 @@ class SensorReadingController extends AbstractController
             'alerted' => $alerted,
             'vpd'     => $vpdData,
         ], Response::HTTP_CREATED);
+    }
+
+    private function assertWriteAccess(Sensor $sensor, ?User $user): void
+    {
+        if (!$user instanceof User) {
+            throw new AccessDeniedHttpException('Authenticated user required.');
+        }
+
+        if (
+            !$this->isGranted('ROLE_ORG_USER')
+            && !$this->isGranted('ROLE_API')
+        ) {
+            throw new AccessDeniedHttpException('Insufficient role for sensor writes.');
+        }
+
+        if (!$this->isGranted(TenantAwareVoter::ACCESS, $sensor)) {
+            throw new AccessDeniedHttpException('Cross-tenant sensor writes are forbidden.');
+        }
     }
 
     /**

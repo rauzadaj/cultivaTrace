@@ -4,12 +4,15 @@ namespace App\Infrastructure\Http\Controller;
 
 use App\Application\Cultivation\Workflow\CropLifecycleManager;
 use App\Domain\Cultivation\Model\Crop;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Bundle\SecurityBundle\Security;
 
 #[Route('/api/crops/{id}/transitions/{transition}', methods: ['POST'])]
 final readonly class CropLifecycleTransitionController
@@ -17,6 +20,7 @@ final readonly class CropLifecycleTransitionController
     public function __construct(
         private EntityManagerInterface $entityManager,
         private CropLifecycleManager $cropLifecycleManager,
+        private Security $security,
     ) {
     }
 
@@ -27,6 +31,8 @@ final readonly class CropLifecycleTransitionController
         if (!$crop instanceof Crop) {
             throw new NotFoundHttpException('Crop not found.');
         }
+
+        $this->assertWriteAccess($crop);
 
         $payload = [] === $request->request->all()
             ? ($request->getContent() !== '' ? $request->toArray() : [])
@@ -52,6 +58,31 @@ final readonly class CropLifecycleTransitionController
             'harvestedAt' => $crop->getHarvestedAt()?->format(\DateTimeInterface::ATOM),
             'finalYieldGrams' => $crop->getFinalYieldGrams(),
         ]);
+    }
+
+    private function assertWriteAccess(Crop $crop): void
+    {
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            throw new AccessDeniedHttpException('Authenticated user required.');
+        }
+
+        if (!$this->security->isGranted('ROLE_ORG_USER')) {
+            throw new AccessDeniedHttpException('Insufficient role for crop workflow writes.');
+        }
+
+        if ($this->security->isGranted('ROLE_SUPER_ADMIN')) {
+            return;
+        }
+
+        $organization = $user->getOrganization();
+        if ($organization === null || $crop->getTenantId() === null) {
+            throw new AccessDeniedHttpException('Tenant context is required.');
+        }
+
+        if ((string) $crop->getTenantId() !== (string) $organization->getId()) {
+            throw new AccessDeniedHttpException('Cross-tenant crop workflow writes are forbidden.');
+        }
     }
 
     /** @param array<string, mixed> $payload */

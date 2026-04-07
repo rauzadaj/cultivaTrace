@@ -118,6 +118,31 @@ final class KybControllerTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
+    public function testUploadRejectsUserWithoutWriteRole(): void
+    {
+        $organization = $this->createOrganization('Org KYB');
+        $user = $this->createUser($organization, 'kyb-viewer@test.local', role: 'ROLE_USER');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($user);
+        $this->client->request(
+            'POST',
+            '/api/kyb/upload',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            json_encode([
+                'licenseNumber' => 'HC-LP-12345',
+                'licenseType' => 'health_canada',
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
     public function testUploadActivatesDevCtlsLicenseWithExplicitTestPrefix(): void
     {
         $organization = $this->createOrganization('Org KYB CTLS');
