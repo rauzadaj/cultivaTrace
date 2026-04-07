@@ -66,6 +66,8 @@ export interface Organization {
   id: string
   name: string
   country: string
+  contactEmail?: string | null
+  config?: Record<string, unknown>
   plan: SubscriptionPlan
   licenseStatus: LicenseStatus
   licenseExpiresAt?: string // ISO 8601
@@ -346,6 +348,34 @@ export interface RegistrationResponse extends JwtResponse {
   organization: Pick<Organization, 'id' | 'name' | 'plan' | 'licenseStatus'>
   selectedPlan: RegistrationPlan
   nextPath: string
+}
+
+export interface OrganizationMember {
+  id: string
+  email: string
+  roles: UserRole[]
+  accountStatus: 'pending_verification' | 'active' | 'suspended'
+  emailVerifiedAt?: string | null
+}
+
+export interface OrganizationInvitation {
+  id: string
+  email: string
+  roles: UserRole[]
+  createdAt: string
+  expiresAt: string
+}
+
+export interface OrganizationSettingsResponse {
+  id: string
+  name: string
+  country: string
+  contactEmail?: string | null
+  config: Record<string, unknown>
+  plan: SubscriptionPlan
+  licenseStatus: LicenseStatus
+  licenseExpiresAt?: string | null
+  stripeCustomerId?: string | null
 }
 
 export interface JwtPayload {

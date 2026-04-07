@@ -63,6 +63,12 @@ describe('router guards', () => {
     expect(router.currentRoute.value.name).toBe('onboarding')
   })
 
+  it('keeps invitation activation public for unauthenticated users', async () => {
+    await router.push('/invite/accept?token=test-token')
+
+    expect(router.currentRoute.value.name).toBe('invite-accept')
+  })
+
   it('redirects unauthorized users away from admin routes', async () => {
     authStore.token = 'jwt-token'
     authStore.user = buildUser('active', ['ROLE_ORG_USER'])
