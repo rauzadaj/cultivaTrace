@@ -21,7 +21,7 @@ final class KybControllerTest extends ApiTestCase
         ]);
     }
 
-    public function testUploadActivatesHealthCanadaLicenseInDev(): void
+    public function testUploadQueuesHealthCanadaLicenseForManualReviewByDefault(): void
     {
         $organization = $this->createOrganization('Org KYB');
         $user = $this->createUser($organization, 'kyb-active@test.local');
@@ -46,11 +46,11 @@ final class KybControllerTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_CREATED);
 
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('active', $payload['status']);
-        self::assertStringContainsString('activ', $payload['message']);
+        self::assertSame('pending', $payload['status']);
+        self::assertStringContainsString('Vérification manuelle', $payload['message']);
     }
 
-    public function testUploadRejectsInvalidLicenseInDev(): void
+    public function testUploadQueuesInvalidMetrcLicenseForManualReviewWhenAutoVerificationFails(): void
     {
         $organization = $this->createOrganization('Org KYB');
         $user = $this->createUser($organization, 'kyb-invalid@test.local');
@@ -75,7 +75,7 @@ final class KybControllerTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_CREATED);
 
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('rejected', $payload['status']);
+        self::assertSame('pending', $payload['status']);
     }
 
     public function testGetStatusReturnsCurrentLicenseStatus(): void
