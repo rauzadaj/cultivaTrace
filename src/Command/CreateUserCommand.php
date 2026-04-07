@@ -89,7 +89,6 @@ final class CreateUserCommand extends Command
 
         $user = (new User())
             ->setEmail($email)
-            ->setRole($role)
             ->setRoles([$role])
             ->setOrganization($organization);
 

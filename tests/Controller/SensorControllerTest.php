@@ -83,7 +83,7 @@ final class SensorControllerTest extends ApiTestCase
     public function testPostReadingRejectsUserWithoutWriteRole(): void
     {
         [$organization, $sensor] = $this->createSensorEntityFixture('sensor-writer@test.local', 'temperature');
-        $user = $this->createUser($organization, 'viewer@test.local', role: 'ROLE_USER');
+        $user = $this->createUser($organization, 'viewer@test.local', roles: []);
         $this->entityManager->flush();
         $this->authorizeClient($user);
 
@@ -117,7 +117,7 @@ final class SensorControllerTest extends ApiTestCase
     public function testGetReadingsRejectsUserWithoutOperatorPrivileges(): void
     {
         [$organization, $sensor] = $this->createSensorEntityFixture('sensor-reader@test.local', 'humidity');
-        $user = $this->createUser($organization, 'viewer@test.local', role: 'ROLE_USER');
+        $user = $this->createUser($organization, 'viewer@test.local', roles: []);
         $this->entityManager->flush();
         $this->authorizeClient($user);
 
