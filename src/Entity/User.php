@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Enum\UserAccountStatus;
@@ -21,9 +23,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private array $roles = [];
-
-    #[ORM\Column(length: 50)]
-    private string $role = 'ROLE_ORG_USER';
 
     #[ORM\ManyToOne(targetEntity: Organization::class, inversedBy: 'users')]
     #[ORM\JoinColumn(nullable: true)]
@@ -73,28 +72,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        $roles = $this->roles;
-        $roles[] = $this->role;
-        $roles[] = 'ROLE_USER';
-
-        return array_values(array_unique($roles));
+        return array_values(array_unique($this->roles));
     }
 
     public function setRoles(array $roles): self
     {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    public function getRole(): string
-    {
-        return $this->role;
-    }
-
-    public function setRole(string $role): self
-    {
-        $this->role = $role;
+        $this->roles = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $role): string => trim((string) $role), $roles),
+            static fn (string $role): bool => $role !== '',
+        )));
 
         return $this;
     }

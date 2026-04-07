@@ -199,7 +199,6 @@ final class SeedDemoDataCommand extends Command
 
         $user
             ->setRoles(['ROLE_ORG_ADMIN'])
-            ->setRole('ROLE_ORG_ADMIN')
             ->setOrganization($organization)
             ->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
 

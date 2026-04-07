@@ -121,7 +121,7 @@ final class KybControllerTest extends ApiTestCase
     public function testUploadRejectsUserWithoutWriteRole(): void
     {
         $organization = $this->createOrganization('Org KYB');
-        $user = $this->createUser($organization, 'kyb-viewer@test.local', role: 'ROLE_USER');
+        $user = $this->createUser($organization, 'kyb-viewer@test.local', roles: []);
         $this->entityManager->flush();
 
         $this->authorizeClient($user);
