@@ -24,6 +24,10 @@
             label="Nom de l'organisation"
             autocomplete="organization"
             outlined
+            :error="!!fieldErrors.organizationName"
+            :error-message="fieldErrors.organizationName"
+            @blur="validateField('organizationName')"
+            @update:model-value="clearFieldError('organizationName')"
           />
           <q-input
             v-model="email"
@@ -31,6 +35,10 @@
             type="email"
             autocomplete="email"
             outlined
+            :error="!!fieldErrors.email"
+            :error-message="fieldErrors.email"
+            @blur="validateField('email')"
+            @update:model-value="clearFieldError('email')"
           />
           <q-input
             v-model="password"
@@ -38,6 +46,10 @@
             type="password"
             autocomplete="new-password"
             outlined
+            :error="!!fieldErrors.password"
+            :error-message="fieldErrors.password"
+            @blur="validateField('password')"
+            @update:model-value="clearFieldError('password')"
           />
           <q-select
             v-model="country"
@@ -48,6 +60,9 @@
             map-options
             label="Pays"
             outlined
+            :error="!!fieldErrors.country"
+            :error-message="fieldErrors.country"
+            @update:model-value="clearFieldError('country')"
           />
           <q-select
             v-model="plan"
@@ -58,10 +73,13 @@
             map-options
             label="Plan cible"
             outlined
+            :error="!!fieldErrors.plan"
+            :error-message="fieldErrors.plan"
+            @update:model-value="clearFieldError('plan')"
           />
 
-          <q-banner v-if="error" inline-actions rounded class="onboarding-error">
-            {{ error }}
+          <q-banner v-if="formError" inline-actions rounded class="onboarding-error">
+            {{ formError }}
           </q-banner>
 
           <q-banner rounded class="onboarding-note">
@@ -94,6 +112,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { RegistrationPlan } from '@/types/api'
+import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -104,7 +123,32 @@ const password = ref('')
 const country = ref('FR')
 const plan = ref<RegistrationPlan>('starter')
 const loading = ref(false)
-const error = ref('')
+const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, applyApiError } = useFormValidation(
+  {
+    get organizationName() {
+      return organizationName.value
+    },
+    get email() {
+      return email.value
+    },
+    get password() {
+      return password.value
+    },
+    get country() {
+      return country.value
+    },
+    get plan() {
+      return plan.value
+    },
+  },
+  {
+    organizationName: [validators.required('Nom d’organisation requis.')],
+    email: [validators.required('Email admin requis.'), validators.email('Email admin invalide.')],
+    password: [validators.required('Mot de passe requis.'), validators.minLength(8, 'Minimum 8 caractères.')],
+    country: [validators.required('Pays requis.')],
+    plan: [validators.required('Plan requis.')],
+  },
+)
 
 const countryOptions = [
   { label: 'France', value: 'FR' },
@@ -120,25 +164,20 @@ const planOptions = [
 ]
 
 async function submit() {
-  error.value = ''
+  clearAllErrors()
   loading.value = true
 
   try {
-    if (!organizationName.value.trim()) {
-      throw new Error('Nom d’organisation requis.')
-    }
+    organizationName.value = organizationName.value.trim()
+    email.value = email.value.trim().toLowerCase()
 
-    if (!email.value.trim()) {
-      throw new Error('Email admin requis.')
-    }
-
-    if (!password.value.trim()) {
-      throw new Error('Mot de passe requis.')
+    if (!validateAll()) {
+      return
     }
 
     const nextPath = await authStore.registerOrganization({
-      organizationName: organizationName.value.trim(),
-      email: email.value.trim().toLowerCase(),
+      organizationName: organizationName.value,
+      email: email.value,
       password: password.value,
       country: country.value,
       plan: plan.value,
@@ -146,9 +185,7 @@ async function submit() {
 
     await router.push(nextPath)
   } catch (caughtError) {
-    error.value = caughtError instanceof Error
-      ? caughtError.message
-      : 'Impossible de créer l’organisation.'
+    applyApiError(caughtError, 'Impossible de créer l’organisation.')
   } finally {
     loading.value = false
   }
