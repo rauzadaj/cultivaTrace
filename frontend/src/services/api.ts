@@ -17,6 +17,7 @@ import type {
   OrganizationRegistrationPayload, RegistrationResponse,
   OrganizationSettingsResponse, OrganizationMember, OrganizationInvitation,
   PersistentAlert,
+  ReportExport,
 } from '@/types/api'
 import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
 
@@ -243,6 +244,33 @@ export const alertsApi = {
     http.post<PersistentAlert>(`/alerts/${id}/acknowledge`, {}, {
       headers: { 'Content-Type': 'application/json' },
     }),
+}
+
+export const reportingApi = {
+  list: () =>
+    http.get<HydraCollection<ReportExport>>('/reporting/exports', {
+      params: { itemsPerPage: 20 },
+    }),
+
+  createHarvestSummary: (payload: { dateFrom: string; dateTo: string; farmId?: string | null; roomId?: string | null }) =>
+    http.post<ReportExport>('/reporting/harvest-summary', payload, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  createAuditExport: (payload: { dateFrom: string; dateTo: string; format: 'pdf' | 'csv' }) =>
+    http.post<ReportExport>('/reporting/audit-export', payload, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  download: async (downloadUrl: string, fileName: string): Promise<void> => {
+    const response = await http.get(downloadUrl.replace(/^\/api/, ''), { responseType: 'blob' })
+    const url = window.URL.createObjectURL(response.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    window.URL.revokeObjectURL(url)
+  },
 }
 
 export { refreshAccessToken }
