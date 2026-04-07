@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Controller;
 
 use App\Entity\Farm;
@@ -145,7 +147,7 @@ abstract class ApiTestCase extends KernelTestCase
         $strain->setName($name);
         $strain->setGenetics($name);
         $strain->setCannabisType($cannabisType);
-        $strain->setThcPercentage('18.50');
+        $strain->setThcPercentage(18.5);
         $strain->setFloweringDays(63);
 
         $this->entityManager->persist($strain);
@@ -187,7 +189,13 @@ abstract class ApiTestCase extends KernelTestCase
 
     protected function assertStatusCode(int $expectedStatusCode): void
     {
-        self::assertSame($expectedStatusCode, $this->client->getResponse()->getStatusCode(), $this->client->getResponse()->getContent());
+        $content = $this->client->getResponse()->getContent();
+
+        self::assertSame(
+            $expectedStatusCode,
+            $this->client->getResponse()->getStatusCode(),
+            $content === false ? '' : $content,
+        );
     }
 
     protected function apiJsonRequest(string $method, string $uri, array $payload = []): void
