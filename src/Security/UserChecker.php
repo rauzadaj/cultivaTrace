@@ -23,7 +23,7 @@ final class UserChecker implements UserCheckerInterface
             throw new CustomUserMessageAccountStatusException('Invalid credentials.');
         }
 
-        if ($user->getOrganization() === null || $user->getOrganization()->isSuspended()) {
+        if (!$user->hasOrganization() || $user->getOrganization()->isSuspended()) {
             throw new CustomUserMessageAccountStatusException('Invalid credentials.');
         }
     }

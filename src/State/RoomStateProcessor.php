@@ -29,10 +29,11 @@ final class RoomStateProcessor implements ProcessorInterface
                 throw new InvalidArgumentException('An authenticated user is required to create or update a room.');
             }
 
-            $organization = $user->getOrganization();
-            if ($organization === null) {
+            if (!$user->hasOrganization()) {
                 throw new InvalidArgumentException('The authenticated user must belong to an organization.');
             }
+
+            $organization = $user->getOrganization();
 
             if ($data->getFarm()->getOrganization()->getId() != $organization->getId()) {
                 throw new InvalidArgumentException('The selected farm does not belong to the authenticated organization.');

@@ -85,7 +85,9 @@ final class RegisterUserControllerTest extends TestCase
         $organization = (new Organization())
             ->setName('CultivaTrace')
             ->setCountry('FR');
-        $existingUser = (new User())->setEmail('operator@cultivatrace.local');
+        $existingUser = (new User())
+            ->setEmail('operator@cultivatrace.local')
+            ->setOrganization($organization);
 
         $userRepository = $this->createRepositoryMock($existingUser);
         $organizationRepository = $this->createRepositoryMock($organization);
