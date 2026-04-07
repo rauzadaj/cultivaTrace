@@ -30,10 +30,11 @@ final class TenantAwareVoter extends Voter
             return true;
         }
 
-        $organization = $user->getOrganization();
-        if ($organization === null) {
+        if (!$user->hasOrganization()) {
             return false;
         }
+
+        $organization = $user->getOrganization();
 
         if (!method_exists($subject, 'getTenantId')) {
             return false;

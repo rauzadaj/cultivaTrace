@@ -115,8 +115,12 @@ final class SeedDemoDataCommandTest extends TestCase
 
     public function testItResetsTheDemoUserPasswordOnReseed(): void
     {
+        $organization = (new Organization())
+            ->setName('Existing Demo Org')
+            ->setCountry('FR');
         $existingUser = (new User())
             ->setEmail('demo@cultivatrace.local')
+            ->setOrganization($organization)
             ->setPassword('stale-password-hash');
 
         $userRepository = $this->getMockBuilder(EntityRepository::class)
