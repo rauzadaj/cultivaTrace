@@ -10,6 +10,7 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
 import type { JwtPayload, User, UserRole } from '@/types/api'
 import { clearAuthTokens, getAccessToken, setAuthTokens } from '@/services/authSession'
+import { canAccessRoles } from '@/router/access'
 
 export const useAuthStore = defineStore('auth', () => {
   // ── State ────────────────────────────────────────────────────────────────
@@ -83,6 +84,10 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.roles.includes(role) ?? false
   }
 
+  function hasAnyRole(roles: readonly UserRole[]): boolean {
+    return canAccessRoles(user.value, roles)
+  }
+
   function buildUserFromToken(jwt: string): User {
     const payload = parseJwtPayload(jwt)
 
@@ -125,6 +130,6 @@ export const useAuthStore = defineStore('auth', () => {
     user, token, loading,
     isAuthenticated, isSuperAdmin, isOrgAdmin, isOrgUser, isApiUser,
     organization, isPlanActive, hasIoT,
-    login, logout, fetchMe, init, hasRole,
+    login, logout, fetchMe, init, hasRole, hasAnyRole,
   }
 })

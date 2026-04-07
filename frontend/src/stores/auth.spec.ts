@@ -44,4 +44,18 @@ describe('auth store role getters', () => {
     expect(store.isOrgUser).toBe(false)
     expect(store.isSuperAdmin).toBe(false)
   })
+
+  it('matches any role in the provided route guard set', () => {
+    const store = useAuthStore()
+
+    store.user = {
+      id: '3',
+      email: 'operator@cultivatrace.local',
+      roles: ['ROLE_ORG_USER'],
+      mfaEnabled: false,
+    }
+
+    expect(store.hasAnyRole(['ROLE_ORG_ADMIN'])).toBe(false)
+    expect(store.hasAnyRole(['ROLE_ORG_ADMIN', 'ROLE_ORG_USER'])).toBe(true)
+  })
 })
