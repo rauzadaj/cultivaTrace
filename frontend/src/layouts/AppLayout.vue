@@ -406,6 +406,7 @@ const mobileNavigation: readonly RoleScopedNavigationItem[] = [
 
 const desktopNavigation: readonly RoleScopedNavigationItem[] = [
   ...mobileNavigation.slice(0, 4),
+  { label: 'Reporting', icon: 'mdi-file-chart-outline', to: '/reporting', roles: ORG_ADMIN_ROLES },
   { label: 'Conformite', icon: 'mdi-shield-check-outline', to: '/compliance', roles: ORG_ADMIN_ROLES },
   { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing', roles: ORG_ADMIN_ROLES },
   { label: 'Parametres', icon: 'mdi-cog-outline', to: '/settings', roles: ORG_ADMIN_ROLES },
@@ -422,6 +423,7 @@ const headerTitle = computed(() => {
   if (route.name === 'sensors-dashboard') return 'Sensors'
   if (route.name === 'kyb') return 'KYB'
   if (route.name === 'compliance') return 'Compliance'
+  if (route.name === 'reporting') return 'Reporting'
   if (route.name === 'billing' || route.name === 'billing-success') return 'Billing'
   if (route.name === 'settings') return 'Settings'
   if (route.name === 'more') return 'More'
@@ -435,6 +437,7 @@ const breadcrumb = computed(() => {
   if (route.name === 'sensors-dashboard') return 'Operations / Sensors'
   if (route.name === 'kyb') return 'Compliance / KYB'
   if (route.name === 'compliance') return 'Compliance / CTS'
+  if (route.name === 'reporting') return 'Reporting / Exports'
   if (route.name === 'billing' || route.name === 'billing-success') return 'Settings / Billing'
   if (route.name === 'settings') return 'Settings / Account'
 
@@ -448,6 +451,7 @@ const mobileKicker = computed(() => {
   if (route.name === 'sensors-dashboard') return 'Capteurs'
   if (route.name === 'kyb') return 'Conformite'
   if (route.name === 'compliance') return 'CTS'
+  if (route.name === 'reporting') return 'Reporting'
   if (route.name === 'billing' || route.name === 'billing-success') return 'Abonnement'
   if (route.name === 'settings') return 'Compte'
 
