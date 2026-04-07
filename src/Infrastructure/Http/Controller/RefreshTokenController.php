@@ -39,9 +39,15 @@ final readonly class RefreshTokenController
 
         /** @var User $user */
         $user = $rotated['refreshToken']->getUser();
+        if (!$user->hasOrganization()) {
+            $this->refreshTokenService->revoke($rotated['refreshToken']);
+
+            return new JsonResponse(['error' => 'Invalid refresh token.'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $organization = $user->getOrganization();
 
-        if ($organization === null || $organization->isSuspended() || $user->getAccountStatus() !== UserAccountStatus::ACTIVE) {
+        if ($organization->isSuspended() || $user->getAccountStatus() !== UserAccountStatus::ACTIVE) {
             $this->refreshTokenService->revoke($rotated['refreshToken']);
 
             return new JsonResponse(['error' => 'Invalid refresh token.'], Response::HTTP_UNAUTHORIZED);

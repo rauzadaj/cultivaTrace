@@ -32,10 +32,11 @@ final class InputRecordStateProcessor implements ProcessorInterface
                 throw new InvalidArgumentException('An authenticated user is required to create or update an input record.');
             }
 
-            $organization = $user->getOrganization();
-            if ($organization === null) {
+            if (!$user->hasOrganization()) {
                 throw new InvalidArgumentException('The authenticated user must belong to an organization.');
             }
+
+            $organization = $user->getOrganization();
 
             if ($data->getPlant()->getTenantId() != $organization->getId()) {
                 throw new AccessDeniedException('The selected plant does not belong to the authenticated organization.');

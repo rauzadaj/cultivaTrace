@@ -40,10 +40,11 @@ final class PlantStateProcessor implements ProcessorInterface
                 throw new InvalidArgumentException('An authenticated user is required to create or update a plant.');
             }
 
-            $organization = $user->getOrganization();
-            if ($organization === null) {
+            if (!$user->hasOrganization()) {
                 throw new InvalidArgumentException('The authenticated user must belong to an organization.');
             }
+
+            $organization = $user->getOrganization();
 
             $data->setTenantId($organization->getId());
 
