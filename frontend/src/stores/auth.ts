@@ -9,14 +9,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
 import type { JwtPayload, User, UserRole } from '@/types/api'
-
-const TOKEN_KEY = 'cultivatrace_token'
-const LEGACY_TOKEN_KEY = 'jwt_token'
+import { clearAuthTokens, getAccessToken, setAuthTokens } from '@/services/authSession'
 
 export const useAuthStore = defineStore('auth', () => {
   // ── State ────────────────────────────────────────────────────────────────
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY))
+  const token = ref<string | null>(getAccessToken())
   const loading = ref(false)
 
   // ── Getters ──────────────────────────────────────────────────────────────
@@ -36,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   function syncTokenFromStorage(): void {
-    const storedToken = localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY)
+    const storedToken = getAccessToken()
 
     if (storedToken && storedToken !== token.value) {
       token.value = storedToken
@@ -48,9 +46,11 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       const { data } = await authApi.login({ email, password })
+      setAuthTokens({
+        token: data.token,
+        refreshToken: data.refreshToken,
+      })
       token.value = data.token
-      localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.removeItem(LEGACY_TOKEN_KEY)
       await fetchMe()
     } finally {
       loading.value = false
@@ -76,8 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout(): void {
     user.value = null
     token.value = null
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(LEGACY_TOKEN_KEY)
+    clearAuthTokens()
   }
 
   function hasRole(role: UserRole): boolean {
