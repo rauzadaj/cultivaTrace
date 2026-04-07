@@ -2,13 +2,16 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import router from './index'
 import { pinia } from '@/plugins/pinia'
 import { useAuthStore } from '@/stores/auth'
-import type { User } from '@/types/api'
+import type { User, UserRole } from '@/types/api'
 
-function buildUser(licenseStatus: 'active' | 'pending' = 'active'): User {
+function buildUser(
+  licenseStatus: 'active' | 'pending' = 'active',
+  roles: UserRole[] = ['ROLE_ORG_ADMIN'],
+): User {
   return {
     id: 'user-1',
     email: 'demo@cultivatrace.local',
-    roles: ['ROLE_ORG_ADMIN'],
+    roles,
     mfaEnabled: false,
     organization: {
       id: 'org-1',
@@ -52,5 +55,14 @@ describe('router guards', () => {
     await router.push('/auth?redirect=/plants')
 
     expect(router.currentRoute.value.fullPath).toBe('/plants')
+  })
+
+  it('redirects unauthorized users away from admin routes', async () => {
+    authStore.token = 'jwt-token'
+    authStore.user = buildUser('active', ['ROLE_ORG_USER'])
+
+    await router.push('/billing')
+
+    expect(router.currentRoute.value.name).toBe('dashboard-overview')
   })
 })

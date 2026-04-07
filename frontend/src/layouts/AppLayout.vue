@@ -97,7 +97,7 @@
       <div class="app-drawer__content">
         <nav class="app-nav">
           <RouterLink
-            v-for="item in desktopNavigation"
+            v-for="item in visibleDesktopNavigation"
             :key="item.to"
             :to="item.to"
             class="app-nav__item"
@@ -128,14 +128,14 @@
     </q-page-container>
 
     <q-footer v-if="showMobileFooter" class="app-footer">
-      <q-tabs
-        dense
-        indicator-color="transparent"
-        active-color="primary"
-        class="bottom-tabs"
-      >
-        <q-route-tab
-          v-for="item in mobileNavigation"
+        <q-tabs
+          dense
+          indicator-color="transparent"
+          active-color="primary"
+          class="bottom-tabs"
+        >
+          <q-route-tab
+          v-for="item in visibleMobileNavigation"
           :key="item.to"
           :to="item.to"
           :icon="item.icon"
@@ -280,7 +280,8 @@ import CInput from '../components/ui/CInput.vue'
 import { useOfflineQueue } from '../composables/useOfflineQueue'
 import { useAuthStore } from '../stores/auth'
 import { usePlantsStore } from '../stores/plants'
-import type { AlertItem, Plant, PlantStage } from '../types/api'
+import type { AlertItem, Plant, PlantStage, UserRole } from '../types/api'
+import { filterNavigationItems, type RoleScopedNavigationItem } from '../router/access'
 
 const route = useRoute()
 const router = useRouter()
@@ -383,21 +384,27 @@ const stageOptions = computed(() => {
   return []
 })
 
-const mobileNavigation = [
-  { label: 'Accueil', icon: 'mdi-home-outline', to: '/dashboard/overview' },
-  { label: 'Plants', icon: 'mdi-sprout-outline', to: '/plants' },
-  { label: 'Salles', icon: 'mdi-door-open', to: '/rooms' },
-  { label: 'Capteurs', icon: 'mdi-thermometer-lines', to: '/sensors' },
-  { label: 'Plus', icon: 'mdi-dots-horizontal', to: '/more' },
+const ORG_USER_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN', 'ROLE_ORG_USER']
+const ORG_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN']
+
+const mobileNavigation: readonly RoleScopedNavigationItem[] = [
+  { label: 'Accueil', icon: 'mdi-home-outline', to: '/dashboard/overview', roles: ORG_USER_ROLES },
+  { label: 'Plants', icon: 'mdi-sprout-outline', to: '/plants', roles: ORG_USER_ROLES },
+  { label: 'Salles', icon: 'mdi-door-open', to: '/rooms', roles: ORG_USER_ROLES },
+  { label: 'Capteurs', icon: 'mdi-thermometer-lines', to: '/sensors', roles: ORG_USER_ROLES },
+  { label: 'Plus', icon: 'mdi-dots-horizontal', to: '/more', roles: ORG_USER_ROLES },
 ] as const
 
-const desktopNavigation = [
+const desktopNavigation: readonly RoleScopedNavigationItem[] = [
   ...mobileNavigation.slice(0, 4),
-  { label: 'Conformite', icon: 'mdi-shield-check-outline', to: '/compliance' },
-  { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing' },
-  { label: 'Parametres', icon: 'mdi-cog-outline', to: '/settings' },
+  { label: 'Conformite', icon: 'mdi-shield-check-outline', to: '/compliance', roles: ORG_ADMIN_ROLES },
+  { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing', roles: ORG_ADMIN_ROLES },
+  { label: 'Parametres', icon: 'mdi-cog-outline', to: '/settings', roles: ORG_ADMIN_ROLES },
   mobileNavigation[4],
 ] as const
+
+const visibleMobileNavigation = computed(() => filterNavigationItems(mobileNavigation, authStore.user))
+const visibleDesktopNavigation = computed(() => filterNavigationItems(desktopNavigation, authStore.user))
 
 const headerTitle = computed(() => {
   if (route.name === 'plants-list') return 'Plants'

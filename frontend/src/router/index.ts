@@ -13,6 +13,11 @@ import SettingsView from '../views/settings/SettingsView.vue'
 import PlantDetailView from '../views/plants/PlantDetailView.vue'
 import PlantListView from '../views/plants/PlantListView.vue'
 import RoomDashboard from '../views/rooms/RoomDashboard.vue'
+import type { UserRole } from '@/types/api'
+import { canAccessRoles } from './access'
+
+const ORG_USER_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN', 'ROLE_ORG_USER']
+const ORG_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN']
 
 const router = createRouter({
   history: createWebHistory(),
@@ -40,56 +45,67 @@ const router = createRouter({
           path: 'dashboard/overview',
           name: 'dashboard-overview',
           component: DashboardView,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'plants',
           name: 'plants-list',
           component: PlantListView,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'plants/:id',
           name: 'plant-detail',
           component: PlantDetailView,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'rooms',
           name: 'rooms-dashboard',
           component: RoomDashboard,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'sensors',
           name: 'sensors-dashboard',
           component: SensorsView,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'more',
           name: 'more',
           component: MoreView,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'kyb',
           name: 'kyb',
           component: KybView,
+          meta: { roles: ORG_USER_ROLES },
         },
         {
           path: 'billing',
           name: 'billing',
           component: BillingView,
+          meta: { roles: ORG_ADMIN_ROLES },
         },
         {
           path: 'compliance',
           name: 'compliance',
           component: ComplianceView,
+          meta: { roles: ORG_ADMIN_ROLES },
         },
         {
           path: 'settings',
           name: 'settings',
           component: SettingsView,
+          meta: { roles: ORG_ADMIN_ROLES },
         },
         {
           path: 'billing/success',
           name: 'billing-success',
           component: () => import('../views/billing/BillingSuccessView.vue'),
+          meta: { roles: ORG_ADMIN_ROLES },
         },
         {
           path: 'dashboard/lots',
@@ -128,6 +144,16 @@ router.beforeEach((to) => {
 
   if (authStore.isAuthenticated && !authStore.isPlanActive && to.name !== 'kyb') {
     return { name: 'kyb' }
+  }
+
+  const requiredRoles = to.matched.flatMap((record) => {
+    const roles = record.meta.roles
+
+    return Array.isArray(roles) ? roles : []
+  }) as UserRole[]
+
+  if (requiredRoles.length > 0 && authStore.user && !canAccessRoles(authStore.user, requiredRoles)) {
+    return { name: 'dashboard-overview' }
   }
 
   if (to.name === 'auth' && authStore.isAuthenticated) {
