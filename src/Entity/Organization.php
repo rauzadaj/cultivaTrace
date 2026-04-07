@@ -49,6 +49,13 @@ class Organization
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $stripeCustomerId = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $contactEmail = null;
+
+    /** @var array<string, mixed> */
+    #[ORM\Column(type: Types::JSON, options: ['jsonb' => true])]
+    private array $config = [];
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
@@ -79,6 +86,12 @@ class Organization
     public function setLicenseExpiresAt(?\DateTimeImmutable $date): self { $this->licenseExpiresAt = $date; return $this; }
     public function getStripeCustomerId(): ?string { return $this->stripeCustomerId; }
     public function setStripeCustomerId(?string $id): self { $this->stripeCustomerId = $id; return $this; }
+    public function getContactEmail(): ?string { return $this->contactEmail; }
+    public function setContactEmail(?string $contactEmail): self { $this->contactEmail = $contactEmail; return $this; }
+    /** @return array<string, mixed> */
+    public function getConfig(): array { return $this->config; }
+    /** @param array<string, mixed> $config */
+    public function setConfig(array $config): self { $this->config = $config; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUsers(): Collection { return $this->users; }
     public function getFarms(): Collection { return $this->farms; }

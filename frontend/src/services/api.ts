@@ -15,6 +15,7 @@ import type {
   InputRecord, HarvestRecord, Sensor, SensorHistoryResponse,
   User, Organization, JwtResponse, LoginCredentials, ApiError, DashboardOverviewResponse,
   OrganizationRegistrationPayload, RegistrationResponse,
+  OrganizationSettingsResponse, OrganizationMember, OrganizationInvitation,
 } from '@/types/api'
 import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
 
@@ -165,6 +166,11 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
     }),
 
+  acceptInvitation: (token: string, password: string) =>
+    http.post<{ message: string; email: string }>('/register/invitation/accept', { token, password }, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
   refresh: (refreshToken: string) =>
     refreshHttp.post<JwtResponse>('/auth/token/refresh', { refreshToken }),
 
@@ -198,6 +204,27 @@ export const billingApi = {
 
   status: () =>
     http.get('/billing/status'),
+}
+
+export const organizationAdminApi = {
+  settings: () =>
+    http.get<OrganizationSettingsResponse>('/organization/settings'),
+
+  updateSettings: (payload: Partial<Pick<OrganizationSettingsResponse, 'name' | 'contactEmail' | 'config'>>) =>
+    http.patch<OrganizationSettingsResponse>('/organization/settings', payload, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  members: () =>
+    http.get<{ members: OrganizationMember[] }>('/organization/members'),
+
+  invitations: () =>
+    http.get<{ invitations: OrganizationInvitation[] }>('/organization/invitations'),
+
+  invite: (payload: { email: string; role: 'ROLE_ORG_ADMIN' | 'ROLE_ORG_USER' }) =>
+    http.post<OrganizationInvitation>('/organization/invitations', payload, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
 }
 
 export const dashboardApi = {
