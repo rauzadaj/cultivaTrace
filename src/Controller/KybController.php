@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\LicenseDocument;
+use App\Entity\User;
 use App\Service\KybSubmissionService;
 use App\Service\KybService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,9 +34,9 @@ class KybController extends AbstractController
      *   file          : fichier PDF ou image (optionnel en dev)
      */
     #[Route('/api/kyb/upload', methods: ['POST'])]
-    public function upload(Request $request, #[CurrentUser] $user): JsonResponse
+    public function upload(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
-        $org = $user->getOrganization();
+        $org = $this->assertOrganizationWriter($user);
         if (!$org) {
             return $this->json(['error' => 'Aucune organisation associée à ce compte'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -163,5 +164,18 @@ class KybController extends AbstractController
             'status'  => $license->getStatus(),
             'message' => $action === 'approve' ? 'Licence approuvée' : 'Licence rejetée',
         ]);
+    }
+
+    private function assertOrganizationWriter(?User $user): ?\App\Entity\Organization
+    {
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException('Authenticated user required.');
+        }
+
+        if (!array_intersect($user->getRoles(), ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
+            throw $this->createAccessDeniedException('Insufficient role for KYB writes.');
+        }
+
+        return $user?->getOrganization();
     }
 }
