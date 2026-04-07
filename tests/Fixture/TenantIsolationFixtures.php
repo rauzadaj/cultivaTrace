@@ -25,12 +25,12 @@ final class TenantIsolationFixtures
         $userA = (new User())
             ->setEmail('operator-a@cultivatrace.local')
             ->setPassword('hashed-password-a')
-            ->setRole('ROLE_ORG_USER')
+            ->setRoles(['ROLE_ORG_USER'])
             ->setOrganization($organizationA);
         $userB = (new User())
             ->setEmail('operator-b@cultivatrace.local')
             ->setPassword('hashed-password-b')
-            ->setRole('ROLE_ORG_USER')
+            ->setRoles(['ROLE_ORG_USER'])
             ->setOrganization($organizationB);
 
         $farmA = (new Farm())
