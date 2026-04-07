@@ -3,6 +3,7 @@ import { pinia } from '../plugins/pinia'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import AuthView from '../views/AuthView.vue'
+import OnboardingView from '../views/auth/OnboardingView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import MoreView from '../views/MoreView.vue'
 import SensorsView from '../views/SensorsView.vue'
@@ -30,6 +31,14 @@ const router = createRouter({
       path: '/auth',
       name: 'auth',
       component: AuthView,
+      meta: {
+        public: true,
+      },
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: OnboardingView,
       meta: {
         public: true,
       },
@@ -156,7 +165,7 @@ router.beforeEach((to) => {
     return { name: 'dashboard-overview' }
   }
 
-  if (to.name === 'auth' && authStore.isAuthenticated) {
+  if ((to.name === 'auth' || to.name === 'onboarding') && authStore.isAuthenticated) {
     return authStore.isPlanActive
       ? (typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard/overview')
       : '/kyb'
