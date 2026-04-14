@@ -6,7 +6,10 @@ use App\Security\JwtKeyBootstrapper;
 require dirname(__DIR__).'/vendor/autoload.php';
 
 if (method_exists(Dotenv::class, 'bootEnv')) {
-    (new Dotenv())->bootEnv(dirname(__DIR__).'/.env');
+    $projectDir = dirname(__DIR__);
+    $dotenvPath = is_file($projectDir.'/.env') ? $projectDir.'/.env' : $projectDir.'/.env.test';
+
+    (new Dotenv())->bootEnv($dotenvPath, 'test');
 }
 
 (new JwtKeyBootstrapper(dirname(__DIR__)))->ensure(
