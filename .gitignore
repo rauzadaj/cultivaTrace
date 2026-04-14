@@ -42,3 +42,10 @@ pnpm-debug.log*
 /public/Logo/
 ###< local assets ###
 .env
+.env.local
+.env.local.php
+.env..local
+config/jwt/private.pem
+config/jwt/public.pem
+config/jwt/.pem
+config/jwt/*.key
