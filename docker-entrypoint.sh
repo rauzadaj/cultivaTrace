@@ -3,9 +3,14 @@ set -e
 
 APP_ENV="${APP_ENV:-prod}"
 PORT="${PORT:-80}"
-JWT_DIR="/var/www/html/config/jwt"
+JWT_DIR="/var/www/html/var/jwt"
 NGINX_TEMPLATE="/etc/nginx/templates/default.conf.template"
 NGINX_CONF="/etc/nginx/conf.d/default.conf"
+JWT_SECRET_KEY="${JWT_SECRET_KEY:-$JWT_DIR/private.pem}"
+JWT_PUBLIC_KEY="${JWT_PUBLIC_KEY:-$JWT_DIR/public.pem}"
+
+export JWT_SECRET_KEY
+export JWT_PUBLIC_KEY
 
 mkdir -p /var/www/html/var/cache /var/www/html/var/log "$JWT_DIR"
 chown -R www-data:www-data /var/www/html/var
@@ -48,15 +53,11 @@ wait_for_database() {
   '
 }
 
-if [ -n "${JWT_SECRET_KEY_BASE64:-}" ]; then
-  echo "$JWT_SECRET_KEY_BASE64" | base64 -d > "$JWT_DIR/private.pem"
-  chmod 600 "$JWT_DIR/private.pem"
-fi
-
-if [ -n "${JWT_PUBLIC_KEY_BASE64:-}" ]; then
-  echo "$JWT_PUBLIC_KEY_BASE64" | base64 -d > "$JWT_DIR/public.pem"
-  chmod 644 "$JWT_DIR/public.pem"
-fi
+echo "Ensuring JWT key material..."
+php /var/www/html/bin/generate-jwt-keys.php
+chown www-data:www-data "$JWT_SECRET_KEY" "$JWT_PUBLIC_KEY" 2>/dev/null || true
+chmod 640 "$JWT_SECRET_KEY" 2>/dev/null || true
+chmod 644 "$JWT_PUBLIC_KEY" 2>/dev/null || true
 
 if [ -f "$NGINX_TEMPLATE" ]; then
   export PORT
