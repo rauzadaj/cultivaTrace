@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Plant;
 use App\Entity\DestructionIntent;
 use App\Service\DestructionWorkflowService;
+use App\Service\License\LicenseGuard;
 use App\Security\Voter\PlantVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,7 @@ class DestructionController extends AbstractController
 {
     public function __construct(
         private readonly DestructionWorkflowService $destructionWorkflow,
+        private readonly LicenseGuard $licenseGuard,
     ) {}
 
     /**
@@ -29,6 +31,7 @@ class DestructionController extends AbstractController
     public function intent(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
     {
         $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $plant);
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
 
         try {
             $intent = $this->destructionWorkflow->declareIntent(
@@ -56,6 +59,7 @@ class DestructionController extends AbstractController
     public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] $user): JsonResponse
     {
         $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $intent->getPlant());
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
 
         try {
             $this->destructionWorkflow->confirmIntent(
