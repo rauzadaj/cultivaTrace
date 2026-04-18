@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\ReportExport;
 use App\Entity\User;
 use App\Security\Voter\TenantAwareVoter;
+use App\Service\License\LicenseGuard;
 use App\Service\ReportingExportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ final class ReportingController extends AbstractController
     public function __construct(
         private readonly ReportingExportService $reportingExportService,
         private readonly EntityManagerInterface $entityManager,
+        private readonly LicenseGuard $licenseGuard,
     ) {
     }
 
@@ -29,6 +31,7 @@ final class ReportingController extends AbstractController
     public function createHarvestSummary(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $organization = $this->assertAdminUser($user);
+        $this->licenseGuard->assertLicenseApproved($organization);
         $payload = json_decode($request->getContent(), true) ?? [];
 
         if (!$this->isValidDateRange($payload['dateFrom'] ?? null, $payload['dateTo'] ?? null)) {
@@ -49,6 +52,7 @@ final class ReportingController extends AbstractController
     public function createAuditExport(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $organization = $this->assertAdminUser($user);
+        $this->licenseGuard->assertLicenseApproved($organization);
         $payload = json_decode($request->getContent(), true) ?? [];
 
         if (!$this->isValidDateRange($payload['dateFrom'] ?? null, $payload['dateTo'] ?? null)) {

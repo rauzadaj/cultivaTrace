@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Plant;
+use App\Entity\User;
 use App\Service\HarvestWorkflowService;
+use App\Service\License\LicenseGuard;
 use App\Security\Voter\PlantVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,11 +31,19 @@ class HarvestController extends AbstractController
 {
     public function __construct(
         private readonly HarvestWorkflowService $harvestWorkflow,
-    ) {}
+        private readonly LicenseGuard $licenseGuard,
+    ) {
+    }
 
-    public function __invoke(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
+    public function __invoke(Plant $plant, Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $this->denyAccessUnlessGranted(PlantVoter::HARVEST, $plant);
+
+        if (!$user instanceof User || !$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('Authenticated user required.');
+        }
+
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
 
         try {
             $harvest = $this->harvestWorkflow->harvest(

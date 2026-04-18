@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Alert;
 use App\Entity\User;
 use App\Security\Voter\TenantAwareVoter;
+use App\Service\License\LicenseGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,7 @@ final class AcknowledgeAlertController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly LicenseGuard $licenseGuard,
     ) {
     }
 
@@ -35,6 +37,8 @@ final class AcknowledgeAlertController extends AbstractController
         if (!$this->isGranted(TenantAwareVoter::ACCESS, $alert)) {
             throw new AccessDeniedHttpException('Cross-tenant alert acknowledge is forbidden.');
         }
+
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
 
         if (!$alert->isAcknowledged()) {
             $alert->setAcknowledgedAt(new \DateTimeImmutable());

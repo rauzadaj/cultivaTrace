@@ -13,6 +13,7 @@ use App\Entity\PlantEvent;
 use App\Entity\Room;
 use App\Entity\Strain;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
 use Symfony\Component\HttpFoundation\Response;
@@ -183,6 +184,7 @@ final class HarvestControllerTest extends ApiTestCase
     private function createHarvestFixture(string $rfidTag = 'PLANT-HARVEST', string $role = 'ROLE_ORG_USER'): array
     {
         $organization = $this->createOrganization('Org Harvest');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $user = $this->createUser($organization, sprintf('%s@test.local', strtolower($rfidTag)), role: $role);
         $farm = $this->createFarm($organization, 'Farm Harvest');
         $room = $this->createRoom($farm, 'Flower Room', 'flower');

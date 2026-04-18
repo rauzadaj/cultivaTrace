@@ -10,6 +10,7 @@ use App\Entity\Organization;
 use App\Entity\Room;
 use App\Entity\Sensor;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use App\Repository\SensorReadingRepository;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -165,6 +166,7 @@ final class SensorControllerTest extends ApiTestCase
     private function createSensorEntityFixture(string $email, string $type): array
     {
         $organization = $this->createOrganization('Org Sensors');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $farm = $this->createFarm($organization, 'Farm Sensors');
         $room = $this->createRoom($farm, 'Room Sensors', 'veg');
 

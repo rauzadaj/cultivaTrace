@@ -5,6 +5,7 @@ namespace App\Infrastructure\Http\Controller;
 use App\Application\Cultivation\Workflow\CropLifecycleManager;
 use App\Domain\Cultivation\Model\Crop;
 use App\Entity\User;
+use App\Service\License\LicenseGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,6 +22,7 @@ final readonly class CropLifecycleTransitionController
         private EntityManagerInterface $entityManager,
         private CropLifecycleManager $cropLifecycleManager,
         private Security $security,
+        private LicenseGuard $licenseGuard,
     ) {
     }
 
@@ -84,6 +86,8 @@ final readonly class CropLifecycleTransitionController
         if ((string) $crop->getTenantId() !== (string) $organization->getId()) {
             throw new AccessDeniedHttpException('Cross-tenant crop workflow writes are forbidden.');
         }
+
+        $this->licenseGuard->assertLicenseApproved($organization);
     }
 
     /** @param array<string, mixed> $payload */

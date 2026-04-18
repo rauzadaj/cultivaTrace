@@ -8,7 +8,7 @@
  *   const { subscribe, unsubscribe } = useMercure()
  *
  *   onMounted(() => {
- *     subscribe(`cannas/${orgId}/rooms/${roomId}`, (data) => {
+ *     subscribe(`https://cultivatrace.com/tenants/${orgId}/rooms/${roomId}`, (data) => {
  *       console.log('Nouvelle lecture :', data)
  *     })
  *   })
