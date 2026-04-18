@@ -20,5 +20,6 @@ mercure:
             public_url: '%env(default:app.default_mercure_public_url:MERCURE_PUBLIC_URL)%'
             jwt:
                 secret: '%env(default:app.default_mercure_jwt_secret:MERCURE_JWT_SECRET)%'
-                publish: '*'
-                subscribe: '*'
+                publish:
+                    - 'https://cultivatrace.com/tenants/*'
+                subscribe: []
