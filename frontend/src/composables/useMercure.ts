@@ -148,33 +148,50 @@ export function useMercure() {
     refreshTimers.set(topic, timer)
   }
 
+  function scheduleReconnect(topic: string, callback: (data: SensorUpdate) => void, delayMs = 5_000): void {
+    clearRefreshTimer(topic)
+
+    const timer = window.setTimeout(() => {
+      void openEventSource(topic, callback)
+    }, delayMs)
+
+    refreshTimers.set(topic, timer)
+  }
+
   async function openEventSource(
     topic: string,
     callback: (data: SensorUpdate) => void,
     forceRefreshToken = false,
   ): Promise<void> {
-    const token = await fetchMercureToken(forceRefreshToken)
-    const current = eventSources.value.get(topic)
-    current?.close()
+    try {
+      const token = await fetchMercureToken(forceRefreshToken)
+      const current = eventSources.value.get(topic)
+      current?.close()
 
-    const es = new EventSource(buildMercureUrl(topic, token.value))
+      const es = new EventSource(buildMercureUrl(topic, token.value))
 
-    es.addEventListener('message', (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data) as SensorUpdate
-        callback(data)
-      } catch {
-        console.warn('[Mercure] Impossible de parser:', event.data)
-      }
-    })
+      es.addEventListener('message', (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data) as SensorUpdate
+          callback(data)
+        } catch {
+          console.warn('[Mercure] Impossible de parser:', event.data)
+        }
+      })
 
-    es.addEventListener('error', () => {
-      console.warn(`[Mercure] Reconnexion sur topic: ${topic}`)
-      // EventSource reconnecte automatiquement
-    })
+      es.addEventListener('error', () => {
+        console.warn(`[Mercure] Reconnexion sur topic: ${topic}`)
+        // EventSource reconnecte automatiquement
+      })
 
-    eventSources.value.set(topic, es)
-    scheduleRefresh(topic)
+      eventSources.value.set(topic, es)
+      scheduleRefresh(topic)
+    } catch (error) {
+      console.warn(`[Mercure] Echec de connexion sur topic: ${topic}`, error)
+      eventSources.value.get(topic)?.close()
+      eventSources.value.delete(topic)
+      scheduleReconnect(topic, callback)
+    }
   }
 
   function subscribe(topic: string, callback: (data: SensorUpdate) => void): void {
