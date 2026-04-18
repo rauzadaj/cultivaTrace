@@ -9,6 +9,8 @@ use App\Entity\User;
 use App\Repository\SensorReadingRepository;
 use App\Security\Voter\TenantAwareVoter;
 use App\Service\AlertService;
+use App\Service\License\LicenseGuard;
+use App\Service\MercureService;
 use App\Service\VpdService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -17,8 +19,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\Mercure\HubInterface;
-use Symfony\Component\Mercure\Update;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -37,10 +37,12 @@ class SensorReadingController extends AbstractController
         private readonly SensorReadingRepository $readings,
         private readonly AlertService $alerts,
         private readonly VpdService $vpd,
-        private readonly HubInterface $hub,
+        private readonly MercureService $mercure,
         private readonly EntityManagerInterface $em,
         private readonly LoggerInterface $logger,
-    ) {}
+        private readonly LicenseGuard $licenseGuard,
+    ) {
+    }
 
     public function __invoke(
         Sensor  $sensor,
@@ -90,13 +92,10 @@ class SensorReadingController extends AbstractController
         $tenantId = (string) $sensor->getTenantId();
 
         try {
-            $this->hub->publish(new Update(
-                topics: [
-                    "cannas/{$tenantId}/sensors",
-                    "cannas/{$tenantId}/rooms/{$sensor->getRoom()->getId()}",
-                ],
-                data: json_encode($payload),
-            ));
+            $this->mercure->publishPrivateUpdate([
+                $this->mercure->buildSensorTopic($tenantId, (string) $sensor->getId()),
+                $this->mercure->buildRoomTopic($tenantId, (string) $sensor->getRoom()->getId()),
+            ], $payload);
         } catch (\Throwable $exception) {
             $this->logger->warning('Mercure publish failed for sensor reading.', [
                 'sensorId' => (string) $sensor->getId(),
@@ -131,6 +130,8 @@ class SensorReadingController extends AbstractController
         if (!$this->isGranted(TenantAwareVoter::ACCESS, $sensor)) {
             throw new AccessDeniedHttpException('Cross-tenant sensor writes are forbidden.');
         }
+
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
     }
 
     /**

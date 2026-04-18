@@ -308,7 +308,7 @@ const mercureTopic = computed(() => {
     return null
   }
 
-  return `cannas/${orgId.value}/rooms/${currentRoomId.value}`
+  return `https://cultivatrace.com/tenants/${orgId.value}/rooms/${currentRoomId.value}`
 })
 
 const subscriptionWarning = computed(() => {

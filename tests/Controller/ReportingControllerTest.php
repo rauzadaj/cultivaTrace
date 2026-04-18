@@ -13,6 +13,7 @@ use App\Entity\ReportExport;
 use App\Entity\Room;
 use App\Entity\Strain;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ReportingControllerTest extends ApiTestCase
@@ -112,6 +113,7 @@ final class ReportingControllerTest extends ApiTestCase
     private function createReportingFixture(string $email = 'reporting@test.local'): array
     {
         $organization = $this->createOrganization('Org Reporting');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $admin = $this->createUser($organization, $email, role: 'ROLE_ORG_ADMIN');
         $farm = $this->createFarm($organization, 'Farm Reporting');
         $room = $this->createRoom($farm, 'Room Reporting');

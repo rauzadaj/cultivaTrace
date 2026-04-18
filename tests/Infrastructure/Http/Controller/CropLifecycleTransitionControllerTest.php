@@ -9,7 +9,9 @@ use App\Domain\Cultivation\Model\Crop;
 use App\Domain\Cultivation\Model\Genetic;
 use App\Entity\Organization;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use App\Infrastructure\Http\Controller\CropLifecycleTransitionController;
+use App\Service\License\LicenseGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +37,7 @@ final class CropLifecycleTransitionControllerTest extends TestCase
             $entityManager,
             new CropLifecycleManager($this->createMock(WorkflowInterface::class)),
             $security,
+            new LicenseGuard(),
         );
 
         $this->expectException(NotFoundHttpException::class);
@@ -61,7 +64,8 @@ final class CropLifecycleTransitionControllerTest extends TestCase
 
         $organization = (new Organization())
             ->setName('Org Workflow')
-            ->setCountry('FR');
+            ->setCountry('FR')
+            ->setLicenseStatus(LicenseStatus::ACTIVE);
         $crop->setTenantId($organization->getId());
         $user = (new User())
             ->setEmail('workflow@test.local')
@@ -85,6 +89,7 @@ final class CropLifecycleTransitionControllerTest extends TestCase
             $entityManager,
             new CropLifecycleManager($this->createMock(WorkflowInterface::class)),
             $security,
+            new LicenseGuard(),
         );
 
         $this->expectException(InvalidArgumentException::class);
@@ -148,6 +153,7 @@ final class CropLifecycleTransitionControllerTest extends TestCase
             $entityManager,
             new CropLifecycleManager($this->createMock(WorkflowInterface::class)),
             $security,
+            new LicenseGuard(),
         );
 
         $this->expectException(AccessDeniedHttpException::class);
