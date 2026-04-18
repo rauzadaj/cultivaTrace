@@ -8,6 +8,7 @@ use App\Entity\OrganizationInvitation;
 use App\Entity\User;
 use App\Repository\OrganizationInvitationRepository;
 use App\Service\Auth\OrganizationInvitationService;
+use App\Service\License\LicenseGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,6 +23,7 @@ final class OrganizationAdminController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly OrganizationInvitationService $invitationService,
         private readonly OrganizationInvitationRepository $invitationRepository,
+        private readonly LicenseGuard $licenseGuard,
     ) {
     }
 
@@ -47,6 +49,7 @@ final class OrganizationAdminController extends AbstractController
     public function updateSettings(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $organization = $this->assertOrganizationAdmin($user)->getOrganization();
+        $this->licenseGuard->assertLicenseApproved($organization);
         $data = json_decode($request->getContent(), true) ?? [];
 
         if (array_key_exists('name', $data)) {
@@ -127,6 +130,7 @@ final class OrganizationAdminController extends AbstractController
     public function invite(Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $invitedBy = $this->assertOrganizationAdmin($user);
+        $this->licenseGuard->assertLicenseApproved($invitedBy->getOrganization());
         $data = json_decode($request->getContent(), true) ?? [];
         $email = strtolower(trim((string) ($data['email'] ?? '')));
         $role = trim((string) ($data['role'] ?? 'ROLE_ORG_USER'));

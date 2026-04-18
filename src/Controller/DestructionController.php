@@ -6,7 +6,9 @@ namespace App\Controller;
 
 use App\Entity\Plant;
 use App\Entity\DestructionIntent;
+use App\Entity\User;
 use App\Service\DestructionWorkflowService;
+use App\Service\License\LicenseGuard;
 use App\Security\Voter\PlantVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,16 +21,24 @@ class DestructionController extends AbstractController
 {
     public function __construct(
         private readonly DestructionWorkflowService $destructionWorkflow,
-    ) {}
+        private readonly LicenseGuard $licenseGuard,
+    ) {
+    }
 
     /**
      * Étape 1 — Déclarer l'intention de destruction.
      * POST /api/plants/{id}/destroy
      */
     #[Route('/api/plants/{id}/destroy', methods: ['POST'])]
-    public function intent(Plant $plant, Request $request, #[CurrentUser] $user): JsonResponse
+    public function intent(Plant $plant, Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $plant);
+
+        if (!$user instanceof User || !$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('Authenticated user required.');
+        }
+
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
 
         try {
             $intent = $this->destructionWorkflow->declareIntent(
@@ -53,9 +63,15 @@ class DestructionController extends AbstractController
      * POST /api/destructions/{id}/confirm
      */
     #[Route('/api/destructions/{id}/confirm', methods: ['POST'])]
-    public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] $user): JsonResponse
+    public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
         $this->denyAccessUnlessGranted(PlantVoter::DESTROY, $intent->getPlant());
+
+        if (!$user instanceof User || !$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('Authenticated user required.');
+        }
+
+        $this->licenseGuard->assertLicenseApproved($user->getOrganization());
 
         try {
             $this->destructionWorkflow->confirmIntent(

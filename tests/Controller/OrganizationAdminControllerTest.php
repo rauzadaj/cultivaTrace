@@ -7,6 +7,7 @@ namespace App\Tests\Controller;
 use App\Entity\Organization;
 use App\Entity\OrganizationInvitation;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use Symfony\Component\HttpFoundation\Response;
 
 final class OrganizationAdminControllerTest extends ApiTestCase
@@ -25,6 +26,7 @@ final class OrganizationAdminControllerTest extends ApiTestCase
     public function testOrgAdminCanReadAndUpdateOrganizationSettings(): void
     {
         $organization = $this->createOrganization('Org Admin', 'CA');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $admin = $this->createUser($organization, 'admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
         $this->entityManager->flush();
 
@@ -54,6 +56,7 @@ final class OrganizationAdminControllerTest extends ApiTestCase
     public function testOrgAdminCanInviteMemberAndListPendingInvitations(): void
     {
         $organization = $this->createOrganization('Org Invite');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $admin = $this->createUser($organization, 'admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
         $this->entityManager->flush();
 
@@ -78,12 +81,27 @@ final class OrganizationAdminControllerTest extends ApiTestCase
     public function testOrgUserCannotAccessOrganizationAdminEndpoints(): void
     {
         $organization = $this->createOrganization('Org User');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $user = $this->createUser($organization, 'user@cultivatrace.local', role: 'ROLE_ORG_USER');
         $this->entityManager->flush();
 
         $this->authorizeClient($user);
         $this->client->request('GET', '/api/organization/settings', server: [
             'HTTP_ACCEPT' => 'application/json',
+        ]);
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testOrgAdminCannotUpdateSettingsWhenLicenseIsPending(): void
+    {
+        $organization = $this->createOrganization('Org Pending');
+        $admin = $this->createUser($organization, 'pending-admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($admin);
+        $this->client->jsonRequest('PATCH', '/api/organization/settings', [
+            'name' => 'Blocked Rename',
         ]);
 
         self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
