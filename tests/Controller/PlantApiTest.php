@@ -12,6 +12,7 @@ use App\Entity\PlantEvent;
 use App\Entity\Room;
 use App\Entity\Strain;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use App\Repository\PlantEventRepository;
 use App\Service\HashChainService;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,7 @@ final class PlantApiTest extends ApiTestCase
     public function testPostPlantsCreatesPlantForAuthenticatedTenant(): void
     {
         $organization = $this->createOrganization('Org A');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $user = $this->createUser($organization, 'grower-a@test.local');
         $farm = $this->createFarm($organization, 'Farm A');
         $room = $this->createRoom($farm, 'Veg Room');
@@ -64,6 +66,51 @@ final class PlantApiTest extends ApiTestCase
         self::assertNotNull($plant);
         self::assertSame((string) $organization->getId(), (string) $plant->getTenantId());
         self::assertSame($user->getEmail(), $plant->getCreatedBy()->getEmail());
+    }
+
+
+    public function testPostPlantsReturnsForbiddenWhenTenantLicenseIsPending(): void
+    {
+        $organization = $this->createOrganization('Org Pending');
+        $organization->setLicenseStatus(LicenseStatus::PENDING);
+        $user = $this->createUser($organization, 'pending@test.local');
+        $farm = $this->createFarm($organization, 'Farm Pending');
+        $room = $this->createRoom($farm, 'Pending Room');
+        $strain = $this->createStrain($organization, 'Pending OG');
+
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', '/api/plants', [
+            'room' => sprintf('/api/rooms/%s', $room->getId()),
+            'strain' => sprintf('/api/strains/%s', $strain->getId()),
+            'rfidTag' => 'PLANT-PENDING-001',
+            'germinatedAt' => '2026-03-01',
+            'stage' => 'germination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+
+        $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Tenant license status "pending" does not allow write operations.', $payload['detail']);
+    }
+
+    public function testGetPlantsIsNotBlockedWhenTenantLicenseIsPending(): void
+    {
+        $organization = $this->createOrganization('Org Read Pending');
+        $organization->setLicenseStatus(LicenseStatus::PENDING);
+        $user = $this->createUser($organization, 'pending-read@test.local');
+        $farm = $this->createFarm($organization, 'Farm Read Pending');
+        $room = $this->createRoom($farm, 'Room Read Pending');
+        $strain = $this->createStrain($organization, 'Pending Read OG');
+        $this->createPlant($room, $user, $strain, rfidTag: 'PLANT-PENDING-READ');
+
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->client->request('GET', '/api/plants');
+
+        $this->assertStatusCode(Response::HTTP_OK);
     }
 
     public function testGetPlantsReturnsOnlyPlantsOfAuthenticatedTenant(): void
@@ -103,6 +150,7 @@ final class PlantApiTest extends ApiTestCase
     public function testPostPlantsRejectsUserWithoutPlantCreatePermission(): void
     {
         $organization = $this->createOrganization('Org Read Only');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $user = $this->createUser($organization, 'readonly@test.local', roles: []);
         $farm = $this->createFarm($organization, 'Farm Read Only');
         $room = $this->createRoom($farm, 'Veg Room');
