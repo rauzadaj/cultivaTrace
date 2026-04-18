@@ -150,6 +150,7 @@ class KybController extends AbstractController
         $result = [
             'verified' => $action === 'approve',
             'method'   => 'manual',
+            'reviewed' => true,
             'reason'   => $reason,
         ];
 
