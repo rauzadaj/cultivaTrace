@@ -173,16 +173,16 @@ class StripeController extends AbstractController
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('', Response::HTTP_OK);
+            return new Response('OK', Response::HTTP_OK);
         } catch (\Throwable $exception) {
             $this->logger->error('[Stripe] Webhook handling failed', [
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('', Response::HTTP_OK);
+            return new Response('OK', Response::HTTP_OK);
         }
 
-        return new Response('', Response::HTTP_OK);
+        return new Response('OK', Response::HTTP_OK);
     }
 
     /**
