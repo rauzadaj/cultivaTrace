@@ -67,11 +67,6 @@
           </q-btn>
         </form>
 
-        <div class="auth-footer">
-          <span>Compte de demo local:</span>
-          <strong>demo@cultivatrace.local / TEST_ONLY_DEMO_PASSWORD</strong>
-        </div>
-
         <div class="auth-footer auth-footer--link">
           <span>Nouvelle organisation ?</span>
           <RouterLink to="/onboarding">Lancer l’onboarding</RouterLink>
