@@ -79,7 +79,8 @@ final class MercureTokenControllerTest extends ApiTestCase
      */
     private function decodeJwtPayload(string $token): array
     {
-        [, $payload = ''] = explode('.', $token, 3) + [null, '', null];
+        $parts = explode('.', $token, 3);
+        $payload = $parts[1] ?? '';
         $normalizedPayload = strtr($payload, '-_', '+/');
         $normalizedPayload = str_pad($normalizedPayload, (int) ceil(strlen($normalizedPayload) / 4) * 4, '=', STR_PAD_RIGHT);
 

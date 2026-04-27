@@ -88,4 +88,18 @@ final class JwtKeyBootstrapperTest extends TestCase
         self::assertSame("PRIVATE\n", file_get_contents($this->workspace . '/var/jwt/private.pem'));
         self::assertSame("PUBLIC\n", file_get_contents($this->workspace . '/var/jwt/public.pem'));
     }
+
+    public function testItResolvesWindowsAbsolutePathsWithoutPrefixingProjectDir(): void
+    {
+        $windowsProjectDir = 'C:\\workspace\\cultivatrace';
+        $bootstrapper = new JwtKeyBootstrapper($windowsProjectDir);
+
+        $reflection = new \ReflectionClass($bootstrapper);
+        $method = $reflection->getMethod('resolvePath');
+
+        self::assertSame(
+            'C:\\workspace\\cultivatrace\\var\\jwt\\private.pem',
+            $method->invoke($bootstrapper, '%kernel.project_dir%\\var\\jwt\\private.pem'),
+        );
+    }
 }
