@@ -187,6 +187,7 @@ class KybService
         return [
             'verified' => false,
             'method'   => 'manual',
+            'reviewed' => false,
             'reason'   => $reason,
         ];
     }
@@ -200,11 +201,13 @@ class KybService
         array $result,
     ): void {
         $org = $license->getOrganization();
+        $reviewed = (bool) ($result['reviewed'] ?? false);
 
         if ($result['verified']) {
             $license->setStatus('active');
             $license->setVerifiedAt(new \DateTimeImmutable());
             $license->setVerificationMethod($result['method']);
+            $license->setRejectionReason(null);
 
             if (isset($result['expiresAt'])) {
                 $license->setLicenseExpiresAt(new \DateTimeImmutable($result['expiresAt']));
@@ -215,13 +218,17 @@ class KybService
             $this->notifyUserActivated($license);
 
         } else {
-            // Si fallback manuel → rester en pending
-            // Si rejet définitif → rejected
-            if ($result['method'] === 'manual') {
+            $isPendingManualReview = $result['method'] === 'manual'
+                && !$reviewed
+                && $license->getStatus() === LicenseStatus::PENDING->value
+                && $org->getLicenseStatus() === LicenseStatus::PENDING;
+
+            if ($isPendingManualReview) {
                 $license->setStatus('pending');
                 $org->setLicenseStatus(LicenseStatus::PENDING);
             } else {
                 $license->setStatus('rejected');
+                $license->setVerificationMethod($result['method']);
                 $license->setRejectionReason($result['reason']);
                 $org->setLicenseStatus(LicenseStatus::REJECTED);
                 $this->notifyUserRejected($license);
