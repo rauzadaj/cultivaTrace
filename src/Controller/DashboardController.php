@@ -36,7 +36,6 @@ class DashboardController extends AbstractController
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException('Authenticated user required.');
         }
-
         $org      = $user->getOrganization();
         if ($org === null) {
             throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');

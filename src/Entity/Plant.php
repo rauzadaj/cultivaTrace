@@ -33,19 +33,12 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'plant')]
 #[ApiResource(
     operations: [
-        new GetCollection(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
-        ),
-        new Get(
-            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
-        ),
-        new Post(
-            processor: PlantStateProcessor::class,
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
-        ),
+        new GetCollection(security: "is_granted('PLANT_VIEW', null)"),
+        new Get(security: "is_granted('PLANT_VIEW', object) and is_granted('TENANT_ACCESS', object)"),
+        new Post(processor: PlantStateProcessor::class, security: "is_granted('PLANT_CREATE', null)"),
         new Patch(
             processor: PlantStateProcessor::class,
-            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)",
+            security: "is_granted('PLANT_EDIT', object) and is_granted('TENANT_ACCESS', object)",
             securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
         ), // uniquement stage, room, rfidTag — pas les données de création
         // pas de Delete — archivage uniquement via PATCH status=archived
