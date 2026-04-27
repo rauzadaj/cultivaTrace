@@ -170,7 +170,7 @@ final class StripeControllerTest extends KernelTestCase
         $response = $controller->webhook($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('', $response->getContent());
+        self::assertSame('OK', $response->getContent());
     }
 
     public function testWebhookReturnsOkOnUnexpectedFailure(): void
@@ -202,7 +202,7 @@ final class StripeControllerTest extends KernelTestCase
         $response = $controller->webhook($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('', $response->getContent());
+        self::assertSame('OK', $response->getContent());
     }
 
     public function testPortalDoesNotExposeStripeErrorDetails(): void
