@@ -59,6 +59,10 @@ final readonly class JwtKeyBootstrapper
             return $resolved;
         }
 
+        if (preg_match('/^[A-Za-z]:[\\\\\\/]/', $resolved) === 1) {
+            return $resolved;
+        }
+
         return $this->projectDir . '/' . ltrim($resolved, '/');
     }
 

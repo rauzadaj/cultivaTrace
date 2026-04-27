@@ -5,6 +5,16 @@ use App\Security\JwtKeyBootstrapper;
 
 require dirname(__DIR__).'/vendor/autoload.php';
 
+if (($opensslConfig = getenv('OPENSSL_CONF')) === false || !is_file($opensslConfig)) {
+    $fallbackOpenSslConfig = dirname(PHP_BINARY) . DIRECTORY_SEPARATOR . 'extras' . DIRECTORY_SEPARATOR . 'ssl' . DIRECTORY_SEPARATOR . 'openssl.cnf';
+
+    if (is_file($fallbackOpenSslConfig)) {
+        putenv(sprintf('OPENSSL_CONF=%s', $fallbackOpenSslConfig));
+        $_SERVER['OPENSSL_CONF'] = $fallbackOpenSslConfig;
+        $_ENV['OPENSSL_CONF'] = $fallbackOpenSslConfig;
+    }
+}
+
 if (method_exists(Dotenv::class, 'bootEnv')) {
     $projectDir = dirname(__DIR__);
     $dotenvPath = is_file($projectDir.'/.env') ? $projectDir.'/.env' : $projectDir.'/.env.test';
