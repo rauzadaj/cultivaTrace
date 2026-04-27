@@ -82,6 +82,23 @@ final class HarvestControllerTest extends ApiTestCase
         self::assertStringContainsString('poids net', $this->client->getResponse()->getContent() ?: '');
     }
 
+    public function testHarvestReturnsForbiddenWhenTenantLicenseIsPending(): void
+    {
+        [$user, $plant] = $this->createHarvestFixture('PLANT-HARVEST-PENDING');
+        $user->getOrganization()->setLicenseStatus(LicenseStatus::PENDING);
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/plants/%s/harvest', $plant->getId()), [
+            'grossWeightG' => 120.50,
+            'netWeightG' => 95.00,
+            'harvestedAt' => '2026-03-18',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+        self::assertStringContainsString('status "pending"', $this->client->getResponse()->getContent() ?: '');
+    }
+
     public function testDestroyCreatesIntentAndReturnsLegalWindow(): void
     {
         [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY');
@@ -104,6 +121,21 @@ final class HarvestControllerTest extends ApiTestCase
         self::assertSame('pending', $intent->getStatus());
     }
 
+    public function testDestroyReturnsForbiddenWhenTenantLicenseIsPending(): void
+    {
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY-PENDING', 'ROLE_ORG_ADMIN');
+        $user->getOrganization()->setLicenseStatus(LicenseStatus::PENDING);
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
+            'reason' => 'Mold contamination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+        self::assertStringContainsString('status "pending"', $this->client->getResponse()->getContent() ?: '');
+    }
+
     public function testConfirmDestroyRejectsBeforeLegalDelay(): void
     {
         [$user, $intent] = $this->createDestructionIntentFixture();
@@ -117,6 +149,23 @@ final class HarvestControllerTest extends ApiTestCase
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertStringContainsString('Destruction impossible avant le', $this->client->getResponse()->getContent() ?: '');
+    }
+
+    public function testConfirmDestroyReturnsForbiddenWhenTenantLicenseIsPending(): void
+    {
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_ADMIN');
+        $user->getOrganization()->setLicenseStatus(LicenseStatus::PENDING);
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
+            'totalWeightG' => 100,
+            'nonCannabisRatio' => 0.60,
+            'photoUrls' => ['https://example.test/photo.jpg'],
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+        self::assertStringContainsString('status "pending"', $this->client->getResponse()->getContent() ?: '');
     }
 
     public function testConfirmDestroyRejectsRatioBelowFiftyPercent(): void
