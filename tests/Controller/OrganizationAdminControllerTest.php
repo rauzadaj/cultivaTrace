@@ -93,17 +93,51 @@ final class OrganizationAdminControllerTest extends ApiTestCase
         self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
     }
 
-    public function testOrgAdminCannotUpdateSettingsWhenLicenseIsPending(): void
+    public function testPendingLicenseCanStillReadOrganizationSettings(): void
     {
-        $organization = $this->createOrganization('Org Pending');
-        $admin = $this->createUser($organization, 'pending-admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
+        $organization = $this->createOrganization('Org Pending Read');
+        $organization->setLicenseStatus(LicenseStatus::PENDING);
+        $admin = $this->createUser($organization, 'pending-read-admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($admin);
+        $this->client->request('GET', '/api/organization/settings', server: [
+            'HTTP_ACCEPT' => 'application/json',
+        ]);
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testPendingLicenseCannotUpdateOrganizationSettings(): void
+    {
+        $organization = $this->createOrganization('Org Pending Update');
+        $organization->setLicenseStatus(LicenseStatus::PENDING);
+        $admin = $this->createUser($organization, 'pending-update-admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
         $this->entityManager->flush();
 
         $this->authorizeClient($admin);
         $this->client->jsonRequest('PATCH', '/api/organization/settings', [
-            'name' => 'Blocked Rename',
+            'name' => 'Blocked Update',
         ]);
 
         self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('status "pending"', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testPendingLicenseCannotInviteMember(): void
+    {
+        $organization = $this->createOrganization('Org Pending Invite');
+        $organization->setLicenseStatus(LicenseStatus::PENDING);
+        $admin = $this->createUser($organization, 'pending-invite-admin@cultivatrace.local', role: 'ROLE_ORG_ADMIN');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($admin);
+        $this->client->jsonRequest('POST', '/api/organization/invitations', [
+            'email' => 'blocked-member@cultivatrace.local',
+            'role' => 'ROLE_ORG_USER',
+        ]);
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('status "pending"', (string) $this->client->getResponse()->getContent());
     }
 }

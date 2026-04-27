@@ -17,8 +17,10 @@ final readonly class LicenseGuard
 
     public function assertCanWrite(Organization $tenant): void
     {
-        if ($tenant->getLicenseStatus() !== LicenseStatus::ACTIVE) {
-            throw new LicenseNotApprovedException($tenant->getLicenseStatus()->value);
+        $status = $tenant->getLicenseStatus();
+
+        if ($status !== LicenseStatus::ACTIVE) {
+            throw new LicenseNotApprovedException($status->value);
         }
     }
 }
