@@ -60,25 +60,21 @@ class SensorReadingController extends AbstractController
 
         $value = (float) $value;
 
-        // 1. Stocker la lecture
         $this->readings->insert(
             (string) $sensor->getId(),
             (string) $sensor->getTenantId(),
             $value
         );
 
-        // 2. Mettre à jour lastSeen + status du capteur
         $sensor->setLastSeen(new \DateTimeImmutable());
         $sensor->setStatus('online');
         $this->em->flush();
 
-        // 3. Calculer le VPD si c'est un capteur température ou humidité
         $vpdData = null;
         if (in_array($sensor->getType(), ['temperature', 'humidity'], true)) {
             $vpdData = $this->computeVpdForRoom($sensor, $value);
         }
 
-        // 4. Publier vers Mercure (SSE → frontend)
         $payload = [
             'sensorId'  => (string) $sensor->getId(),
             'roomId'    => (string) $sensor->getRoom()->getId(),
@@ -104,7 +100,6 @@ class SensorReadingController extends AbstractController
             ]);
         }
 
-        // 5. Vérifier les seuils et alerter si nécessaire
         $alerted = $this->alerts->checkAndAlert($sensor, $value);
 
         return $this->json([
@@ -134,16 +129,11 @@ class SensorReadingController extends AbstractController
         $this->licenseGuard->assertLicenseApproved($user->getOrganization());
     }
 
-    /**
-     * Tente de calculer le VPD si on a à la fois température et humidité
-     * pour cette salle dans les dernières 5 minutes.
-     */
     private function computeVpdForRoom(Sensor $sensor, float $currentValue): ?array
     {
         $roomId   = (string) $sensor->getRoom()->getId();
         $recent   = $this->readings->findRecentForRoom($roomId, 5);
 
-        // Trouver la dernière valeur de l'autre type (temp ou humidity)
         $sensors  = $this->em->getRepository(Sensor::class)->findBy([
             'room' => $sensor->getRoom(),
         ]);
@@ -153,25 +143,29 @@ class SensorReadingController extends AbstractController
 
         if ($sensor->getType() === 'temperature') {
             $temp = $currentValue;
-            // Chercher humidité récente
             foreach ($sensors as $s) {
                 if ($s->getType() === 'humidity') {
                     $latest = $this->readings->findLatest((string) $s->getId());
-                    if ($latest) $humidity = (float) $latest['value'];
+                    if ($latest) {
+                        $humidity = (float) $latest['value'];
+                    }
                 }
             }
         } else {
             $humidity = $currentValue;
-            // Chercher température récente
             foreach ($sensors as $s) {
                 if ($s->getType() === 'temperature') {
                     $latest = $this->readings->findLatest((string) $s->getId());
-                    if ($latest) $temp = (float) $latest['value'];
+                    if ($latest) {
+                        $temp = (float) $latest['value'];
+                    }
                 }
             }
         }
 
-        if ($temp === null || $humidity === null) return null;
+        if ($temp === null || $humidity === null) {
+            return null;
+        }
 
         return $this->vpd->computeAndEvaluate($temp, $humidity, 'vegetation');
     }
