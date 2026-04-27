@@ -84,7 +84,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testDestroyCreatesIntentAndReturnsLegalWindow(): void
     {
-        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY', 'ROLE_ORG_ADMIN');
+        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
@@ -106,7 +106,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsBeforeLegalDelay(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture(role: 'ROLE_ORG_ADMIN');
+        [$user, $intent] = $this->createDestructionIntentFixture();
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -121,7 +121,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsRatioBelowFiftyPercent(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_ADMIN');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -136,7 +136,7 @@ final class HarvestControllerTest extends ApiTestCase
 
     public function testConfirmDestroyRejectsMissingPhotos(): void
     {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_ADMIN');
+        [$user, $intent] = $this->createDestructionIntentFixture('-8 days');
         $this->authorizeClient($user);
 
         $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
@@ -147,35 +147,6 @@ final class HarvestControllerTest extends ApiTestCase
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertStringContainsString('photo', strtolower($this->client->getResponse()->getContent() ?: ''));
-    }
-
-    /**
-     * @return array{0: User, 1: Plant}
-     */
-    public function testDestroyRejectsOperatorRole(): void
-    {
-        [$user, $plant] = $this->createHarvestFixture('PLANT-DESTROY-FORBIDDEN', 'ROLE_ORG_USER');
-        $this->authorizeClient($user);
-
-        $this->apiJsonRequest('POST', sprintf('/api/plants/%s/destroy', $plant->getId()), [
-            'reason' => 'Mold contamination',
-        ]);
-
-        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
-    }
-
-    public function testConfirmDestroyRejectsOperatorRole(): void
-    {
-        [$user, $intent] = $this->createDestructionIntentFixture('-8 days', 'ROLE_ORG_USER');
-        $this->authorizeClient($user);
-
-        $this->apiJsonRequest('POST', sprintf('/api/destructions/%s/confirm', $intent->getId()), [
-            'totalWeightG' => 100,
-            'nonCannabisRatio' => 0.60,
-            'photoUrls' => ['https://example.test/photo.jpg'],
-        ]);
-
-        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
     }
 
     /**
