@@ -13,6 +13,7 @@ use App\Entity\PlantEvent;
 use App\Entity\Room;
 use App\Entity\Strain;
 use App\Entity\User;
+use App\Enum\DestructionStatus;
 use App\Enum\LicenseStatus;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
@@ -119,7 +120,7 @@ final class HarvestControllerTest extends ApiTestCase
         /** @var DestructionIntent|null $intent */
         $intent = $this->entityManager->getRepository(DestructionIntent::class)->find($payload['id']);
         self::assertNotNull($intent);
-        self::assertSame('pending', $intent->getStatus());
+        self::assertSame(DestructionStatus::Pending, $intent->getStatus());
     }
 
     public function testDestroyReturnsForbiddenWhenTenantLicenseIsPending(): void
