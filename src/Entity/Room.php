@@ -7,6 +7,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Enum\RoomType;
 use App\State\RoomStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -60,8 +61,8 @@ class Room
     /**
      * Type de salle : veg | flower | drying | clone | mixed
      */
-    #[ORM\Column(length: 50)]
-    private string $type = 'veg';
+    #[ORM\Column(length: 50, enumType: RoomType::class)]
+    private RoomType $type = RoomType::Veg;
 
     #[ORM\Column(type: 'integer')]
     private int $capacityMax = 100;
@@ -88,8 +89,8 @@ class Room
     public function setName(string $name): self { $this->name = $name; return $this; }
     public function getDescription(): ?string { return $this->description; }
     public function setDescription(?string $d): self { $this->description = $d; return $this; }
-    public function getType(): string { return $this->type; }
-    public function setType(string $type): self { $this->type = $type; return $this; }
+    public function getType(): RoomType { return $this->type; }
+    public function setType(RoomType $type): self { $this->type = $type; return $this; }
     public function getCapacityMax(): int { return $this->capacityMax; }
     public function setCapacityMax(int $cap): self { $this->capacityMax = $cap; return $this; }
     public function getPlants(): Collection { return $this->plants; }

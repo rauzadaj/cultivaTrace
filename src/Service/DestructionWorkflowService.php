@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\DestructionIntent;
 use App\Entity\Plant;
 use App\Entity\User;
+use App\Enum\DestructionStatus;
 use App\Enum\PlantStatus;
 use App\Repository\PlantEventRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -88,7 +89,7 @@ final readonly class DestructionWorkflowService
         $this->entityManager->beginTransaction();
 
         try {
-            $intent->setStatus('confirmed');
+            $intent->setStatus(DestructionStatus::Confirmed);
             $intent->setTotalWeightG((string) $totalWeight);
             $intent->setNonCannabisRatio((string) $ratio);
             $intent->setPhotoUrls($photoUrls);

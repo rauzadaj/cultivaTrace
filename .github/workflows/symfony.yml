@@ -39,7 +39,7 @@ jobs:
       DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
       GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
-      JWT_PASSPHRASE: ''
+      JWT_PASSPHRASE: TEST_ONLY_JWT_PASSPHRASE_NOT_FOR_PRODUCTION
     steps:
     - uses: shivammathur/setup-php@v2
       with:

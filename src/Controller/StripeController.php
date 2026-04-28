@@ -191,8 +191,12 @@ class StripeController extends AbstractController
      * Retourne le statut d'abonnement de l'organisation courante.
      */
     #[Route('/api/billing/status', methods: ['GET'])]
-    public function billingStatus(#[CurrentUser] $user): JsonResponse
+    public function billingStatus(#[CurrentUser] ?User $user): JsonResponse
     {
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Authentication required.'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $org = $user->getOrganization();
 
         if ($org->getStripeCustomerId()) {
