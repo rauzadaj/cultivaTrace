@@ -73,6 +73,36 @@ final class ApiRateLimitSubscriberTest extends TestCase
         self::assertNull($event->getResponse());
     }
 
+    public function testRefreshLimiterUsesStableClientKeyAcrossTokenChanges(): void
+    {
+        $globalLimiter = $this->createLimiterFactory('api_global', 300);
+        $refreshLimiter = $this->createLimiterFactory('api_auth_refresh', 1);
+        $subscriber = new ApiRateLimitSubscriber(
+            $globalLimiter,
+            $this->createLimiterFactory('api_auth_login', 10),
+            $refreshLimiter,
+            $this->createLimiterFactory('api_kyb_write', 30),
+            $this->createLimiterFactory('api_billing_write', 50),
+        );
+
+        $firstEvent = $this->createPostRequestEvent(
+            '/api/auth/token/refresh',
+            ['refreshToken' => 'first-token'],
+            '203.0.113.10',
+        );
+        $subscriber->onKernelRequest($firstEvent);
+        self::assertNull($firstEvent->getResponse());
+
+        $secondEvent = $this->createPostRequestEvent(
+            '/api/auth/token/refresh',
+            ['refreshToken' => 'second-token'],
+            '203.0.113.10',
+        );
+        $subscriber->onKernelRequest($secondEvent);
+
+        self::assertSame(Response::HTTP_TOO_MANY_REQUESTS, $secondEvent->getResponse()?->getStatusCode());
+    }
+
     /**
      * @return iterable<string, array{0: string, 1: string}>
      */
@@ -98,5 +128,21 @@ final class ApiRateLimitSubscriberTest extends TestCase
     private function exhaustLimiter(RateLimiterFactory $factory, string $key, int $attempts): void
     {
         $factory->create($key)->consume($attempts);
+    }
+
+    /**
+     * @param array<string, string> $payload
+     */
+    private function createPostRequestEvent(string $path, array $payload, string $ip): RequestEvent
+    {
+        $request = Request::create(
+            $path,
+            'POST',
+            server: ['REMOTE_ADDR' => $ip],
+            content: json_encode($payload, JSON_THROW_ON_ERROR),
+        );
+        $request->headers->set('CONTENT_TYPE', 'application/json');
+
+        return new RequestEvent($this->createMock(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
     }
 }
