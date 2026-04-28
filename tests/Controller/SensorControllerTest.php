@@ -149,6 +149,30 @@ final class SensorControllerTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_FORBIDDEN);
     }
 
+    public function testPostSensorReturnsForbiddenWhenTenantLicenseIsPending(): void
+    {
+        $organization = $this->createOrganization('Org Sensor Pending');
+        $organization->setLicenseStatus(LicenseStatus::PENDING);
+        $admin = $this->createUser($organization, 'sensor-pending-admin@test.local', role: 'ROLE_ORG_ADMIN');
+        $farm = $this->createFarm($organization, 'Farm Sensor Pending');
+        $room = $this->createRoom($farm, 'Room Sensor Pending', RoomType::Veg);
+        $this->entityManager->flush();
+        $this->authorizeClient($admin);
+
+        $this->apiJsonRequest('POST', '/api/sensors', [
+            'room' => sprintf('/api/rooms/%s', $room->getId()),
+            'type' => 'temperature',
+            'deviceId' => 'PENDING-SENSOR-001',
+            'protocol' => 'simulated',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(403, $payload['status']);
+        self::assertSame('Tenant license status "pending" does not allow write operations.', $payload['detail']);
+    }
+
     /**
      * @return array{0: User, 1: Sensor}
      */
