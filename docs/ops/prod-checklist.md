@@ -39,6 +39,8 @@
 ### KYB
 - [ ] `KYB_ENABLE_DEV_SIMULATION=0` en prod (sauf si beta fermée acceptée avec simulation)
       ⚠️ Voir section KYB dans AGENTS.md avant de changer ce flag
+- [ ] `KYB_STORAGE_ROOT` pointe vers un volume persistant Railway
+- [ ] `REPORT_EXPORT_STORAGE_ROOT` pointe vers un volume persistant Railway
 
 ### Mercure
 - [ ] `MERCURE_JWT_SECRET` — valeur forte, différente du JWT_PASSPHRASE

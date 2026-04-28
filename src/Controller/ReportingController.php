@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Security\Voter\TenantAwareVoter;
 use App\Service\License\LicenseGuard;
 use App\Service\ReportingExportService;
+use App\Service\Storage\ArtifactStorage;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -24,6 +25,7 @@ final class ReportingController extends AbstractController
         private readonly ReportingExportService $reportingExportService,
         private readonly EntityManagerInterface $entityManager,
         private readonly LicenseGuard $licenseGuard,
+        private readonly ArtifactStorage $artifactStorage,
     ) {
     }
 
@@ -77,7 +79,7 @@ final class ReportingController extends AbstractController
             throw $this->createAccessDeniedException('Cross-tenant report access is forbidden.');
         }
 
-        $absolutePath = $this->getParameter('kernel.project_dir') . '/' . $export->getFilePath();
+        $absolutePath = $this->artifactStorage->resolveReportPath($export->getFilePath());
         if (!is_file($absolutePath)) {
             throw $this->createNotFoundException('Report file not found.');
         }

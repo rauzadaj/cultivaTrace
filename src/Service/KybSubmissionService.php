@@ -7,8 +7,8 @@ namespace App\Service;
 use App\Entity\LicenseDocument;
 use App\Entity\Organization;
 use App\Enum\LicenseStatus;
+use App\Service\Storage\ArtifactStorage;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final readonly class KybSubmissionService
@@ -25,8 +25,7 @@ final readonly class KybSubmissionService
     public function __construct(
         private EntityManagerInterface $entityManager,
         private KybService $kybService,
-        #[Autowire('%kernel.project_dir%')]
-        private string $projectDir,
+        private ArtifactStorage $artifactStorage,
     ) {
     }
 
@@ -36,20 +35,7 @@ final readonly class KybSubmissionService
 
         if ($file instanceof UploadedFile) {
             $extension = $this->validateFile($file);
-            $uploadDir = $this->projectDir . '/var/licenses/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-
-            $filename = sprintf(
-                '%s_%s.%s',
-                $organization->getId(),
-                (new \DateTimeImmutable())->format('Ymd_His'),
-                $extension,
-            );
-
-            $file->move($uploadDir, $filename);
-            $filePath = 'var/licenses/' . $filename;
+            $filePath = $this->artifactStorage->storeKybUpload($organization, $file, $extension);
         }
 
         $license = new LicenseDocument();
