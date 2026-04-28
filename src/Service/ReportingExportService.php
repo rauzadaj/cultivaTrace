@@ -7,10 +7,10 @@ namespace App\Service;
 use App\Entity\Organization;
 use App\Entity\ReportExport;
 use App\Entity\User;
+use App\Service\Storage\ArtifactStorage;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
 use Sensiolabs\GotenbergBundle\Processor\FileProcessor;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Filesystem;
 
 final class ReportingExportService
@@ -19,8 +19,7 @@ final class ReportingExportService
         private readonly EntityManagerInterface $entityManager,
         private readonly GotenbergPdfInterface $gotenberg,
         private readonly Filesystem $filesystem,
-        #[Autowire('%kernel.project_dir%')]
-        private readonly string $projectDir,
+        private readonly ArtifactStorage $artifactStorage,
     ) {
     }
 
@@ -76,9 +75,9 @@ final class ReportingExportService
         ];
 
         $fileName = sprintf('harvest-summary-%s-%s.pdf', $organization->getId(), (new \DateTimeImmutable())->format('YmdHis'));
-        $relativePath = sprintf('var/report_exports/%s/%s', $organization->getId(), $fileName);
-        $absolutePath = $this->projectDir . '/' . $relativePath;
-        $this->ensureDirectory(\dirname($absolutePath));
+        $paths = $this->artifactStorage->createReportPath($organization, $fileName);
+        $storagePath = $paths['storagePath'];
+        $absolutePath = $paths['absolutePath'];
 
         $this->renderPdfToPath(
             'pdf/harvest_summary.html.twig',
@@ -92,7 +91,7 @@ final class ReportingExportService
             $absolutePath,
         );
 
-        return $this->persistExport($organization, $user, 'harvest_summary', 'pdf', $fileName, $relativePath, $filters, $summary);
+        return $this->persistExport($organization, $user, 'harvest_summary', 'pdf', $fileName, $storagePath, $filters, $summary);
     }
 
     /**
@@ -127,9 +126,9 @@ final class ReportingExportService
 
         $extension = $format === 'pdf' ? 'pdf' : 'csv';
         $fileName = sprintf('audit-export-%s-%s.%s', $organization->getId(), (new \DateTimeImmutable())->format('YmdHis'), $extension);
-        $relativePath = sprintf('var/report_exports/%s/%s', $organization->getId(), $fileName);
-        $absolutePath = $this->projectDir . '/' . $relativePath;
-        $this->ensureDirectory(\dirname($absolutePath));
+        $paths = $this->artifactStorage->createReportPath($organization, $fileName);
+        $storagePath = $paths['storagePath'];
+        $absolutePath = $paths['absolutePath'];
 
         if ($format === 'pdf') {
             $this->renderPdfToPath(
@@ -147,7 +146,7 @@ final class ReportingExportService
             $this->writeCsv($absolutePath, $rows);
         }
 
-        return $this->persistExport($organization, $user, 'audit_export', $format, $fileName, $relativePath, $filters, $summary);
+        return $this->persistExport($organization, $user, 'audit_export', $format, $fileName, $storagePath, $filters, $summary);
     }
 
     private function writeCsv(string $absolutePath, array $rows): void
@@ -217,12 +216,5 @@ final class ReportingExportService
         $this->entityManager->flush();
 
         return $export;
-    }
-
-    private function ensureDirectory(string $directory): void
-    {
-        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new \RuntimeException(sprintf('Unable to create report export directory: %s', $directory));
-        }
     }
 }

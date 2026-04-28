@@ -107,6 +107,7 @@ Variables à définir hors Git :
 - En déploiement Railway standard, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY` pointent vers `/var/www/html/var/jwt/*.pem`, tandis que `JWT_SECRET_KEY_BASE64` et `JWT_PUBLIC_KEY_BASE64` servent à matérialiser ces fichiers au démarrage via `docker-entrypoint.sh`.
 - Si les fichiers PEM sont absents en `prod` et qu’aucune variable base64 n’est fournie, le conteneur échoue immédiatement au démarrage.
 - En production Railway, garder `DATABASE_URL` sur l'endpoint poolé et réserver `DATABASE_URL_DIRECT` aux migrations, validations de schéma et restaurations. Voir [docs/ops/postgresql-railway-runbook.md](docs/ops/postgresql-railway-runbook.md).
+- Les documents KYB et exports de reporting doivent pointer vers un volume persistant via `KYB_STORAGE_ROOT` et `REPORT_EXPORT_STORAGE_ROOT` en production. Les valeurs sous `var/storage/...` restent un fallback de développement local.
 
 2. Installer les dépendances Symfony (si nécessaire)
 
