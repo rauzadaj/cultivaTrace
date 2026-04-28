@@ -12,6 +12,7 @@ use App\Entity\Strain;
 use App\Entity\User;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
+use App\Enum\RoomType;
 use App\Enum\UserAccountStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -126,7 +127,7 @@ abstract class ApiTestCase extends KernelTestCase
         return $farm;
     }
 
-    protected function createRoom(Farm $farm, string $name, string $type = 'veg'): Room
+    protected function createRoom(Farm $farm, string $name, RoomType $type = RoomType::Veg): Room
     {
         $room = new Room();
         $room->setFarm($farm);
