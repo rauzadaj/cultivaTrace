@@ -121,7 +121,9 @@ final class OrganizationAdminControllerTest extends ApiTestCase
         ]);
 
         self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString('status "pending"', (string) $this->client->getResponse()->getContent());
+        $responseData = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('pending', $responseData['detail']);
+        self::assertSame(403, $responseData['status']);
     }
 
     public function testPendingLicenseCannotInviteMember(): void
@@ -138,6 +140,8 @@ final class OrganizationAdminControllerTest extends ApiTestCase
         ]);
 
         self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString('status "pending"', (string) $this->client->getResponse()->getContent());
+        $responseData = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('pending', $responseData['detail']);
+        self::assertSame(403, $responseData['status']);
     }
 }

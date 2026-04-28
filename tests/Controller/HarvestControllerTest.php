@@ -98,7 +98,9 @@ final class HarvestControllerTest extends ApiTestCase
         ]);
 
         $this->assertStatusCode(Response::HTTP_FORBIDDEN);
-        self::assertStringContainsString('status "pending"', $this->client->getResponse()->getContent() ?: '');
+        $responseData = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('pending', $responseData['detail']);
+        self::assertSame(403, $responseData['status']);
     }
 
     public function testDestroyCreatesIntentAndReturnsLegalWindow(): void
@@ -135,7 +137,9 @@ final class HarvestControllerTest extends ApiTestCase
         ]);
 
         $this->assertStatusCode(Response::HTTP_FORBIDDEN);
-        self::assertStringContainsString('status "pending"', $this->client->getResponse()->getContent() ?: '');
+        $responseData = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('pending', $responseData['detail']);
+        self::assertSame(403, $responseData['status']);
     }
 
     public function testConfirmDestroyRejectsBeforeLegalDelay(): void
@@ -167,7 +171,9 @@ final class HarvestControllerTest extends ApiTestCase
         ]);
 
         $this->assertStatusCode(Response::HTTP_FORBIDDEN);
-        self::assertStringContainsString('status "pending"', $this->client->getResponse()->getContent() ?: '');
+        $responseData = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('pending', $responseData['detail']);
+        self::assertSame(403, $responseData['status']);
     }
 
     public function testConfirmDestroyRejectsRatioBelowFiftyPercent(): void
