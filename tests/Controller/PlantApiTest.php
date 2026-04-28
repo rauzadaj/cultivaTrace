@@ -113,7 +113,7 @@ final class PlantApiTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_OK);
     }
 
-    public function testGetPlantsReturnsOnlyPlantsOfAuthenticatedTenant(): void
+    public function testTenantACannotSeeTenantBPlants(): void
     {
         $organizationA = $this->createOrganization('Org A');
         $userA = $this->createUser($organizationA, 'user-a@test.local');
@@ -145,6 +145,13 @@ final class PlantApiTest extends ApiTestCase
         self::assertStringNotContainsString('PLANT-B', $this->client->getResponse()->getContent() ?: '');
         self::assertStringNotContainsString((string) $organizationA->getId(), $this->client->getResponse()->getContent() ?: '');
         self::assertStringNotContainsString((string) $organizationB->getId(), $this->client->getResponse()->getContent() ?: '');
+    }
+
+    public function testUnauthenticatedRequestCannotAccessPlantCollection(): void
+    {
+        $this->client->request('GET', '/api/plants');
+
+        $this->assertStatusCode(Response::HTTP_UNAUTHORIZED);
     }
 
     public function testPostPlantsRejectsUserWithoutPlantCreatePermission(): void
