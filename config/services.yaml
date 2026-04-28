@@ -80,6 +80,10 @@ services:
     App\Infrastructure\Http\EventSubscriber\ApiRateLimitSubscriber:
         arguments:
             $apiGlobalLimiter: '@limiter.api_global'
+            $apiAuthLoginLimiter: '@limiter.api_auth_login'
+            $apiAuthRefreshLimiter: '@limiter.api_auth_refresh'
+            $apiKybWriteLimiter: '@limiter.api_kyb_write'
+            $apiBillingWriteLimiter: '@limiter.api_billing_write'
 
     App\Service\Auth\LoginAttemptService:
         arguments:
@@ -96,6 +100,9 @@ services:
 
 when@test:
     services:
+        app.test.rate_limiter.storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         test.workflow.registry:
             alias: workflow.registry
             public: true
