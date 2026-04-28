@@ -1,9 +1,11 @@
 #!/usr/bin/env php
 <?php
 
-if (!file_exists(dirname(__DIR__).'/vendor/symfony/phpunit-bridge/bin/simple-phpunit')) {
-    echo "Run `composer require --dev symfony/phpunit-bridge` first.\n";
+$phpunitBinary = dirname(__DIR__).'/vendor/bin/phpunit';
+
+if (!file_exists($phpunitBinary)) {
+    echo "Run `composer install` first.\n";
     exit(1);
 }
 
-require dirname(__DIR__).'/vendor/symfony/phpunit-bridge/bin/simple-phpunit';
+require $phpunitBinary;
