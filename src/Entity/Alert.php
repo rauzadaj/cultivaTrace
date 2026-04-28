@@ -17,6 +17,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity(repositoryClass: AlertRepository::class)]
 #[ORM\Table(name: 'alert')]
 #[ORM\Index(columns: ['tenant_id', 'acknowledged_at', 'created_at'], name: 'idx_alert_tenant_ack_created')]
+#[ORM\Index(name: 'IDX_7C9B057754177093', columns: ['sensor_id'])]
 #[ApiResource(
     operations: [
         new GetCollection(

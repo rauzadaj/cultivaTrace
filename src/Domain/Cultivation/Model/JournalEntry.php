@@ -21,8 +21,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'journal_entry')]
+#[ORM\Index(name: 'idx_journal_entry_tenant_id', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_journal_entry_occurred_at', columns: ['occurred_at'])]
 #[ORM\Index(name: 'idx_journal_entry_crop_occurred_at', columns: ['crop_id', 'occurred_at'])]
+#[ORM\Index(name: 'idx_journal_entry_metadata_gin', columns: ['metadata'], flags: ['gin'])]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [

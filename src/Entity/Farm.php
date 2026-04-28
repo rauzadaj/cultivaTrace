@@ -18,6 +18,8 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'farm')]
+#[ORM\Index(name: 'IDX_54C1B93E2C2AC5D3', columns: ['tenant_id'])]
+#[ORM\Index(name: 'IDX_54C1B93E32C8A3DE', columns: ['organization_id'])]
 #[ApiResource(
     operations: [
         new GetCollection(

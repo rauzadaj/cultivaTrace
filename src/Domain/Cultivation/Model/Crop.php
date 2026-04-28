@@ -19,8 +19,10 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'crop')]
+#[ORM\Index(name: 'idx_crop_tenant_id', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_crop_stage', columns: ['current_stage'])]
 #[ORM\Index(name: 'idx_crop_seeded_at', columns: ['seeded_at'])]
+#[ORM\Index(name: 'idx_crop_genetic', columns: ['genetic_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_crop_batch_code', columns: ['batch_code'])]
 #[UniqueEntity(fields: ['batchCode'])]
 #[Assert\Callback('validateChronology')]
