@@ -6,7 +6,7 @@ namespace App\Service\License;
 
 use App\Entity\Organization;
 use App\Enum\LicenseStatus;
-use App\Exception\LicenseNotApprovedException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 final readonly class LicenseGuard
 {
@@ -20,7 +20,9 @@ final readonly class LicenseGuard
         $status = $tenant->getLicenseStatus();
 
         if ($status !== LicenseStatus::ACTIVE) {
-            throw new LicenseNotApprovedException($status->value);
+            throw new AccessDeniedException(
+                sprintf('Tenant license status "%s" does not allow write operations.', $status->value)
+            );
         }
     }
 }
