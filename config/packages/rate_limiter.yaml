@@ -1,6 +1,42 @@
 framework:
     rate_limiter:
+        api_auth_login:
+            policy: 'fixed_window'
+            limit: 10
+            interval: '15 minutes'
+        api_auth_refresh:
+            policy: 'fixed_window'
+            limit: 20
+            interval: '15 minutes'
         api_register:
             policy: 'fixed_window'
             limit: 5
             interval: '15 minutes'
+        api_kyb_write:
+            policy: 'fixed_window'
+            limit: 30
+            interval: '15 minutes'
+        api_billing_write:
+            policy: 'fixed_window'
+            limit: 50
+            interval: '15 minutes'
+        api_global:
+            policy: 'sliding_window'
+            limit: 300
+            interval: '1 minute'
+
+when@test:
+    framework:
+        rate_limiter:
+            api_auth_login:
+                storage_service: 'app.test.rate_limiter.storage'
+            api_auth_refresh:
+                storage_service: 'app.test.rate_limiter.storage'
+            api_register:
+                storage_service: 'app.test.rate_limiter.storage'
+            api_kyb_write:
+                storage_service: 'app.test.rate_limiter.storage'
+            api_billing_write:
+                storage_service: 'app.test.rate_limiter.storage'
+            api_global:
+                storage_service: 'app.test.rate_limiter.storage'
