@@ -17,6 +17,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity(repositoryClass: ReportExportRepository::class)]
 #[ORM\Table(name: 'report_export')]
 #[ORM\Index(columns: ['tenant_id', 'created_at'], name: 'idx_report_export_tenant_created')]
+#[ORM\Index(name: 'IDX_8E164AB7B3C618F7', columns: ['generated_by_id'])]
 #[ApiResource(
     operations: [
         new GetCollection(
