@@ -20,6 +20,19 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 - `frontend/src/stores` : stores Pinia modulaires
 - `frontend/src/components/dashboard` : dashboard temps réel, menu SaaS Material et écrans CRUD par section
 
+## Onboarding beta
+
+Pour créer le premier utilisateur admin d'une organisation en beta fermée :
+
+1. Accès SSH Railway :
+   ```
+   railway run php bin/console app:create-user
+   ```
+2. L'utilisateur reçoit un email de vérification.
+3. Après vérification, passer le statut `ACTIVE` si le flow KYB simulation est actif.
+
+Ne jamais partager les credentials Railway avec les beta users.
+
 ## Modèle métier livré
 
 - `Crop` : lot cultural avec batch code unique, stade courant, dates de semis/récolte, rendement final
@@ -72,6 +85,7 @@ Variables à définir hors Git :
 - Variables minimales à configurer dans Railway :
   - `APP_SECRET`
   - `DATABASE_URL`
+  - `DATABASE_URL_DIRECT`
   - `JWT_SECRET_KEY`
   - `JWT_PUBLIC_KEY`
   - `JWT_SECRET_KEY_BASE64`
@@ -92,6 +106,7 @@ Variables à définir hors Git :
   - `STRIPE_ALERT_FROM_EMAIL`
 - En déploiement Railway standard, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY` pointent vers `/var/www/html/var/jwt/*.pem`, tandis que `JWT_SECRET_KEY_BASE64` et `JWT_PUBLIC_KEY_BASE64` servent à matérialiser ces fichiers au démarrage via `docker-entrypoint.sh`.
 - Si les fichiers PEM sont absents en `prod` et qu’aucune variable base64 n’est fournie, le conteneur échoue immédiatement au démarrage.
+- En production Railway, garder `DATABASE_URL` sur l'endpoint poolé et réserver `DATABASE_URL_DIRECT` aux migrations, validations de schéma et restaurations. Voir [docs/ops/postgresql-railway-runbook.md](docs/ops/postgresql-railway-runbook.md).
 
 2. Installer les dépendances Symfony (si nécessaire)
 
