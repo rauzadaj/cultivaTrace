@@ -16,6 +16,8 @@ use Psr\Log\LoggerInterface;
 
 final class ApiExceptionSubscriber implements EventSubscriberInterface
 {
+    private const JSON_ENCODING_OPTIONS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+
     public function __construct(
         private readonly LoggerInterface $logger,
     ) {
@@ -54,11 +56,15 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
             ));
         }
 
-        $event->setResponse(new JsonResponse([
+        $response = new JsonResponse(null, $status);
+        $response->setEncodingOptions(self::JSON_ENCODING_OPTIONS);
+        $response->setData([
             'title' => Response::$statusTexts[$status] ?? 'Application Error',
             'detail' => Response::HTTP_INTERNAL_SERVER_ERROR === $status ? 'An unexpected error occurred.' : $exception->getMessage(),
             'status' => $status,
             'timestamp' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
-        ], $status));
+        ]);
+
+        $event->setResponse($response);
     }
 }
