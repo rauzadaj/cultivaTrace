@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\State;
 
+use ApiPlatform\Validator\Exception\ValidationException;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Strain;
@@ -13,6 +14,7 @@ use InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class StrainStateProcessor implements ProcessorInterface
 {
@@ -21,6 +23,7 @@ final class StrainStateProcessor implements ProcessorInterface
         private readonly ProcessorInterface $persistProcessor,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly LicenseGuard $licenseGuard,
+        private readonly ValidatorInterface $validator,
     ) {
     }
 
@@ -51,6 +54,14 @@ final class StrainStateProcessor implements ProcessorInterface
             }
 
             $data->setTenantId($organization->getId());
+
+            if (strtoupper((string) $operation->getMethod()) === 'PATCH') {
+                $violations = $this->validator->validate($data);
+
+                if (count($violations) > 0) {
+                    throw new ValidationException($violations);
+                }
+            }
         }
 
         return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
