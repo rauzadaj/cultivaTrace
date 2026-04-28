@@ -19,7 +19,7 @@ services:
       APP_BOOTSTRAP_SEED_DEMO: "1"
       DATABASE_URL: postgresql://cultiva:password@db:5432/cultivatrace?serverVersion=13&charset=utf8
     healthcheck:
-      test: ["CMD", "/var/www/html/docker/app/healthcheck.sh"]
+      test: ["CMD", "sh", "/var/www/html/docker/app/healthcheck.sh"]
       interval: 15s
       timeout: 5s
       retries: 5
