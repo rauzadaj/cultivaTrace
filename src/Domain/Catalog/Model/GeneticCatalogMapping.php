@@ -20,6 +20,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'genetic_catalog_mapping')]
+#[ORM\Index(name: 'IDX_67A16411F34034BC', columns: ['external_catalog_entry_id'])]
+#[ORM\Index(name: 'IDX_67A16411A59B8B13', columns: ['genetic_id'])]
+#[ORM\Index(name: 'IDX_67A16411D6A86055', columns: ['reviewed_by_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_genetic_catalog_mapping', columns: ['external_catalog_entry_id', 'genetic_id'])]
 #[ApiResource(
     operations: [
