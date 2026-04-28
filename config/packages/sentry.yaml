@@ -1,0 +1,9 @@
+when@prod:
+    sentry:
+        dsn: '%env(SENTRY_DSN)%'
+        register_error_listener: false
+        tracing: false
+        options:
+            environment: '%kernel.environment%'
+            release: '%env(default::APP_VERSION)%'
+            before_send: 'App\Infrastructure\Monitoring\SentryBeforeSend'

@@ -4,7 +4,7 @@
 
 ## Stack (définitif)
 
-- Backend : Symfony 6.4 LTS + API Platform 3
+- Backend : Symfony 8.0 + API Platform 4.2
 - Frontend : Vue 3 + Quasar Framework
 - DB : PostgreSQL 16 + TimescaleDB (sensor_reading)
 - Auth : LexikJWTAuthenticationBundle
@@ -12,6 +12,24 @@
 - Temps réel : Mercure Hub SSE (port 9000)
 - Paiement : Stripe PHP SDK (stripe/stripe-php)
 - Monorepo : src/ (backend) + frontend/src/ (frontend)
+
+
+## Modèle de données — coexistence Entity/Domain
+
+Le projet contient deux couches qui coexistent :
+
+- **src/Entity/** — entités legacy (Plant, PlantEvent, Farm, Room, Sensor, etc.)
+  Audit trail via PlantEvent (append-only, hash chain SHA-256).
+  Workflow implicite via PATCH sur Plant.
+
+- **src/Domain/Cultivation/Model/** — nouveau modèle DDD (Crop, JournalEntry, Genetic)
+  Audit trail via JournalEntry (append-only, sealed après PostPersist).
+  Workflow explicite via Symfony Workflow component (crop_lifecycle state machine).
+
+Ces deux modèles représentent des réalités proches mais ne sont pas reliés.
+**Stratégie actuelle : coexistence sans migration.** Ne pas connecter ces deux couches
+sans validation humaine préalable. Toute question sur cette architecture doit être
+documentée dans AUDIT_QUESTIONS.md avant d'être implémentée.
 
 ## Jalons complétés
 
@@ -55,6 +73,18 @@ Toujours PlantEventRepository::appendEvent().
 - En prod : METRC via API, Health Canada en manuel, BfArM en manuel
 - Le status pending donne un accès lecture seule uniquement
 
+### ⚠️ Flag de simulation dev
+
+`KYB_ENABLE_DEV_SIMULATION=1` est actif en beta fermée.
+Ce flag approuve automatiquement tout KYB soumis, sans validation METRC ni manuelle.
+
+**CE FLAG DOIT ÊTRE RETIRÉ AVANT TOUTE OUVERTURE PUBLIQUE.**
+
+Checklist avant retrait :
+- Intégration METRC active (US) OU process manuel Health Canada (CA) OU BfArM (DE)
+- Email `KYB_ADMIN_REVIEW_EMAIL` configuré et surveillé
+- Test end-to-end du flow KYB rejet → notification → re-soumission validé
+
 ## Règle #4 — Stripe — Règles non-contournables
 
 - Ne jamais stocker une carte bancaire ou données Stripe sensibles en base
@@ -94,3 +124,11 @@ Format : feat(TICKET-ID): description courte
 - SYNC-04 ✅ — IoT dashboard temps réel
 - SYNC-05 🔄 — Jalon 4 : tester le flow Stripe complet en sandbox
   (checkout → paiement test → webhook → plan mis à jour)
+
+
+## Infrastructure
+
+- CORS API est actuellement géré côté nginx dans `docker/nginx/railway.conf.template`
+  avec les headers `Access-Control-Allow-*` et gestion des requêtes `OPTIONS`.
+- `nelmio/cors-bundle` n'est pas requis tant que ce reverse-proxy reste la couche
+  d'exposition en environnement cible.

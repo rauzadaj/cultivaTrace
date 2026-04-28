@@ -44,6 +44,10 @@ final class CreateUserCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        if ($this->getApplication()?->getKernel()->getEnvironment() === 'prod') {
+            $io->warning('Running CreateUserCommand in production. Ensure you have Railway SSH access logs.');
+        }
+
         $email = (string) $input->getOption('email');
         $password = (string) $input->getOption('password');
         $organizationName = (string) $input->getOption('organization');
