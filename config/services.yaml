@@ -1,0 +1,97 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Application\Cultivation\Analytics\CropCycleAnalyticsGateway: '@App\Infrastructure\Persistence\Doctrine\Repository\DoctrineCropCycleAnalyticsGateway'
+    App\Application\Catalog\SeedCatalog\SeedCatalogProvider: '@App\Infrastructure\Catalog\Humboldt\HumboldtSeedCatalogProvider'
+
+    App\Infrastructure\Http\Controller\:
+        resource: '../src/Infrastructure/Http/Controller/'
+        tags: ['controller.service_arguments']
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    App\EventListener\TenantListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: -10 }
+
+    App\Infrastructure\Persistence\Doctrine\EventSubscriber\FarmTenantSubscriber:
+        tags:
+            - { name: doctrine.event_subscriber }
+
+    App\Infrastructure\Persistence\Doctrine\EventSubscriber\CropTenantSubscriber:
+        tags:
+            - { name: doctrine.event_subscriber }
+
+    App\Service\StripeService:
+        arguments:
+            $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
+            $stripeWebhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
+            $priceStarter: '%env(STRIPE_PRICE_STARTER)%'
+            $pricePro: '%env(STRIPE_PRICE_PRO)%'
+            $priceBusiness: '%env(STRIPE_PRICE_BUSINESS)%'
+            $alertFromEmail: '%env(STRIPE_ALERT_FROM_EMAIL)%'
+
+    App\Scheduler\LicenseExpirationScheduler:
+        arguments:
+            $alertFromEmail: '%env(LICENSE_ALERT_FROM_EMAIL)%'
+
+    App\Service\KybService:
+        arguments:
+            $appEnv: '%kernel.environment%'
+            $metrcApiKey: '%env(KYB_METRC_API_KEY)%'
+            $alertFromEmail: '%env(KYB_ALERT_FROM_EMAIL)%'
+            $adminReviewEmail: '%env(KYB_ADMIN_REVIEW_EMAIL)%'
+            $adminReviewUrl: '%env(KYB_ADMIN_REVIEW_URL)%'
+            $appUrl: '%env(FRONTEND_URL)%'
+            $supportEmail: '%env(KYB_SUPPORT_EMAIL)%'
+            $devSimulationEnabled: '%env(bool:KYB_ENABLE_DEV_SIMULATION)%'
+
+    App\Infrastructure\Http\Controller\RegisterUserController:
+        arguments:
+            $registerRateLimiter: '@limiter.api_register'
+
+    App\Infrastructure\Http\Controller\RegisterOrganizationController:
+        arguments:
+            $registerRateLimiter: '@limiter.api_register'
+
+    App\Service\Auth\LoginAttemptService:
+        arguments:
+            $cache: '@cache.app'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        test.workflow.registry:
+            alias: workflow.registry
+            public: true
+
+        test.state_machine.crop_lifecycle:
+            alias: state_machine.crop_lifecycle
+            public: true
+
+        test.App\Application\Cultivation\Workflow\CropLifecycleManager:
+            alias: App\Application\Cultivation\Workflow\CropLifecycleManager
+            public: true

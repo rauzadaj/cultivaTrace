@@ -1,0 +1,11 @@
+#!/usr/bin/env php
+<?php
+
+$phpunitBinary = dirname(__DIR__).'/vendor/bin/phpunit';
+
+if (!file_exists($phpunitBinary)) {
+    echo "Run `composer install` first.\n";
+    exit(1);
+}
+
+require $phpunitBinary;

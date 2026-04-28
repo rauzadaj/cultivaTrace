@@ -1,0 +1,15 @@
+api_auth_login:
+    path: /api/auth/login
+    methods: [POST]
+
+controllers:
+    resource:
+        path: ../src/Controller/
+        namespace: App\Controller
+    type: attribute
+
+infrastructure_controllers:
+    resource:
+        path: ../src/Infrastructure/Http/Controller/
+        namespace: App\Infrastructure\Http\Controller
+    type: attribute
