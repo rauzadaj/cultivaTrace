@@ -17,12 +17,34 @@ final class Version20260330103000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $this->addSql(<<<'SQL'
-            UPDATE journal_entry je
-            SET tenant_id = c.tenant_id
-            FROM crop c
-            WHERE je.crop_id = c.id
-              AND je.tenant_id IS NULL
-              AND c.tenant_id IS NOT NULL
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_trigger
+                    WHERE tgname = 'trg_journal_entry_append_only'
+                      AND tgrelid = 'journal_entry'::regclass
+                ) THEN
+                    ALTER TABLE journal_entry DISABLE TRIGGER trg_journal_entry_append_only;
+                END IF;
+
+                UPDATE journal_entry je
+                SET tenant_id = c.tenant_id
+                FROM crop c
+                WHERE je.crop_id = c.id
+                  AND je.tenant_id IS NULL
+                  AND c.tenant_id IS NOT NULL;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_trigger
+                    WHERE tgname = 'trg_journal_entry_append_only'
+                      AND tgrelid = 'journal_entry'::regclass
+                ) THEN
+                    ALTER TABLE journal_entry ENABLE TRIGGER trg_journal_entry_append_only;
+                END IF;
+            END
+            $$;
         SQL);
 
         $this->addSql(<<<'SQL'
