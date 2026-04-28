@@ -2,7 +2,12 @@ FROM composer:2 AS composer_deps
 
 WORKDIR /app
 COPY composer.json composer.lock symfony.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+ARG INSTALL_DEV_DEPENDENCIES=0
+RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "1" ]; then \
+      composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts; \
+    else \
+      composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts; \
+    fi
 
 FROM node:20-alpine AS frontend_build
 
