@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Sensor;
 use App\Entity\User;
+use App\Service\License\LicenseGuard;
 use InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -19,6 +20,7 @@ final class SensorStateProcessor implements ProcessorInterface
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,
         private readonly TokenStorageInterface $tokenStorage,
+        private readonly LicenseGuard $licenseGuard,
     ) {
     }
 
@@ -37,6 +39,10 @@ final class SensorStateProcessor implements ProcessorInterface
             }
 
             $organization = $user->getOrganization();
+
+            if (!isset($context['previous_data'])) {
+                $this->licenseGuard->assertLicenseApproved($organization);
+            }
 
             if (isset($context['previous_data']) && $context['previous_data'] instanceof Sensor) {
                 if ($context['previous_data']->getTenantId() != $organization->getId()) {
