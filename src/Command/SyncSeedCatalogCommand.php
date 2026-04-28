@@ -1,0 +1,128 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Command;
+
+use App\Application\Catalog\SeedCatalog\SeedCatalogProvider;
+use App\Domain\Catalog\Model\ExternalCatalogEntry;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+#[AsCommand(
+    name: 'app:sync-seed-catalog',
+    description: 'Synchronize the verified cannabis seed catalog snapshot into the external catalog store and export a JSON snapshot.',
+)]
+final class SyncSeedCatalogCommand extends Command
+{
+    private const DEFAULT_EXPORT_PATH = 'catalog/seed-catalog/humboldt-california-canada.json';
+    private const SOURCE_PROVIDER = 'humboldtseedcompany.com';
+
+    public function __construct(
+        private readonly SeedCatalogProvider $seedCatalogProvider,
+        private readonly EntityManagerInterface $entityManager,
+    ) {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this
+            ->addOption('export-path', null, InputOption::VALUE_REQUIRED, 'Path of the JSON snapshot to write.', self::DEFAULT_EXPORT_PATH)
+            ->addOption('no-upsert', null, InputOption::VALUE_NONE, 'Skip external catalog upsert and only write the JSON snapshot.');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $entries = $this->seedCatalogProvider->fetchEntries();
+
+        if ([] === $entries) {
+            $io->error('No seed catalog entries were fetched from the upstream source.');
+
+            return Command::FAILURE;
+        }
+
+        if (!$input->getOption('no-upsert')) {
+            foreach ($entries as $entry) {
+                /** @var ExternalCatalogEntry|null $catalogEntry */
+                $catalogEntry = $this->entityManager->getRepository(ExternalCatalogEntry::class)->findOneBy([
+                    'sourceProvider' => self::SOURCE_PROVIDER,
+                    'externalCode' => $entry->code,
+                ]);
+
+                if (!$catalogEntry instanceof ExternalCatalogEntry) {
+                    $catalogEntry = new ExternalCatalogEntry();
+                    $catalogEntry
+                        ->setSourceProvider(self::SOURCE_PROVIDER)
+                        ->setExternalCode($entry->code);
+
+                    $this->entityManager->persist($catalogEntry);
+                }
+
+                $rawSourceModifiedAt = trim($entry->sourceModifiedAt);
+                if ('' === $rawSourceModifiedAt) {
+                    $sourceModifiedAt = null;
+                } else {
+                    try {
+                        $sourceModifiedAt = new \DateTimeImmutable($rawSourceModifiedAt);
+                    } catch (\Throwable) {
+                        $sourceModifiedAt = null;
+                    }
+                }
+
+                $catalogEntry
+                    ->setName($entry->name)
+                    ->setVendor($entry->vendor)
+                    ->setGenetics($entry->genetics)
+                    ->setDescription($entry->description)
+                    ->setImageUrl($entry->imageUrl)
+                    ->setSourceUrl($entry->sourceUrl)
+                    ->setSourceModifiedAt($sourceModifiedAt)
+                    ->setMarkets($entry->markets)
+                    ->setRawMetadata($entry->toArray());
+            }
+
+            $this->entityManager->flush();
+        }
+
+        $exportPath = (string) $input->getOption('export-path');
+        $this->writeSnapshot($exportPath, $entries);
+
+        $io->success(sprintf('Synchronized %d catalog entries and wrote %s.', count($entries), $exportPath));
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<\App\Application\Catalog\SeedCatalog\SeedCatalogEntry> $entries
+     */
+    private function writeSnapshot(string $exportPath, array $entries): void
+    {
+        $directory = dirname($exportPath);
+
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new \RuntimeException(sprintf('Unable to create export directory: %s', $directory));
+        }
+
+        $payload = [
+            'provider' => 'humboldtseedcompany.com',
+            'generatedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
+            'jurisdictions' => ['california', 'canada'],
+            'entries' => array_map(
+                static fn ($entry): array => $entry->toArray(),
+                $entries,
+            ),
+        ];
+
+        file_put_contents(
+            $exportPath,
+            json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+        );
+    }
+}

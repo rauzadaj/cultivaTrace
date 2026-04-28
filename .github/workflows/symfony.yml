@@ -1,0 +1,82 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Symfony
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  symfony-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cultivatrace
+          POSTGRES_USER: cultiva
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U cultiva -d cultivatrace"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      gotenberg:
+        image: gotenberg/gotenberg:8
+        ports:
+          - 3000:3000
+    env:
+      DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
+      GOTENBERG_DSN: http://127.0.0.1:3000
+      GOTENBERG_URL: http://127.0.0.1:3000
+      JWT_PASSPHRASE: ''
+    steps:
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: sodium, pdo_pgsql, pgsql
+        tools: composer:v2
+        coverage: none
+    - uses: actions/checkout@v4
+    - name: Copy .env.test.local
+      run: php -r "file_exists('.env.test.local') || copy('.env.test', '.env.test.local');"
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+    - name: Install Dependencies
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+    - name: Generate JWT keypair for tests
+      run: |
+        mkdir -p config/jwt
+        openssl genrsa -out config/jwt/private.pem 4096
+        openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem
+    - name: Wait for PostgreSQL
+      run: |
+        until (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1; do
+          sleep 1
+        done
+    - name: Wait for Gotenberg
+      run: |
+        until curl -fsS http://127.0.0.1:3000/version >/dev/null; do
+          sleep 1
+        done
+    - name: Create test database
+      run: |
+        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=postgres", "cultiva", ""); $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = '\''cultivatrace_test'\''"); if ($stmt->fetchColumn() === false) { $pdo->exec("CREATE DATABASE cultivatrace_test"); }'
+    - name: Execute tests (Unit and Feature tests) via PHPUnit
+      run: vendor/bin/phpunit
