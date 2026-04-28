@@ -44,11 +44,9 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $limiterKey = $this->buildLimiterKey($request);
-
         $specificFactory = $this->resolveSpecificLimiter($request);
         if ($specificFactory instanceof RateLimiterFactory) {
-            $specificLimit = $specificFactory->create($limiterKey)->consume(1);
+            $specificLimit = $specificFactory->create($this->buildSpecificLimiterKey($request))->consume(1);
             if (!$specificLimit->isAccepted()) {
                 $event->setResponse($this->createRateLimitResponse($specificLimit));
 
@@ -56,7 +54,7 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
             }
         }
 
-        $limit = $this->apiGlobalLimiter->create($limiterKey)->consume(1);
+        $limit = $this->apiGlobalLimiter->create($this->buildGlobalLimiterKey($request))->consume(1);
 
         if (!$limit->isAccepted()) {
             $event->setResponse($this->createRateLimitResponse($limit));
@@ -89,7 +87,7 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
         );
     }
 
-    private function buildLimiterKey(\Symfony\Component\HttpFoundation\Request $request): string
+    private function buildSpecificLimiterKey(\Symfony\Component\HttpFoundation\Request $request): string
     {
         $ip = (string) ($request->getClientIp() ?? 'unknown');
 
@@ -99,13 +97,12 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
             return $email !== null ? sprintf('login:%s', mb_strtolower($email)) : $ip;
         }
 
-        if ($request->isMethod('POST') && $request->getPathInfo() === '/api/auth/token/refresh') {
-            $refreshToken = $this->extractPayloadValue($request, 'refreshToken');
-
-            return $refreshToken !== null ? sprintf('refresh:%s', hash('sha256', $refreshToken)) : $ip;
-        }
-
         return $ip;
+    }
+
+    private function buildGlobalLimiterKey(\Symfony\Component\HttpFoundation\Request $request): string
+    {
+        return (string) ($request->getClientIp() ?? 'unknown');
     }
 
     private function extractPayloadValue(\Symfony\Component\HttpFoundation\Request $request, string $field): ?string
