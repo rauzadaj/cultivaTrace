@@ -91,7 +91,14 @@ class StripeService
             $params['customer_email'] = $firstUser instanceof User ? $firstUser->getEmail() : null;
         }
 
-        $session = Session::create($params);
+        $idempotencyKey = sprintf(
+            'checkout-%s-%s-%s',
+            (string) $organization->getId(),
+            $plan->value,
+            (new \DateTimeImmutable())->format('Ymd')
+        );
+
+        $session = Session::create($params, ['idempotencyKey' => $idempotencyKey]);
         return $session->url;
     }
 

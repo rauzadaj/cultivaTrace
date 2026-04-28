@@ -99,6 +99,15 @@
             "config/packages/gotenberg.yaml"
         ]
     },
+    "sentry/sentry-symfony": {
+        "version": "5.10",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "5.0",
+            "ref": "12f504985eb24e3b20a9e41e0ec7e398798d18f0"
+        }
+    },
     "stripe/stripe-php": {
         "version": "19.4",
         "recipe": {
@@ -187,6 +196,15 @@
         "files": [
             "config/packages/messenger.yaml"
         ]
+    },
+    "symfony/phpunit-bridge": {
+        "version": "8.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.3",
+            "ref": "56f87409c45ff6654b0bf07c5cc359aebf6016ab"
+        }
     },
     "symfony/property-info": {
         "version": "7.4",

@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use App\Enum\DestructionStatus;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -60,8 +61,8 @@ class DestructionIntent
     private \DateTimeImmutable $legalDateMin;
 
     /** pending | confirmed | cancelled */
-    #[ORM\Column(length: 50)]
-    private string $status = 'pending';
+    #[ORM\Column(length: 50, enumType: DestructionStatus::class)]
+    private DestructionStatus $status = DestructionStatus::Pending;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
     private ?string $totalWeightG = null;
@@ -96,7 +97,7 @@ class DestructionIntent
 
     public function canBeConfirmed(): bool
     {
-        return $this->status === 'pending'
+        return $this->status === DestructionStatus::Pending
             && new \DateTimeImmutable() >= $this->legalDateMin;
     }
 
@@ -122,8 +123,8 @@ class DestructionIntent
     public function setReason(string $r): self { $this->reason = $r; return $this; }
     public function getDeclaredAt(): \DateTimeImmutable { return $this->declaredAt; }
     public function getLegalDateMin(): \DateTimeImmutable { return $this->legalDateMin; }
-    public function getStatus(): string { return $this->status; }
-    public function setStatus(string $s): self { $this->status = $s; return $this; }
+    public function getStatus(): DestructionStatus { return $this->status; }
+    public function setStatus(DestructionStatus $s): self { $this->status = $s; return $this; }
     public function getTotalWeightG(): ?string { return $this->totalWeightG; }
     public function setTotalWeightG(?string $w): self { $this->totalWeightG = $w; return $this; }
     public function getNonCannabisRatio(): ?string { return $this->nonCannabisRatio; }
