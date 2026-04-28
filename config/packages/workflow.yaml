@@ -1,0 +1,27 @@
+framework:
+    workflows:
+        crop_lifecycle:
+            type: state_machine
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: method
+                property: currentStageValue
+            supports:
+                - App\Domain\Cultivation\Model\Crop
+            initial_marking: seedling
+            places:
+                - seedling
+                - veg
+                - flower
+                - harvest
+            transitions:
+                start_vegetative:
+                    from: seedling
+                    to: veg
+                start_flowering:
+                    from: veg
+                    to: flower
+                harvest:
+                    from: flower
+                    to: harvest

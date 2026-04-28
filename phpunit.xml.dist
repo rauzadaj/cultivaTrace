@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true">
+    <php>
+        <env name="APP_ENV" value="test" force="true"/>
+        <server name="APP_DEBUG" value="1" force="true"/>
+        <server name="KERNEL_CLASS" value="App\Kernel"/>
+        <env name="MAILER_DSN" value="null://null" force="true"/>
+        <env name="FRONTEND_URL" value="http://localhost:5173" force="true"/>
+        <env name="KYB_ALERT_FROM_EMAIL" value="kyb@test.local" force="true"/>
+        <env name="KYB_ADMIN_REVIEW_EMAIL" value="admin-kyb@test.local" force="true"/>
+        <env name="KYB_ADMIN_REVIEW_URL" value="http://localhost:5173/kyb/review" force="true"/>
+        <env name="KYB_SUPPORT_EMAIL" value="support@test.local" force="true"/>
+        <env name="KYB_ENABLE_DEV_SIMULATION" value="1" force="true"/>
+        <env name="KYB_METRC_API_KEY" value="" force="true"/>
+        <server name="GOTENBERG_URL" value="http://gotenberg:3000" force="true"/>
+        <env name="MERCURE_URL" value="http://mercure/.well-known/mercure" force="true"/>
+        <env name="MERCURE_PUBLIC_URL" value="http://localhost:9000/.well-known/mercure" force="true"/>
+        <env name="MERCURE_JWT_SECRET" value="!ChangeThisMercureHubJWTSecretKey!" force="true"/>
+        <env name="JWT_SECRET_KEY" value="%kernel.project_dir%/var/jwt/private.pem" force="true"/>
+        <env name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/var/jwt/public.pem" force="true"/>
+        <env name="JWT_PASSPHRASE" value="change-me-in-local-and-prod" force="true"/>
+    </php>
+    <testsuites>
+        <testsuite name="Project Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

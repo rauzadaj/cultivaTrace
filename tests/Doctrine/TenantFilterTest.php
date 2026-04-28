@@ -1,0 +1,164 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Doctrine;
+
+use App\Domain\Cultivation\Enum\JournalEntryType;
+use App\Domain\Cultivation\Model\Crop;
+use App\Domain\Cultivation\Model\Genetic;
+use App\Domain\Cultivation\Model\JournalEntry;
+use App\Entity\Farm;
+use App\Tests\Fixture\TenantIsolationFixtures;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\SchemaTool;
+use Symfony\Component\Uid\Uuid;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+final class TenantFilterTest extends KernelTestCase
+{
+    private EntityManagerInterface $entityManager;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->entityManager = $entityManager;
+
+        $this->resetSchema();
+    }
+
+    protected function tearDown(): void
+    {
+        $filters = $this->entityManager->getFilters();
+        if ($filters->isEnabled('tenant_filter')) {
+            $filters->disable('tenant_filter');
+        }
+
+        $this->entityManager->close();
+        unset($this->entityManager);
+
+        parent::tearDown();
+    }
+
+    public function testTenantFilterIsolatesDataBetweenOrganizations(): void
+    {
+        $fixtureSet = TenantIsolationFixtures::load($this->entityManager);
+
+        $filter = $this->entityManager->getFilters()->enable('tenant_filter');
+        $filter->setParameter('tenantId', (string) $fixtureSet->organizationA->getId());
+
+        $visibleForUserA = $this->entityManager->getRepository(Farm::class)->findAll();
+
+        self::assertCount(1, $visibleForUserA);
+        self::assertSame('Farm A', $visibleForUserA[0]->getName());
+        self::assertSame(
+            (string) $fixtureSet->organizationA->getId(),
+            (string) $visibleForUserA[0]->getTenantId(),
+        );
+        self::assertNotContains('Farm B', array_map(
+            static fn (Farm $farm): string => $farm->getName(),
+            $visibleForUserA,
+        ));
+
+        $this->entityManager->clear();
+        $this->entityManager->getFilters()->disable('tenant_filter');
+
+        $filter = $this->entityManager->getFilters()->enable('tenant_filter');
+        $filter->setParameter('tenantId', (string) $fixtureSet->organizationB->getId());
+
+        $visibleForUserB = $this->entityManager->getRepository(Farm::class)->findAll();
+
+        self::assertCount(1, $visibleForUserB);
+        self::assertSame('Farm B', $visibleForUserB[0]->getName());
+        self::assertSame(
+            (string) $fixtureSet->organizationB->getId(),
+            (string) $visibleForUserB[0]->getTenantId(),
+        );
+        self::assertNotContains('Farm A', array_map(
+            static fn (Farm $farm): string => $farm->getName(),
+            $visibleForUserB,
+        ));
+    }
+
+    public function testTenantFilterAlsoIsolatesCropJournals(): void
+    {
+        $tenantA = Uuid::v4();
+        $tenantB = Uuid::v4();
+        $genetic = (new Genetic())
+            ->setCode('FILTER-01')
+            ->setName('Tenant Filter Genetic');
+
+        $cropA = (new Crop())
+            ->setTenantId($tenantA)
+            ->setBatchCode('FILTER-A')
+            ->setDisplayName('Crop A')
+            ->setGenetic($genetic);
+        $cropB = (new Crop())
+            ->setTenantId($tenantB)
+            ->setBatchCode('FILTER-B')
+            ->setDisplayName('Crop B')
+            ->setGenetic($genetic);
+
+        $cropA->addJournalEntry(
+            (new JournalEntry())
+                ->setType(JournalEntryType::Observation)
+                ->setNotes('Journal A'),
+        );
+        $cropB->addJournalEntry(
+            (new JournalEntry())
+                ->setType(JournalEntryType::Observation)
+                ->setNotes('Journal B'),
+        );
+
+        $this->entityManager->persist($genetic);
+        $this->entityManager->persist($cropA);
+        $this->entityManager->persist($cropB);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $filter = $this->entityManager->getFilters()->enable('tenant_filter');
+        $filter->setParameter('tenantId', (string) $tenantA);
+
+        $visibleCrops = $this->entityManager->getRepository(Crop::class)->findAll();
+        $visibleEntries = $this->entityManager->getRepository(JournalEntry::class)->findAll();
+
+        self::assertCount(1, $visibleCrops);
+        self::assertSame('FILTER-A', $visibleCrops[0]->getBatchCode());
+        self::assertCount(1, $visibleEntries);
+        self::assertSame('Journal A', $visibleEntries[0]->getNotes());
+    }
+
+    public function testCultivationTenantColumnsAreMappedAsRequired(): void
+    {
+        $cropMetadata = $this->entityManager->getClassMetadata(Crop::class);
+        $journalMetadata = $this->entityManager->getClassMetadata(JournalEntry::class);
+
+        self::assertFalse($cropMetadata->fieldMappings['tenantId']->nullable ?? true);
+        self::assertFalse($journalMetadata->fieldMappings['tenantId']->nullable ?? true);
+    }
+
+    private function resetSchema(): void
+    {
+        $schemaTool = new SchemaTool($this->entityManager);
+        $metadata = [
+            $this->entityManager->getClassMetadata(\App\Entity\Organization::class),
+            $this->entityManager->getClassMetadata(\App\Entity\User::class),
+            $this->entityManager->getClassMetadata(Farm::class),
+            $this->entityManager->getClassMetadata(Genetic::class),
+            $this->entityManager->getClassMetadata(Crop::class),
+            $this->entityManager->getClassMetadata(JournalEntry::class),
+        ];
+
+        $platformClass = $this->entityManager->getConnection()->getDatabasePlatform()::class;
+        if (str_contains($platformClass, 'PostgreSQL')) {
+            $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS journal_entry, crop, genetic, farm, "user", organization CASCADE');
+        } else {
+            $schemaTool->dropSchema($metadata);
+        }
+
+        $schemaTool->createSchema($metadata);
+    }
+}
