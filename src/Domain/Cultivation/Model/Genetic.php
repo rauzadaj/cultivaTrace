@@ -19,6 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'genetic')]
+#[ORM\Index(name: 'idx_genetic_metadata_gin', columns: ['metadata'], flags: ['gin'])]
 #[ORM\UniqueConstraint(name: 'uniq_genetic_code', columns: ['code'])]
 #[UniqueEntity(fields: ['code'])]
 #[ApiResource(
