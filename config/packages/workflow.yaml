@@ -25,3 +25,55 @@ framework:
                 harvest:
                     from: flower
                     to: harvest
+
+        plant_lifecycle:
+            type: state_machine
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: method
+                property: statusValue
+            supports:
+                - App\Domain\Plant\Plant
+            initial_marking: germination
+            places:
+                - germination
+                - vegetative
+                - flowering
+                - harvested
+                - destroyed
+                - quarantine
+            transitions:
+                grow:
+                    from: germination
+                    to: vegetative
+                flower:
+                    from: vegetative
+                    to: flowering
+                harvest:
+                    from: flowering
+                    to: harvested
+                quarantine:
+                    from:
+                        - germination
+                        - vegetative
+                        - flowering
+                        - harvested
+                        - destroyed
+                        - quarantine
+                    to: quarantine
+                destroy:
+                    from:
+                        - germination
+                        - vegetative
+                        - flowering
+                        - harvested
+                        - destroyed
+                        - quarantine
+                    to: destroyed
+                release_to_vegetative:
+                    from: quarantine
+                    to: vegetative
+                release_to_flowering:
+                    from: quarantine
+                    to: flowering
