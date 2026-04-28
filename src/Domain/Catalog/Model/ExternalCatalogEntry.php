@@ -17,6 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'external_catalog_entry')]
+#[ORM\Index(name: 'idx_external_catalog_provider', columns: ['source_provider'])]
 #[ORM\UniqueConstraint(name: 'uniq_external_catalog_provider_code', columns: ['source_provider', 'external_code'])]
 #[ApiResource(
     operations: [

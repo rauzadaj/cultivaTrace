@@ -1,6 +1,7 @@
 doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
+        schema_filter: '~^(?!sensor_reading$)~'
 
         # Railway can inject a DATABASE_URL without a usable serverVersion query
         # parameter; keep the PostgreSQL version explicit so migrations can boot.

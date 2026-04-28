@@ -53,7 +53,7 @@ class Organization
     private ?string $contactEmail = null;
 
     /** @var array<string, mixed> */
-    #[ORM\Column(type: Types::JSON, options: ['jsonb' => true])]
+    #[ORM\Column(type: Types::JSON, options: ['jsonb' => true, 'default' => '{}'])]
     private array $config = [];
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]

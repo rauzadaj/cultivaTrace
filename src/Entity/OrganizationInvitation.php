@@ -10,6 +10,9 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: OrganizationInvitationRepository::class)]
 #[ORM\Table(name: 'organization_invitation')]
+#[ORM\UniqueConstraint(name: 'UNIQ_131B11B1D474FA0B', columns: ['token_hash'])]
+#[ORM\Index(name: 'IDX_131B11B132C8A3DE', columns: ['organization_id'])]
+#[ORM\Index(name: 'IDX_131B11B1AB0ABBE2', columns: ['invited_by_id'])]
 class OrganizationInvitation
 {
     #[ORM\Id]
@@ -31,7 +34,7 @@ class OrganizationInvitation
     #[ORM\Column]
     private array $roles = [];
 
-    #[ORM\Column(length: 64, unique: true)]
+    #[ORM\Column(length: 64)]
     private string $tokenHash = '';
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]

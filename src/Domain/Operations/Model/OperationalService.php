@@ -15,6 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'operational_service')]
+#[ORM\Index(name: 'idx_operational_service_position', columns: ['position'])]
 #[ORM\UniqueConstraint(name: 'uniq_operational_service_name', columns: ['name'])]
 #[ApiResource(
     operations: [
