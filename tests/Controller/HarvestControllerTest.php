@@ -16,6 +16,7 @@ use App\Entity\User;
 use App\Enum\LicenseStatus;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
+use App\Enum\RoomType;
 use Symfony\Component\HttpFoundation\Response;
 
 final class HarvestControllerTest extends ApiTestCase
@@ -207,7 +208,7 @@ final class HarvestControllerTest extends ApiTestCase
         $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $user = $this->createUser($organization, sprintf('%s@test.local', strtolower($rfidTag)), role: $role);
         $farm = $this->createFarm($organization, 'Farm Harvest');
-        $room = $this->createRoom($farm, 'Flower Room', 'flower');
+        $room = $this->createRoom($farm, 'Flower Room', RoomType::Flower);
         $strain = $this->createStrain($organization, 'Harvest Strain');
         $plant = $this->createPlant($room, $user, $strain, PlantStage::FLOWERING, PlantStatus::ACTIVE, $rfidTag, '-30 days');
 
