@@ -9,6 +9,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Plant;
 use App\Entity\User;
 use App\Repository\PlantEventRepository;
+use App\Service\License\LicenseGuard;
 use App\Service\PlanLimitExceededException;
 use App\Service\PlanLimitsService;
 use InvalidArgumentException;
@@ -23,6 +24,7 @@ final class PlantStateProcessor implements ProcessorInterface
         private readonly ProcessorInterface $persistProcessor,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly PlantEventRepository $plantEventRepository,
+        private readonly LicenseGuard $licenseGuard,
         private readonly PlanLimitsService $planLimits,
     ) {
     }
@@ -52,6 +54,7 @@ final class PlantStateProcessor implements ProcessorInterface
 
             if (!isset($context['previous_data']) || !$context['previous_data'] instanceof Plant) {
                 $isCreate = true;
+                $this->licenseGuard->assertLicenseApproved($organization);
                 try {
                     $this->planLimits->checkPlantLimit($organization);
                 } catch (PlanLimitExceededException $exception) {
