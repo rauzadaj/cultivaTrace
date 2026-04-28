@@ -15,6 +15,7 @@ use App\Entity\PlantEvent;
 use App\Entity\Room;
 use App\Entity\Strain;
 use App\Entity\User;
+use App\Enum\RoomType;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -92,7 +93,7 @@ final class PlantReportControllerTest extends ApiTestCase
         $organization = $this->createOrganization('Org Reports');
         $user = $this->createUser($organization, 'reports@test.local');
         $farm = $this->createFarm($organization, 'Report Farm');
-        $room = $this->createRoom($farm, 'Report Room', 'flower');
+        $room = $this->createRoom($farm, 'Report Room', RoomType::Flower);
         $strain = $this->createStrain($organization, 'Report Strain');
         $plant = $this->createPlant($room, $user, $strain, rfidTag: 'PLANT-REPORT', germinatedAt: '2026-03-01');
 
