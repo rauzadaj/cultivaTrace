@@ -13,6 +13,7 @@ use App\Entity\Room;
 use App\Entity\Sensor;
 use App\Entity\Strain;
 use App\Entity\User;
+use App\Enum\RoomType;
 use App\Enum\SubscriptionPlan;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -42,8 +43,8 @@ final class DashboardControllerTest extends ApiTestCase
 
         $user = $this->createUser($organization, 'dashboard@test.local');
         $farm = $this->createFarm($organization, 'Farm Dashboard');
-        $roomVeg = $this->createRoom($farm, 'Veg Room', 'veg');
-        $roomFlower = $this->createRoom($farm, 'Flower Room', 'flower');
+        $roomVeg = $this->createRoom($farm, 'Veg Room', RoomType::Veg);
+        $roomFlower = $this->createRoom($farm, 'Flower Room', RoomType::Flower);
         $strain = $this->createStrain($organization, 'OG Kush');
 
         for ($index = 1; $index <= 10; $index++) {
