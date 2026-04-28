@@ -82,6 +82,7 @@ Variables à définir hors Git :
 - Pour le développement local, créez vos vraies valeurs dans `.env.local` ou injectez-les via votre shell.
 - En environnement Railway, injectez les secrets dans le dashboard du service et non dans un fichier commité.
 - Si une valeur sensible a déjà été exposée dans un historique Git ou un ancien environnement, considérez-la comme compromise et faites une rotation avant déploiement.
+- `MERCURE_JWT_SECRET` ne doit plus être laissé sur la valeur de fallback locale au-delà d'un poste de dev isolé.
 - Variables minimales à configurer dans Railway :
   - `APP_SECRET`
   - `DATABASE_URL`
