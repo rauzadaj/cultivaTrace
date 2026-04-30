@@ -49,3 +49,9 @@ config/jwt/private.pem
 config/jwt/public.pem
 config/jwt/.pem
 config/jwt/*.key
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
