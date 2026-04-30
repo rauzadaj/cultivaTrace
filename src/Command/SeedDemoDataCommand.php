@@ -16,6 +16,7 @@ use App\Entity\Organization;
 use App\Entity\User;
 use App\Enum\LicenseStatus;
 use App\Enum\SubscriptionPlan;
+use App\Enum\UserAccountStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -200,6 +201,10 @@ final class SeedDemoDataCommand extends Command
         $user
             ->setRoles(['ROLE_ORG_ADMIN'])
             ->setOrganization($organization)
+            ->setAccountStatus(UserAccountStatus::ACTIVE)
+            ->setEmailVerifiedAt(new \DateTimeImmutable())
+            ->setEmailVerificationTokenHash(null)
+            ->setEmailVerificationExpiresAt(null)
             ->setPassword($this->passwordHasher->hashPassword($user, 'demo123'));
 
         return $user;
