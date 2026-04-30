@@ -225,7 +225,8 @@ final class SeedDemoDataCommand extends Command
         $organization
             ->setCountry('FR')
             ->setPlan(SubscriptionPlan::PRO)
-            ->setLicenseStatus(LicenseStatus::PENDING);
+            ->setLicenseStatus(LicenseStatus::ACTIVE)
+            ->setLicenseExpiresAt(new \DateTimeImmutable('+1 year'));
 
         return $organization;
     }
