@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 
 /**
  * SensorReadingRepository — requêtes DBAL natif sur TimescaleDB.
@@ -36,13 +37,25 @@ class SensorReadingRepository
      */
     public function insert(string $sensorId, string $tenantId, float $value): void
     {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        // SQLite stores dates as plain TEXT — no offset understood in comparisons.
+        // PostgreSQL TIMESTAMPTZ requires the offset so the session timezone is not
+        // applied: without it, a PHP runtime in Europe/Paris would store an instant
+        // 1–2 hours off from the true UTC value.
+        $isSQLite = $this->connection->getDatabasePlatform() instanceof SQLitePlatform;
+        $recordedAt = $isSQLite
+            ? $now->format('Y-m-d H:i:s')
+            : $now->format('Y-m-d H:i:sP');
+
         $this->connection->executeStatement(
             'INSERT INTO sensor_reading (sensor_id, tenant_id, value, recorded_at)
-             VALUES (:sensorId, :tenantId, :value, NOW())',
+             VALUES (:sensorId, :tenantId, :value, :recordedAt)',
             [
-                'sensorId' => $sensorId,
-                'tenantId' => $tenantId,
-                'value'    => $value,
+                'sensorId'   => $sensorId,
+                'tenantId'   => $tenantId,
+                'value'      => $value,
+                'recordedAt' => $recordedAt,
             ]
         );
     }
@@ -77,7 +90,29 @@ class SensorReadingRepository
             '365d' => [365, '1 day'],
             default => [30, '3 hours'],
         };
-        $since = (new \DateTimeImmutable(sprintf('-%d days', $days)))->format(\DateTimeInterface::ATOM);
+        $isSQLite = $this->connection->getDatabasePlatform() instanceof SQLitePlatform;
+
+        $sinceUtc = new \DateTimeImmutable(sprintf('-%d days', $days), new \DateTimeZone('UTC'));
+        $since = $isSQLite ? $sinceUtc->format('Y-m-d H:i:s') : $sinceUtc->format('Y-m-d H:i:sP');
+
+        if ($isSQLite) {
+            return $this->connection->fetchAllAssociative(
+                "SELECT
+                    strftime('%Y-%m-%d %H:00:00', recorded_at) AS bucket,
+                    AVG(value) AS avg_value,
+                    MIN(value) AS min_value,
+                    MAX(value) AS max_value
+                 FROM sensor_reading
+                 WHERE sensor_id = :sensorId
+                   AND recorded_at > :since
+                 GROUP BY strftime('%Y-%m-%d %H:00:00', recorded_at)
+                 ORDER BY bucket ASC",
+                [
+                    'sensorId' => $sensorId,
+                    'since'    => $since,
+                ]
+            );
+        }
 
         // Essayer TimescaleDB time_bucket, fallback sur date_trunc
         try {
