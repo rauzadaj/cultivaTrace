@@ -33,12 +33,22 @@ class TenantFilter extends SQLFilter
         }
 
         $column = $targetEntity->getColumnName('tenantId');
+        $quoted = $this->getParameter('tenantId');
 
-        return sprintf(
-            '%s.%s = %s',
-            $targetTableAlias,
-            $column,
-            $this->getParameter('tenantId') // UUID sous forme de string
-        );
+        // On SQLite, Doctrine stores UUIDs as 16-byte binary strings (TEXT affinity
+        // via PDO). A direct = comparison against a string UUID fails because the
+        // stored bytes do not match the RFC-4122 text representation.
+        // Using hex(column) = 'UPPERCASE_HEX' correctly compares the binary bytes.
+        if ($this->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+            $tenantId = trim($quoted, "'");
+            try {
+                $hex = strtoupper(bin2hex(\Symfony\Component\Uid\Uuid::fromString($tenantId)->toBinary()));
+                return sprintf("hex(%s.%s) = '%s'", $targetTableAlias, $column, $hex);
+            } catch (\Throwable) {
+                return '';
+            }
+        }
+
+        return sprintf('%s.%s = %s', $targetTableAlias, $column, $quoted);
     }
 }

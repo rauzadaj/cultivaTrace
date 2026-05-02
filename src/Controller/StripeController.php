@@ -173,13 +173,13 @@ class StripeController extends AbstractController
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('OK', Response::HTTP_OK);
+            return new Response('Unauthorized', Response::HTTP_UNAUTHORIZED);
         } catch (\Throwable $exception) {
             $this->logger->error('[Stripe] Webhook handling failed', [
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('OK', Response::HTTP_OK);
+            return new Response('Internal Server Error', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
         return new Response('OK', Response::HTTP_OK);
