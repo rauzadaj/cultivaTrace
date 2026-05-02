@@ -141,7 +141,17 @@ export const validators = {
         return message
       }
 
-      return Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ? message : null
+      const parsed = new Date(`${value}T00:00:00Z`)
+      if (Number.isNaN(parsed.getTime())) {
+        return message
+      }
+
+      const [year, month, day] = value.split('-').map(Number) as [number, number, number]
+      return parsed.getUTCFullYear() === year &&
+        parsed.getUTCMonth() + 1 === month &&
+        parsed.getUTCDate() === day
+        ? null
+        : message
     },
 
   positiveInteger:

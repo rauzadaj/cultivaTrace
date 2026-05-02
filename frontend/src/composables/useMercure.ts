@@ -180,8 +180,11 @@ export function useMercure() {
       })
 
       es.addEventListener('error', () => {
-        console.warn(`[Mercure] Reconnexion sur topic: ${topic}`)
-        // EventSource reconnecte automatiquement
+        if (es.readyState === EventSource.CLOSED) {
+          console.warn(`[Mercure] Connexion fermée, reconnexion sur topic: ${topic}`)
+          eventSources.value.delete(topic)
+          scheduleReconnect(topic, callback)
+        }
       })
 
       eventSources.value.set(topic, es)
