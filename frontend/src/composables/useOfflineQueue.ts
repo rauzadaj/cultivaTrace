@@ -47,7 +47,15 @@ export function useOfflineQueue() {
   }
 
   function saveQueue(): void {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.value))
+    try {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.value))
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+        console.error('[OfflineQueue] localStorage quota exceeded — queue not persisted', err)
+      } else {
+        throw err
+      }
+    }
     pendingCount.value = queue.value.length
   }
 

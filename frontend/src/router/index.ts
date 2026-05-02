@@ -182,9 +182,13 @@ router.beforeEach((to) => {
   }
 
   if ((to.name === 'auth' || to.name === 'onboarding' || to.name === 'invite-accept') && authStore.isAuthenticated) {
-    return authStore.isPlanActive
-      ? (typeof to.query.redirect === 'string' ? to.query.redirect : '/dashboard/overview')
-      : '/kyb'
+    const redirect = to.query.redirect
+    const safeRedirect =
+      typeof redirect === 'string' && /^\/(?!\/)/.test(redirect)
+        ? redirect
+        : '/dashboard/overview'
+
+    return authStore.isPlanActive ? safeRedirect : '/kyb'
   }
 
   return true

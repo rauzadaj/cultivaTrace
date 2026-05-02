@@ -18,6 +18,8 @@ import type {
   OrganizationSettingsResponse, OrganizationMember, OrganizationInvitation,
   PersistentAlert,
   ReportExport,
+  KybStatusResponse,
+  KybSubmitResponse,
 } from '@/types/api'
 import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
 
@@ -182,12 +184,12 @@ export const authApi = {
 
 export const kybApi = {
   upload: (formData: FormData) =>
-    http.post('/kyb/upload', formData, {
+    http.post<KybSubmitResponse>('/kyb/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 
   status: () =>
-    http.get('/kyb/status'),
+    http.get<KybStatusResponse>('/kyb/status'),
 }
 
 export const billingApi = {
