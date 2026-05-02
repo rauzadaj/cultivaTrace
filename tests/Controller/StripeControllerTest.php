@@ -141,7 +141,7 @@ final class StripeControllerTest extends KernelTestCase
         $controller->checkout($request, $this->createUserWithOrganization(roles: []));
     }
 
-    public function testWebhookReturnsOkOnInvalidSignature(): void
+    public function testWebhookReturns401OnInvalidSignature(): void
     {
         $stripe = $this->createMock(StripeService::class);
         $stripe
@@ -169,11 +169,10 @@ final class StripeControllerTest extends KernelTestCase
 
         $response = $controller->webhook($request);
 
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('OK', $response->getContent());
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
-    public function testWebhookReturnsOkOnUnexpectedFailure(): void
+    public function testWebhookReturns500OnUnexpectedFailure(): void
     {
         $stripe = $this->createMock(StripeService::class);
         $stripe
@@ -201,8 +200,7 @@ final class StripeControllerTest extends KernelTestCase
 
         $response = $controller->webhook($request);
 
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('OK', $response->getContent());
+        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
     }
 
     public function testPortalDoesNotExposeStripeErrorDetails(): void

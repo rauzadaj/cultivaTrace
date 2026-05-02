@@ -39,15 +39,24 @@ final class SensorControllerTest extends ApiTestCase
             Alert::class,
         ]);
 
-        $this->entityManager->getConnection()->executeStatement(
-            'CREATE TABLE IF NOT EXISTS sensor_reading (
-                sensor_id   UUID        NOT NULL,
-                tenant_id   UUID        NOT NULL,
-                value       FLOAT       NOT NULL,
-                recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )'
+        $connection = $this->entityManager->getConnection();
+        $isPostgres = str_contains($connection->getDatabasePlatform()::class, 'PostgreSQL');
+        $connection->executeStatement(
+            $isPostgres
+                ? 'CREATE TABLE IF NOT EXISTS sensor_reading (
+                       sensor_id   UUID        NOT NULL,
+                       tenant_id   UUID        NOT NULL,
+                       value       FLOAT       NOT NULL,
+                       recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                   )'
+                : 'CREATE TABLE IF NOT EXISTS sensor_reading (
+                       sensor_id   TEXT NOT NULL,
+                       tenant_id   TEXT NOT NULL,
+                       value       REAL NOT NULL,
+                       recorded_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+                   )'
         );
-        $this->entityManager->getConnection()->executeStatement(
+        $connection->executeStatement(
             'CREATE INDEX IF NOT EXISTS idx_sensor_reading ON sensor_reading (sensor_id, recorded_at DESC)'
         );
 

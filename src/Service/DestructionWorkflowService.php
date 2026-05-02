@@ -71,8 +71,16 @@ final readonly class DestructionWorkflowService
         $ratio = $payload['nonCannabisRatio'] ?? null;
         $photoUrls = $payload['photoUrls'] ?? [];
 
-        if (!$totalWeight || $ratio === null) {
+        if ($totalWeight === null || $ratio === null) {
             throw new \InvalidArgumentException('totalWeightG et nonCannabisRatio sont obligatoires');
+        }
+
+        if (!is_numeric($totalWeight) || (float) $totalWeight <= 0) {
+            throw new \InvalidArgumentException('totalWeightG doit être un nombre strictement positif');
+        }
+
+        if (!is_numeric($ratio) || (float) $ratio < 0.0 || (float) $ratio > 1.0) {
+            throw new \InvalidArgumentException('nonCannabisRatio doit être un nombre entre 0 et 1');
         }
 
         if ((float) $ratio < 0.50) {
