@@ -38,11 +38,12 @@ class SensorReadingRepository
     {
         $this->connection->executeStatement(
             'INSERT INTO sensor_reading (sensor_id, tenant_id, value, recorded_at)
-             VALUES (:sensorId, :tenantId, :value, NOW())',
+             VALUES (:sensorId, :tenantId, :value, :recordedAt)',
             [
-                'sensorId' => $sensorId,
-                'tenantId' => $tenantId,
-                'value'    => $value,
+                'sensorId'   => $sensorId,
+                'tenantId'   => $tenantId,
+                'value'      => $value,
+                'recordedAt' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
             ]
         );
     }
@@ -77,7 +78,28 @@ class SensorReadingRepository
             '365d' => [365, '1 day'],
             default => [30, '3 hours'],
         };
-        $since = (new \DateTimeImmutable(sprintf('-%d days', $days)))->format(\DateTimeInterface::ATOM);
+        $since = (new \DateTimeImmutable(sprintf('-%d days', $days)))->format('Y-m-d H:i:s');
+
+        $isSQLite = $this->connection->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform;
+
+        if ($isSQLite) {
+            return $this->connection->fetchAllAssociative(
+                "SELECT
+                    strftime('%Y-%m-%d %H:00:00', recorded_at) AS bucket,
+                    AVG(value) AS avg_value,
+                    MIN(value) AS min_value,
+                    MAX(value) AS max_value
+                 FROM sensor_reading
+                 WHERE sensor_id = :sensorId
+                   AND recorded_at > :since
+                 GROUP BY strftime('%Y-%m-%d %H:00:00', recorded_at)
+                 ORDER BY bucket ASC",
+                [
+                    'sensorId' => $sensorId,
+                    'since'    => $since,
+                ]
+            );
+        }
 
         // Essayer TimescaleDB time_bucket, fallback sur date_trunc
         try {
