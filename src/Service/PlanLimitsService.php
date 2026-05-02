@@ -8,6 +8,7 @@ use App\Entity\Organization;
 use App\Enum\PlantStatus;
 use App\Enum\SubscriptionPlan;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * PlanLimitsService — vérifie les limites du plan avant chaque création.
@@ -168,7 +169,7 @@ class PlanLimitsService
              INNER JOIN r.farm f
              WHERE f.organization = :org'
         )
-        ->setParameter('org', $org)
+        ->setParameter('org', $org->getId(), UuidType::NAME)
         ->getSingleScalarResult();
     }
 
