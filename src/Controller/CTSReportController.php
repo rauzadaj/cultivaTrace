@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,7 +46,7 @@ class CTSReportController extends AbstractController
         [$year, $monthNum] = explode('-', $month);
         $startDate = new \DateTimeImmutable("{$year}-{$monthNum}-01 00:00:00");
         $endDate   = $startDate->modify('last day of this month')->setTime(23, 59, 59);
-        $tenantId  = (string) $user->getOrganization()->getId();
+        $tenantId  = $user->getOrganization()->getId();
 
         $plants = $this->fetchPlantsForPeriod($tenantId, $startDate, $endDate);
 
@@ -87,7 +88,7 @@ class CTSReportController extends AbstractController
         return $response;
     }
 
-    private function fetchPlantsForPeriod(string $tenantId, \DateTimeImmutable $start, \DateTimeImmutable $end): array
+    private function fetchPlantsForPeriod(\Symfony\Component\Uid\Uuid $tenantId, \DateTimeImmutable $start, \DateTimeImmutable $end): array
     {
         $period = $start->format('Y-m');
 
@@ -101,7 +102,7 @@ class CTSReportController extends AbstractController
                AND p.germinatedAt <= :endDate
              ORDER BY p.germinatedAt ASC'
         )
-        ->setParameter('tenantId', $tenantId)
+        ->setParameter('tenantId', $tenantId, UuidType::NAME)
         ->setParameter('endDate', $end)
         ->getResult();
 

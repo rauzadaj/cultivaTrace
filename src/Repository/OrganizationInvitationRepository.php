@@ -8,6 +8,7 @@ use App\Entity\Organization;
 use App\Entity\OrganizationInvitation;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 final class OrganizationInvitationRepository extends ServiceEntityRepository
 {
@@ -35,7 +36,7 @@ final class OrganizationInvitationRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('inv')
             ->andWhere('inv.organization = :organization')
             ->andWhere('inv.acceptedAt IS NULL')
-            ->setParameter('organization', $organization)
+            ->setParameter('organization', $organization->getId(), UuidType::NAME)
             ->orderBy('inv.createdAt', 'DESC')
             ->getQuery()
             ->getResult();

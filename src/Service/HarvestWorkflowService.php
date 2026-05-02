@@ -35,8 +35,16 @@ final readonly class HarvestWorkflowService
         $harvestedAt = (string) ($payload['harvestedAt'] ?? date('Y-m-d'));
         $notes = isset($payload['notes']) ? (string) $payload['notes'] : null;
 
-        if (!$grossWeight || !$netWeight) {
+        if ($grossWeight === null || $netWeight === null) {
             throw new \InvalidArgumentException('grossWeightG et netWeightG sont obligatoires');
+        }
+
+        if (!is_numeric($grossWeight) || (float) $grossWeight <= 0) {
+            throw new \InvalidArgumentException('grossWeightG doit être un nombre strictement positif');
+        }
+
+        if (!is_numeric($netWeight) || (float) $netWeight <= 0) {
+            throw new \InvalidArgumentException('netWeightG doit être un nombre strictement positif');
         }
 
         if ((float) $netWeight > (float) $grossWeight) {
