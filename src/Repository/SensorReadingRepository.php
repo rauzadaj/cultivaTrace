@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 
 /**
  * SensorReadingRepository — requêtes DBAL natif sur TimescaleDB.
@@ -36,6 +37,17 @@ class SensorReadingRepository
      */
     public function insert(string $sensorId, string $tenantId, float $value): void
     {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        // SQLite stores dates as plain TEXT — no offset understood in comparisons.
+        // PostgreSQL TIMESTAMPTZ requires the offset so the session timezone is not
+        // applied: without it, a PHP runtime in Europe/Paris would store an instant
+        // 1–2 hours off from the true UTC value.
+        $isSQLite = $this->connection->getDatabasePlatform() instanceof SQLitePlatform;
+        $recordedAt = $isSQLite
+            ? $now->format('Y-m-d H:i:s')
+            : $now->format('Y-m-d H:i:sP');
+
         $this->connection->executeStatement(
             'INSERT INTO sensor_reading (sensor_id, tenant_id, value, recorded_at)
              VALUES (:sensorId, :tenantId, :value, :recordedAt)',
@@ -43,7 +55,7 @@ class SensorReadingRepository
                 'sensorId'   => $sensorId,
                 'tenantId'   => $tenantId,
                 'value'      => $value,
-                'recordedAt' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'recordedAt' => $recordedAt,
             ]
         );
     }
@@ -78,9 +90,10 @@ class SensorReadingRepository
             '365d' => [365, '1 day'],
             default => [30, '3 hours'],
         };
-        $since = (new \DateTimeImmutable(sprintf('-%d days', $days)))->format('Y-m-d H:i:s');
+        $isSQLite = $this->connection->getDatabasePlatform() instanceof SQLitePlatform;
 
-        $isSQLite = $this->connection->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform;
+        $sinceUtc = new \DateTimeImmutable(sprintf('-%d days', $days), new \DateTimeZone('UTC'));
+        $since = $isSQLite ? $sinceUtc->format('Y-m-d H:i:s') : $sinceUtc->format('Y-m-d H:i:sP');
 
         if ($isSQLite) {
             return $this->connection->fetchAllAssociative(
