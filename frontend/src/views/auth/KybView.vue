@@ -150,14 +150,15 @@ import { useRouter } from 'vue-router'
 import { kybApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { useFormValidation, validators } from '@/composables/useFormValidation'
+import type { KybStatusResponse, KybSubmitResponse } from '@/types/api'
 
 const $q = useQuasar()
 const router = useRouter()
 const authStore = useAuthStore()
 
 const loading    = ref(false)
-const kybStatus  = ref<any>(null)
-const result     = ref<any>(null)
+const kybStatus  = ref<KybStatusResponse | null>(null)
+const result     = ref<KybSubmitResponse | null>(null)
 const statusError = ref('')
 const submitError = ref('')
 
@@ -259,8 +260,9 @@ async function loadStatus(): Promise<void> {
   try {
     const { data } = await kybApi.status()
     kybStatus.value = data
-  } catch (error: any) {
-    statusError.value = error.response?.data?.error ?? 'Impossible de charger le statut KYB.'
+  } catch (error) {
+    const axiosError = error as { response?: { data?: { error?: string } } }
+    statusError.value = axiosError.response?.data?.error ?? 'Impossible de charger le statut KYB.'
   }
 }
 
@@ -296,7 +298,7 @@ async function submitLicense(): Promise<void> {
     } else if (data.status === 'rejected') {
       $q.notify({ type: 'negative', message: 'Licence rejetée. Corrigez les informations avant une nouvelle tentative.' })
     }
-  } catch (e: any) {
+  } catch (e) {
     applyApiError(e, 'Erreur lors de la soumission.')
     submitError.value = submitError.value || 'Erreur lors de la soumission.'
     $q.notify({ type: 'negative', message: submitError.value })
