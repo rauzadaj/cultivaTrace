@@ -312,9 +312,9 @@ final class PlantApiTest extends ApiTestCase
 
         $this->assertStatusCode(402);
 
-        $envelope = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
-        $payload = json_decode($envelope['detail'], true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('plants', $payload['limitType']);
-        self::assertSame($max, $payload['current']);
+        $body = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayHasKey('planLimit', $body);
+        self::assertSame('plants', $body['planLimit']['limitType']);
+        self::assertSame($max, $body['planLimit']['current']);
     }
 }
