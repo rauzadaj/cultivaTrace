@@ -57,7 +57,7 @@
             <div v-for="member in members" :key="member.id" class="settings-list__item">
               <div>
                 <strong>{{ member.email }}</strong>
-                <p>{{ member.roles.join(', ') }}</p>
+                <p>{{ (member.roles ?? []).join(', ') }}</p>
               </div>
               <q-badge color="primary" outline>
                 {{ member.accountStatus }}
@@ -91,7 +91,7 @@
             <div v-for="invitation in invitations" :key="invitation.id" class="settings-list__item">
               <div>
                 <strong>{{ invitation.email }}</strong>
-                <p>{{ invitation.roles.join(', ') }}</p>
+                <p>{{ (invitation.roles ?? []).join(', ') }}</p>
               </div>
               <q-badge color="secondary" outline>
                 expire {{ formatDate(invitation.expiresAt) }}
