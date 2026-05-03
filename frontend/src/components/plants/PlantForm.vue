@@ -34,13 +34,45 @@
         />
         <q-input v-model="form.rfidTag" label="Numero RFID" outlined />
 
-        <q-banner v-if="formError" rounded class="plant-form__error">
+        <!-- 402 plan-limit banner -->
+        <q-banner v-if="planLimitError" rounded class="plant-form__plan-limit">
+          <template #avatar>
+            <q-icon name="mdi-alert-circle-outline" color="warning" />
+          </template>
+          <div class="plant-form__plan-limit-body">
+            <strong>Limite de plan atteinte</strong>
+            <p>
+              Vous avez {{ planLimitError.current }} plants sur {{ planLimitError.max ?? '∞' }} autorisés
+              (plan {{ planLimitError.upgradeTo }}).
+            </p>
+            <q-btn
+              flat
+              dense
+              color="primary"
+              label="Mettre à niveau"
+              icon="mdi-arrow-up-circle-outline"
+              :to="planLimitError.upgradeUrl"
+              @click="close"
+            />
+          </div>
+        </q-banner>
+
+        <!-- 403 license/role banner -->
+        <q-banner v-else-if="forbiddenError" rounded class="plant-form__forbidden">
+          <template #avatar>
+            <q-icon name="mdi-lock-outline" color="negative" />
+          </template>
+          {{ forbiddenError }}
+        </q-banner>
+
+        <!-- generic error banner -->
+        <q-banner v-else-if="formError" rounded class="plant-form__error">
           {{ formError }}
         </q-banner>
 
         <div class="plant-form__actions">
           <q-btn flat label="Annuler" class="action-btn" @click="close" />
-          <q-btn color="primary" label="Creer" class="action-btn" :loading="submitting" type="submit" />
+          <q-btn color="primary" label="Creer" class="action-btn" :loading="submitting" type="submit" :disable="!!planLimitError || !!forbiddenError" />
         </div>
       </q-form>
     </q-card>
@@ -51,7 +83,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { usePlantsStore } from '@/stores/plants'
-import type { Plant } from '@/types/api'
+import type { Plant, PlanLimitError } from '@/types/api'
 import { useFormValidation, validators } from '@/composables/useFormValidation'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -64,6 +96,8 @@ const $q = useQuasar()
 const plantsStore = usePlantsStore()
 const isMobile = computed(() => $q.screen.width < 768)
 const submitting = ref(false)
+const planLimitError = ref<PlanLimitError | null>(null)
+const forbiddenError = ref<string | null>(null)
 
 const form = reactive({
   room: '',
@@ -84,6 +118,8 @@ const strainOptions = computed(() => plantsStore.strainIriList())
 
 watch(() => props.modelValue, async (open) => {
   if (!open) return
+  planLimitError.value = null
+  forbiddenError.value = null
   if (!plantsStore.rooms.length || !plantsStore.strains.length) {
     await plantsStore.fetchSupportData()
   }
@@ -96,8 +132,12 @@ function close() {
   emit('update:modelValue', false)
 }
 
+type AxiosLike = { response?: { status?: number; data?: Record<string, unknown> } }
+
 async function submit() {
   submitting.value = true
+  planLimitError.value = null
+  forbiddenError.value = null
   try {
     clearAllErrors()
 
@@ -117,8 +157,18 @@ async function submit() {
     form.rfidTag = ''
     $q.notify({ type: 'positive', message: 'Plant cree.' })
   } catch (error) {
-    applyApiError(error, 'Creation impossible.')
-    $q.notify({ type: 'negative', message: formError.value || 'Creation impossible.' })
+    const axiosError = error as AxiosLike
+    const status = axiosError?.response?.status
+    const data = axiosError?.response?.data
+
+    if (status === 402 && data?.planLimit) {
+      planLimitError.value = data.planLimit as PlanLimitError
+    } else if (status === 403) {
+      forbiddenError.value = (data?.detail as string | undefined) ?? 'Votre licence ou rôle ne permet pas cette action.'
+    } else {
+      applyApiError(error, 'Creation impossible.')
+      $q.notify({ type: 'negative', message: formError.value || 'Creation impossible.' })
+    }
   } finally {
     submitting.value = false
   }
@@ -140,6 +190,17 @@ async function submit() {
   color: #8c2f39;
   background: #fdecec;
   border: 1px solid #f3c9cf;
+}
+.plant-form__plan-limit {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  &-body { display: flex; flex-direction: column; gap: 4px; }
+  p { margin: 0; font-size: 0.875rem; }
+}
+.plant-form__forbidden {
+  color: #721c24;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
 }
 .plant-form__actions { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .action-btn { min-height: 48px; }
