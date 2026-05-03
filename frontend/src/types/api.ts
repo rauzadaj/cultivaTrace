@@ -475,6 +475,30 @@ export interface SensorMetricCard {
   detail: string
 }
 
+// ── Erreurs API structurées ───────────────────────────────────────────────
+
+/** Réponse RFC 7807 retournée par ApiExceptionSubscriber */
+export interface ProblemDetail {
+  title: string
+  detail: string
+  status: number
+  timestamp: string
+}
+
+/** Présent dans le corps 402 quand une limite de plan est dépassée */
+export interface PlanLimitError {
+  limitType: string
+  current: number
+  max: number | null
+  upgradeTo: SubscriptionPlan
+  upgradeUrl: string
+}
+
+/** Corps complet d'une réponse 402 */
+export interface PlanLimitProblemDetail extends ProblemDetail {
+  planLimit: PlanLimitError
+}
+
 // ── Utilitaires ───────────────────────────────────────────────────────────
 
 export type ApiError = {
