@@ -379,6 +379,19 @@ export interface OrganizationInvitation {
   expiresAt: string
 }
 
+export interface KybStatusResponse {
+  licenseStatus: LicenseStatus
+  licenseExpiresAt?: string | null
+  licenseNumber?: string | null
+  licenseType?: string | null
+}
+
+export interface KybSubmitResponse {
+  status: 'active' | 'pending' | 'rejected'
+  message: string
+  verificationMethod: string
+}
+
 export interface OrganizationSettingsResponse {
   id: string
   name: string
