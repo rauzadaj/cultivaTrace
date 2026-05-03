@@ -14,7 +14,7 @@ final class Version20260319100102 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Add missing tenant_id, type, device_id, protocol, status, last_seen and thresholds columns to sensor table (idempotent guards).';
     }
 
     public function up(Schema $schema): void
