@@ -53,6 +53,32 @@ wait_for_database() {
   '
 }
 
+validate_required_env() {
+  missing=""
+  for var in APP_SECRET DATABASE_URL JWT_PASSPHRASE MERCURE_JWT_SECRET; do
+    eval "val=\${${var}:-}"
+    if [ -z "$val" ]; then
+      missing="${missing} ${var}"
+    fi
+  done
+
+  # Warn — not fatal — on optional-but-expected production vars
+  for var in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET MAILER_DSN FRONTEND_URL; do
+    eval "val=\${${var}:-}"
+    if [ -z "$val" ]; then
+      echo "WARNING: ${var} is not set — some features will be unavailable." >&2
+    fi
+  done
+
+  if [ -n "$missing" ]; then
+    echo "ERROR: The following required environment variables are missing:${missing}" >&2
+    echo "Set them via .env.local or your platform secrets before starting the application." >&2
+    exit 1
+  fi
+}
+
+validate_required_env
+
 echo "Ensuring JWT key material..."
 php /var/www/html/bin/generate-jwt-keys.php
 chown www-data:www-data "$JWT_SECRET_KEY" "$JWT_PUBLIC_KEY" 2>/dev/null || true
