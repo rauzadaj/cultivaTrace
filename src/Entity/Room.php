@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -46,6 +47,7 @@ class Room
     private Uuid $id;
 
     #[ORM\Column(type: UuidType::NAME)]
+    #[ApiProperty(readable: false, writable: false)]
     private Uuid $tenantId;
 
     #[ORM\ManyToOne(targetEntity: Farm::class, inversedBy: 'rooms')]
