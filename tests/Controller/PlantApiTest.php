@@ -13,6 +13,7 @@ use App\Entity\Room;
 use App\Entity\Strain;
 use App\Entity\User;
 use App\Enum\LicenseStatus;
+use App\Enum\SubscriptionPlan;
 use App\Repository\PlantEventRepository;
 use App\Service\HashChainService;
 use Symfony\Component\HttpFoundation\Response;
@@ -199,5 +200,121 @@ final class PlantApiTest extends ApiTestCase
         self::assertTrue($verification['valid']);
         self::assertSame(2, $verification['checked']);
         self::assertNull($verification['broken_at']);
+    }
+
+    /**
+     * PENDING and REJECTED pass the UserChecker (not suspended) but are blocked
+     * by LicenseGuard in the processor → HTTP 403.
+     *
+     * @dataProvider licenseStatusBlockedByProcessorProvider
+     */
+    public function testPostPlantsReturnsForbiddenForPendingOrRejectedLicense(LicenseStatus $status): void
+    {
+        $organization = $this->createOrganization('Org ' . $status->value);
+        $organization->setLicenseStatus($status);
+        $user = $this->createUser($organization, $status->value . '@test.local');
+        $farm = $this->createFarm($organization, 'Farm');
+        $room = $this->createRoom($farm, 'Room');
+        $strain = $this->createStrain($organization, 'Strain');
+
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', '/api/plants', [
+            'room'         => sprintf('/api/rooms/%s', $room->getId()),
+            'strain'       => sprintf('/api/strains/%s', $strain->getId()),
+            'rfidTag'      => 'PLANT-' . strtoupper($status->value) . '-001',
+            'germinatedAt' => '2026-03-01',
+            'stage'        => 'germination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+
+        $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString($status->value, $payload['detail']);
+    }
+
+    /**
+     * SUSPENDED and EXPIRED are caught by UserChecker at the authentication
+     * layer (isSuspended() returns true for both) → HTTP 401.
+     *
+     * @dataProvider licenseStatusBlockedByUserCheckerProvider
+     */
+    public function testPostPlantsReturns401ForSuspendedOrExpiredOrganization(LicenseStatus $status): void
+    {
+        $organization = $this->createOrganization('Org ' . $status->value);
+        $organization->setLicenseStatus($status);
+        $user = $this->createUser($organization, $status->value . '-blocked@test.local');
+        $farm = $this->createFarm($organization, 'Farm');
+        $room = $this->createRoom($farm, 'Room');
+        $strain = $this->createStrain($organization, 'Strain');
+
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', '/api/plants', [
+            'room'         => sprintf('/api/rooms/%s', $room->getId()),
+            'strain'       => sprintf('/api/strains/%s', $strain->getId()),
+            'rfidTag'      => 'PLANT-' . strtoupper($status->value) . '-BLOCKED',
+            'germinatedAt' => '2026-03-01',
+            'stage'        => 'germination',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_UNAUTHORIZED);
+    }
+
+    /**
+     * @return array<string, array{LicenseStatus}>
+     */
+    public static function licenseStatusBlockedByProcessorProvider(): array
+    {
+        return [
+            'pending'  => [LicenseStatus::PENDING],
+            'rejected' => [LicenseStatus::REJECTED],
+        ];
+    }
+
+    /**
+     * @return array<string, array{LicenseStatus}>
+     */
+    public static function licenseStatusBlockedByUserCheckerProvider(): array
+    {
+        return [
+            'expired'   => [LicenseStatus::EXPIRED],
+            'suspended' => [LicenseStatus::SUSPENDED],
+        ];
+    }
+
+    public function testPostPlantsReturns402WhenPlanLimitIsExceeded(): void
+    {
+        $organization = $this->createOrganization('Org At Limit');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
+        $organization->setPlan(SubscriptionPlan::STARTER);
+        $user = $this->createUser($organization, 'limit@test.local');
+        $farm = $this->createFarm($organization, 'Farm');
+        $room = $this->createRoom($farm, 'Room');
+        $strain = $this->createStrain($organization, 'Strain');
+
+        $max = SubscriptionPlan::STARTER->maxPlants();
+        for ($i = 0; $i < $max; $i++) {
+            $this->createPlant($room, $user, $strain, rfidTag: sprintf('RFID-LIMIT-%04d', $i));
+        }
+        $this->entityManager->flush();
+        $this->authorizeClient($user);
+
+        $this->apiJsonRequest('POST', '/api/plants', [
+            'room'         => sprintf('/api/rooms/%s', $room->getId()),
+            'strain'       => sprintf('/api/strains/%s', $strain->getId()),
+            'rfidTag'      => 'RFID-OVER-LIMIT',
+            'germinatedAt' => '2026-03-01',
+            'stage'        => 'germination',
+        ]);
+
+        $this->assertStatusCode(402);
+
+        $envelope = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        $payload = json_decode($envelope['detail'], true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('plants', $payload['limitType']);
+        self::assertSame($max, $payload['current']);
     }
 }
