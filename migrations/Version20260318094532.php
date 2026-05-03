@@ -14,7 +14,7 @@ final class Version20260318094532 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Bootstrap core cultivation schema: room, sensor, strain, plant, plant_event, harvest_record, input_record, destruction_intent; normalize JSONB indexes.';
     }
 
     public function up(Schema $schema): void
@@ -109,14 +109,14 @@ final class Version20260318094532 extends AbstractMigration
         $this->addSql('ALTER TABLE plant_event DROP CONSTRAINT FK_C874932FA76ED395');
         $this->addSql('ALTER TABLE room DROP CONSTRAINT FK_729F519B65FCFA0D');
         $this->addSql('ALTER TABLE sensor DROP CONSTRAINT FK_BC8617B054177093');
-        $this->addSql('DROP TABLE destruction_intent');
-        $this->addSql('DROP TABLE harvest_record');
-        $this->addSql('DROP TABLE input_record');
-        $this->addSql('DROP TABLE plant');
-        $this->addSql('DROP TABLE plant_event');
-        $this->addSql('DROP TABLE room');
-        $this->addSql('DROP TABLE sensor');
-        $this->addSql('DROP TABLE strain');
+        $this->addSql('DROP TABLE IF EXISTS destruction_intent');
+        $this->addSql('DROP TABLE IF EXISTS harvest_record');
+        $this->addSql('DROP TABLE IF EXISTS input_record');
+        $this->addSql('DROP TABLE IF EXISTS plant');
+        $this->addSql('DROP TABLE IF EXISTS plant_event');
+        $this->addSql('DROP TABLE IF EXISTS room');
+        $this->addSql('DROP TABLE IF EXISTS sensor');
+        $this->addSql('DROP TABLE IF EXISTS strain');
         // Legacy tables "crop_activity" and "plot" were removed by an earlier migration path.
         // This down() cannot safely recreate them because the original data and schema evolution
         // history are no longer available from this migration alone.
