@@ -54,6 +54,12 @@ wait_for_database() {
 }
 
 validate_required_env() {
+  # Strict checks only in production — dev/test tolerate missing secrets
+  # because docker-compose provides generated JWT keys and dev defaults.
+  if [ "$APP_ENV" != "prod" ]; then
+    return 0
+  fi
+
   missing=""
   for var in APP_SECRET DATABASE_URL JWT_PASSPHRASE MERCURE_JWT_SECRET; do
     eval "val=\${${var}:-}"
