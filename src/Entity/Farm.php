@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Post;
 use App\State\FarmStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -37,7 +38,11 @@ use Symfony\Component\Uid\Uuid;
             security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)",
             securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
         ),
-        // pas de Delete — soft delete uniquement
+        // Soft-delete: sets archivedAt instead of removing the row
+        new Delete(
+            processor: FarmStateProcessor::class,
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)"
+        ),
     ],
     normalizationContext: ['groups' => ['farm:read']],
     denormalizationContext: ['groups' => ['farm:write']],
@@ -74,6 +79,10 @@ class Farm
     #[Groups(['farm:read', 'farm:write'])]
     private ?float $surfaceM2 = null;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['farm:read'])]
+    private ?\DateTimeImmutable $archivedAt = null;
+
     #[ORM\OneToMany(targetEntity: Room::class, mappedBy: 'farm')]
     private Collection $rooms;
 
@@ -94,5 +103,8 @@ class Farm
     public function setAddress(?string $address): self { $this->address = $address; return $this; }
     public function getSurfaceM2(): ?float { return $this->surfaceM2; }
     public function setSurfaceM2(?float $m2): self { $this->surfaceM2 = $m2; return $this; }
+    public function getArchivedAt(): ?\DateTimeImmutable { return $this->archivedAt; }
+    public function setArchivedAt(?\DateTimeImmutable $archivedAt): self { $this->archivedAt = $archivedAt; return $this; }
+    public function isArchived(): bool { return $this->archivedAt !== null; }
     public function getRooms(): Collection { return $this->rooms; }
 }
