@@ -210,7 +210,7 @@ class StripeService
             $this->stripeWebhookSecret
         );
 
-        $this->logger->info('[Stripe] Webhook reçu : ' . $event->type);
+        $this->logger->info('[Stripe] Webhook reçu', ['event_type' => $event->type]);
 
         match ($event->type) {
             'checkout.session.completed'     => $this->onCheckoutCompleted($event),
@@ -234,7 +234,7 @@ class StripeService
 
         $org = $this->em->getRepository(Organization::class)->find($orgId);
         if (!$org) {
-            $this->logger->error('[Stripe] Organisation non trouvée : ' . $orgId);
+            $this->logger->error('[Stripe] Organisation non trouvée', ['org_id' => $orgId]);
             return;
         }
 
@@ -242,7 +242,11 @@ class StripeService
         $org->setStripeCustomerId($session->customer);
         $this->em->flush();
 
-        $this->logger->info(sprintf('[Stripe] Organisation %s passée au plan %s', $orgId, $plan));
+        $this->logger->info('[Stripe] Organisation passée au plan', [
+            'org_id'   => $orgId,
+            'plan'     => $plan,
+            'customer' => $this->maskCustomerId((string) $session->customer),
+        ]);
 
         // Email de confirmation
         $firstUser = $org->getUsers()->first();
@@ -271,7 +275,9 @@ class StripeService
             ->findOneBy(['stripeCustomerId' => $customerId]);
 
         if (!$org) {
-            $this->logger->warning('[Stripe] Organisation non trouvée pour customer : ' . $customerId);
+            $this->logger->warning('[Stripe] Organisation non trouvée pour customer', [
+                'customer' => $this->maskCustomerId((string) $customerId),
+            ]);
             return;
         }
 
@@ -279,7 +285,10 @@ class StripeService
         $org->setLicenseStatus(LicenseStatus::SUSPENDED);
         $this->em->flush();
 
-        $this->logger->info('[Stripe] Abonnement annulé pour organisation ' . $org->getId());
+        $this->logger->info('[Stripe] Abonnement annulé', [
+            'org_id'   => (string) $org->getId(),
+            'customer' => $this->maskCustomerId((string) $customerId),
+        ]);
     }
 
     private function onPaymentFailed(Event $event): void
@@ -310,7 +319,7 @@ class StripeService
 
     private function onPaymentSucceeded(Event $event): void
     {
-        $this->logger->info('[Stripe] Paiement réussi : ' . $event->data->object->id);
+        $this->logger->info('[Stripe] Paiement réussi', ['invoice_id' => (string) $event->data->object->id]);
     }
 
     private function getPriceId(SubscriptionPlan $plan): string
@@ -349,5 +358,13 @@ class StripeService
                 $priceId,
             )),
         };
+    }
+
+    private function maskCustomerId(string $customerId): string
+    {
+        if (strlen($customerId) <= 8) {
+            return '****';
+        }
+        return substr($customerId, 0, 4) . str_repeat('*', strlen($customerId) - 8) . substr($customerId, -4);
     }
 }

@@ -75,7 +75,10 @@ class KybService
      */
     private function simulateVerification(LicenseDocument $license): array
     {
-        $this->logger->info('[KYB DEV] Simulation de vérification pour licence ' . $license->getLicenseNumber());
+        $this->logger->info('[KYB DEV] Simulation de vérification', [
+            'license' => $this->maskLicense($license->getLicenseNumber()),
+            'type'    => $license->getLicenseType(),
+        ]);
 
         // Simuler un délai d'appel API
         sleep(1);
@@ -125,14 +128,19 @@ class KybService
             // Health Canada ne fournit pas d'API REST publique —
             // on vérifie via le registre HTML (scraping léger)
             // En prod, envisager un partenariat ou une vérification manuelle assistée
-            $this->logger->info('[KYB] Tentative vérification Health Canada pour ' . $license->getLicenseNumber());
+            $this->logger->info('[KYB] Tentative vérification Health Canada', [
+                'license' => $this->maskLicense($license->getLicenseNumber()),
+            ]);
 
             // TODO: implémenter la vérification réelle quand l'API sera disponible
             // Pour l'instant : fallback manuel avec notification admin
             return $this->fallbackManual($license, 'Vérification Health Canada automatique en cours d\'implémentation');
 
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur Health Canada: ' . $e->getMessage());
+            $this->logger->error('[KYB] Erreur Health Canada', [
+                'error'   => $e->getMessage(),
+                'license' => $this->maskLicense($license->getLicenseNumber()),
+            ]);
             return $this->fallbackManual($license, 'Erreur API Health Canada: ' . $e->getMessage());
         }
     }
@@ -170,7 +178,10 @@ class KybService
             return $this->fallbackManual($license, 'Licence non trouvée dans METRC');
 
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur METRC: ' . $e->getMessage());
+            $this->logger->error('[KYB] Erreur METRC', [
+                'error'   => $e->getMessage(),
+                'license' => $this->maskLicense($license->getLicenseNumber()),
+            ]);
             return $this->fallbackManual($license, 'Erreur API METRC: ' . $e->getMessage());
         }
     }
@@ -180,7 +191,10 @@ class KybService
      */
     private function fallbackManual(LicenseDocument $license, string $reason): array
     {
-        $this->logger->info('[KYB] Fallback manuel pour ' . $license->getLicenseNumber() . ' — ' . $reason);
+        $this->logger->info('[KYB] Fallback manuel', [
+            'license' => $this->maskLicense($license->getLicenseNumber()),
+            'reason'  => $reason,
+        ]);
 
         $this->notifyAdminForManualReview($license, $reason);
 
@@ -274,7 +288,7 @@ class KybService
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur envoi email admin: ' . $e->getMessage());
+            $this->logger->error('[KYB] Erreur envoi email admin', ['error' => $e->getMessage()]);
         }
     }
 
@@ -307,7 +321,7 @@ class KybService
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur email activation: ' . $e->getMessage());
+            $this->logger->error('[KYB] Erreur email activation', ['error' => $e->getMessage()]);
         }
     }
 
@@ -342,7 +356,7 @@ class KybService
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur email rejet: ' . $e->getMessage());
+            $this->logger->error('[KYB] Erreur email rejet', ['error' => $e->getMessage()]);
         }
     }
 
@@ -351,5 +365,11 @@ class KybService
         // Format METRC typique : CO-LIC-12345 → co
         $parts = explode('-', strtolower($licenseNumber));
         return $parts[0] ?? 'co';
+    }
+
+    private function maskLicense(string $licenseNumber): string
+    {
+        $visible = min(4, strlen($licenseNumber));
+        return substr($licenseNumber, 0, $visible) . str_repeat('*', max(0, strlen($licenseNumber) - $visible));
     }
 }
