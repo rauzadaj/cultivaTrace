@@ -209,11 +209,9 @@ test('billing success — confirms checkout session and redirects to /billing', 
     await route.fulfill({ json: { plan: 'pro' } })
   })
 
-  // SPA navigation to billing/success — avoids full reload that would lose pinia state
+  // SPA navigation -- onMounted fires confirmCheckout then router.replace('/billing')
+  // The intermediate /billing/success URL resolves too fast to assert on.
   await routerPush(page, '/billing/success?session_id=cs_test_abc123')
-  await expect(page).toHaveURL(/billing\/success/, { timeout: 5_000 })
-
-  // onMounted confirms checkout then calls router.replace('/billing')
   await page.waitForURL(url => new URL(url).pathname === '/billing', { timeout: 10_000 })
   expect(confirmCalled).toBe(true)
 })
@@ -231,5 +229,5 @@ test('billing cancel — navigating to /billing after cancel shows billing view'
   await expect(page).toHaveURL(/\/billing/)
 
   // Billing view renders hardcoded plan cards (Starter, Pro, Business)
-  await expect(page.getByText(/Starter/)).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText(/Starter/).first()).toBeVisible({ timeout: 5_000 })
 })
