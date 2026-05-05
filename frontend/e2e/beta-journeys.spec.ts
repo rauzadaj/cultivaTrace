@@ -102,11 +102,6 @@ async function loginAs(
       return
     }
 
-    if (req.method() === 'POST' && path === '/api/billing/checkout/confirm') {
-      await route.fulfill({ json: { plan } })
-      return
-    }
-
     await route.fulfill({ status: 404, json: { message: `Unhandled mock: ${req.method()} ${path}` } })
   })
 
@@ -206,8 +201,6 @@ test('billing success — confirms checkout session and redirects to /billing', 
   await loginAs(page, { licenseStatus: 'active', plan: 'starter' })
   await expect(page).toHaveURL(/\/dashboard\/overview/)
 
-  // Register after loginAs() so this specific handler takes precedence over
-  // the **/api/** catch-all installed by loginAs() (Playwright matches most-recent first).
   await page.route('**/api/billing/checkout/confirm', async (route) => {
     confirmCalled = true
     await route.fulfill({ json: { plan: 'pro' } })
