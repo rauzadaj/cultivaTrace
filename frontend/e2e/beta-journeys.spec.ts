@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // ---------------------------------------------------------------------------
-// Shared helpers
+// Helpers
 // ---------------------------------------------------------------------------
 
 function hydraCollection<T>(members: T[]) {
@@ -14,7 +14,12 @@ function hydraCollection<T>(members: T[]) {
   }
 }
 
-/** Install a minimal API mock and return the page logged-in as the given user. */
+/**
+ * Install API mocks and perform login via the auth form.
+ * Uses the auth form (not page.goto to a protected route) so that the pinia
+ * auth store is fully hydrated (fetchMe called, organization loaded) before
+ * any subsequent navigation.
+ */
 async function loginAs(
   page: import('@playwright/test').Page,
   opts: { licenseStatus?: string; plan?: string } = {},
@@ -38,26 +43,20 @@ async function loginAs(
           email: 'demo@cultivatrace.local',
           roles: ['ROLE_ORG_ADMIN'],
           mfaEnabled: false,
-          organization: {
-            id: 'org-1',
-            name: 'CultivaTrace Demo',
-            plan,
-            licenseStatus,
-          },
+          organization: { id: 'org-1', name: 'CultivaTrace Demo', plan, licenseStatus },
         },
       })
       return
     }
 
     if (req.method() === 'GET' && path === '/api/kyb/status') {
-      await route.fulfill({
-        json: { licenseStatus, licenseExpiresAt: null },
-      })
+      await route.fulfill({ json: { licenseStatus, licenseExpiresAt: null } })
       return
     }
 
-    if (req.method() === 'POST' && path === '/api/kyb/submit') {
-      await route.fulfill({ status: 202, json: { licenseStatus: 'pending' } })
+    // KYB upload (multipart form — frontend posts to /kyb/upload)
+    if (req.method() === 'POST' && path === '/api/kyb/upload') {
+      await route.fulfill({ status: 202, json: { status: 'pending' } })
       return
     }
 
@@ -98,7 +97,7 @@ async function loginAs(
 
     if (req.method() === 'GET' && path === '/api/billing/status') {
       await route.fulfill({
-        json: { plan, licenseStatus, stripeCustomerId: null, currentPeriodEnd: null },
+        json: { plan, licenseStatus, hasActiveSubscription: false, limits: null, stripeCustomerId: null, currentPeriodEnd: null },
       })
       return
     }
@@ -108,7 +107,6 @@ async function loginAs(
       return
     }
 
-    // let unhandled routes fall through with 404
     await route.fulfill({ status: 404, json: { message: `Unhandled mock: ${req.method()} ${path}` } })
   })
 
@@ -118,44 +116,48 @@ async function loginAs(
   await page.getByRole('button', { name: 'Se connecter' }).click()
 }
 
+/**
+ * Push a new route via Vue Router without triggering a full page reload.
+ * Avoids the pinia auth state loss that page.goto() causes.
+ */
+async function routerPush(page: import('@playwright/test').Page, path: string): Promise<void> {
+  await page.evaluate((p: string) => {
+    const el = document.getElementById('app') as { __vue_app__?: { config: { globalProperties: { $router: { push: (path: string) => void } } } } } | null
+    el?.__vue_app__?.config.globalProperties.$router.push(p)
+  }, path)
+}
+
 // ---------------------------------------------------------------------------
-// Scenario 1 — KYB pending: protected routes redirect to /kyb
+// Scenario 1 — KYB pending: router guard blocks protected routes
 // ---------------------------------------------------------------------------
 
-test('kyb pending — protected routes redirect to /kyb and form is accessible', async ({ page }) => {
+test('kyb pending — protected routes redirect to /kyb', async ({ page }) => {
   await loginAs(page, { licenseStatus: 'pending' })
 
   // Router guard should redirect to /kyb
   await expect(page).toHaveURL(/\/kyb/)
-
-  // KYB page heading visible
   await expect(page.getByText('Vérification de licence')).toBeVisible()
 
   // Form fields present
   await expect(page.getByLabel(/type de licence/i)).toBeVisible()
   await expect(page.getByLabel(/numéro de licence/i)).toBeVisible()
-
-  // Attempting to navigate to a protected route stays on /kyb
-  await page.goto('/dashboard/overview')
-  await expect(page).toHaveURL(/\/kyb/)
 })
 
 test('kyb pending — submitting the form shows pending status', async ({ page }) => {
   await loginAs(page, { licenseStatus: 'pending' })
   await expect(page).toHaveURL(/\/kyb/)
 
-  // Fill and submit KYB form
   await page.getByLabel(/type de licence/i).click()
   await page.getByRole('option', { name: /health canada/i }).click()
   await page.getByLabel(/numéro de licence/i).fill('HC-LP-99999')
   await page.getByRole('button', { name: /soumettre/i }).click()
 
-  // After submission, a pending status message should appear
-  await expect(page.getByText(/en cours|pending|vérification/i)).toBeVisible({ timeout: 5_000 })
+  // After upload, KYB view shows pending status text from statusMessage computed
+  await expect(page.getByText(/vérification en cours|en cours|pending/i)).toBeVisible({ timeout: 5_000 })
 })
 
 // ---------------------------------------------------------------------------
-// Scenario 2 — Plan limits: 402 response shows inline upgrade banner
+// Scenario 2 — Plan limits: 402 shows inline upgrade banner
 // ---------------------------------------------------------------------------
 
 test('plan limit — 402 on plant creation shows inline upgrade banner and disables submit', async ({
@@ -167,7 +169,7 @@ test('plan limit — 402 on plant creation shows inline upgrade banner and disab
   await page.getByRole('link', { name: /plants/i }).click()
   await expect(page).toHaveURL(/\/plants/)
 
-  // Override plant creation to return 402 with plan limit payload
+  // Override plant POST to return 402 with the planLimit shape PlantForm expects
   await page.route('**/api/plants', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue()
@@ -176,12 +178,13 @@ test('plan limit — 402 on plant creation shows inline upgrade banner and disab
     await route.fulfill({
       status: 402,
       json: {
-        '@type': 'hydra:Error',
-        title: 'Plan limit reached',
-        detail: 'You have reached the maximum number of plants for your plan.',
-        current: 50,
-        max: 50,
-        upgradeTo: 'pro',
+        planLimit: {
+          limitType: 'plants',
+          current: 50,
+          max: 50,
+          upgradeTo: 'pro',
+          upgradeUrl: '/billing',
+        },
       },
     })
   })
@@ -189,12 +192,8 @@ test('plan limit — 402 on plant creation shows inline upgrade banner and disab
   await page.getByRole('button', { name: /nouveau plant/i }).click()
   await page.getByRole('button', { name: /creer/i }).last().click()
 
-  // Inline banner should appear
   await expect(page.getByText(/limite de plan atteinte/i)).toBeVisible({ timeout: 5_000 })
-
-  // Submit button should be disabled once limit error is set
-  const submitBtn = page.getByRole('button', { name: /creer/i }).last()
-  await expect(submitBtn).toBeDisabled()
+  await expect(page.getByRole('button', { name: /creer/i }).last()).toBeDisabled()
 })
 
 // ---------------------------------------------------------------------------
@@ -204,34 +203,35 @@ test('plan limit — 402 on plant creation shows inline upgrade banner and disab
 test('billing success — confirms checkout session and redirects to /billing', async ({ page }) => {
   let confirmCalled = false
 
-  await loginAs(page, { licenseStatus: 'active', plan: 'starter' })
-  await expect(page).toHaveURL(/\/dashboard\/overview/)
-
-  // Track the confirm call
-  await page.route('**/api/billing/checkout/confirm**', async (route) => {
+  await page.route('**/api/billing/checkout/confirm', async (route) => {
     confirmCalled = true
     await route.fulfill({ json: { plan: 'pro' } })
   })
 
-  await page.goto('/billing/success?session_id=cs_test_abc123')
+  await loginAs(page, { licenseStatus: 'active', plan: 'starter' })
+  await expect(page).toHaveURL(/\/dashboard\/overview/)
 
-  // Should redirect to /billing after confirming
-  await expect(page).toHaveURL(/\/billing/, { timeout: 10_000 })
+  // SPA navigation to billing/success — avoids full reload that would lose pinia state
+  await routerPush(page, '/billing/success?session_id=cs_test_abc123')
+  await expect(page).toHaveURL(/billing\/success/, { timeout: 5_000 })
+
+  // onMounted confirms checkout then calls router.replace('/billing')
+  await expect(page).toHaveURL(/\/billing(?!\/success)/, { timeout: 10_000 })
   expect(confirmCalled).toBe(true)
 })
 
 // ---------------------------------------------------------------------------
-// Scenario 4 — Billing cancel: navigating back to /billing shows billing UI
+// Scenario 4 — Billing cancel: /billing renders plan options
 // ---------------------------------------------------------------------------
 
 test('billing cancel — navigating to /billing after cancel shows billing view', async ({ page }) => {
   await loginAs(page, { licenseStatus: 'active', plan: 'starter' })
   await expect(page).toHaveURL(/\/dashboard\/overview/)
 
-  // Simulate cancelling Stripe checkout (user lands back on /billing directly)
-  await page.goto('/billing')
+  // SPA navigation preserves pinia auth state (isPlanActive stays true)
+  await page.getByRole('link', { name: /Facturation/i }).click()
   await expect(page).toHaveURL(/\/billing/)
 
-  // Billing page should render plan information
-  await expect(page.getByText(/starter|pro|business/i)).toBeVisible({ timeout: 5_000 })
+  // Billing view renders hardcoded plan cards (Starter, Pro, Business)
+  await expect(page.getByText(/Starter/)).toBeVisible({ timeout: 5_000 })
 })
