@@ -203,13 +203,15 @@ test('plan limit — 402 on plant creation shows inline upgrade banner and disab
 test('billing success — confirms checkout session and redirects to /billing', async ({ page }) => {
   let confirmCalled = false
 
+  await loginAs(page, { licenseStatus: 'active', plan: 'starter' })
+  await expect(page).toHaveURL(/\/dashboard\/overview/)
+
+  // Register after loginAs() so this specific handler takes precedence over
+  // the **/api/** catch-all installed by loginAs() (Playwright matches most-recent first).
   await page.route('**/api/billing/checkout/confirm', async (route) => {
     confirmCalled = true
     await route.fulfill({ json: { plan: 'pro' } })
   })
-
-  await loginAs(page, { licenseStatus: 'active', plan: 'starter' })
-  await expect(page).toHaveURL(/\/dashboard\/overview/)
 
   // SPA navigation to billing/success — avoids full reload that would lose pinia state
   await routerPush(page, '/billing/success?session_id=cs_test_abc123')
