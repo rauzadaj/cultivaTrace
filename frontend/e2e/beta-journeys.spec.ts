@@ -142,8 +142,11 @@ test('kyb pending — submitting the form shows pending status', async ({ page }
   await loginAs(page, { licenseStatus: 'pending' })
   await expect(page).toHaveURL(/\/kyb/)
 
+  // Quasar q-select renders options in a portal — use .q-menu text, not getByRole('option')
   await page.getByLabel(/type de licence/i).click()
-  await page.getByRole('option', { name: /health canada/i }).click()
+  await page.locator('.q-menu').waitFor({ timeout: 3_000 })
+  await page.locator('.q-menu').getByText('Health Canada (Canada)').click()
+
   await page.getByLabel(/numéro de licence/i).fill('HC-LP-99999')
   await page.getByRole('button', { name: /soumettre/i }).click()
 
@@ -211,7 +214,7 @@ test('billing success — confirms checkout session and redirects to /billing', 
   await expect(page).toHaveURL(/billing\/success/, { timeout: 5_000 })
 
   // onMounted confirms checkout then calls router.replace('/billing')
-  await expect(page).toHaveURL(/\/billing(?!\/success)/, { timeout: 10_000 })
+  await page.waitForURL(url => new URL(url).pathname === '/billing', { timeout: 10_000 })
   expect(confirmCalled).toBe(true)
 })
 
