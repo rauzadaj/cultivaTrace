@@ -43,9 +43,27 @@ SQL, $column, $column, $column));
 
     public function down(Schema $schema): void
     {
-        // No-op: Version20260428200310 already converted these columns to JSONB
-        // before this migration ran, so up() is always a no-op and down() must
-        // not revert them. The JSON→JSONB ownership (and its reversal) belongs
-        // to Version20260428200310::down.
+        $this->abortIf(
+            !$this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform,
+            'This migration can only run on PostgreSQL.'
+        );
+
+        foreach (['markets', 'raw_metadata'] as $column) {
+            $this->addSql(sprintf(<<<'SQL'
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name   = 'external_catalog_entry'
+          AND column_name  = '%s'
+          AND udt_name     = 'jsonb'
+    ) THEN
+        ALTER TABLE external_catalog_entry ALTER COLUMN %s TYPE JSON USING %s::text::json;
+    END IF;
+END
+$$;
+SQL, $column, $column, $column));
+        }
     }
 }
