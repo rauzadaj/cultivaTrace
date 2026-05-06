@@ -66,27 +66,12 @@ SQL,
 
         // Ensure the refresh_token FK is declared with INITIALLY IMMEDIATE so
         // that Doctrine-generated schema matches the migration exactly.
-        $this->addSql(<<<'SQL'
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE constraint_name = 'FK_C74F2195A76ED395'
-          AND table_name      = 'refresh_token'
-    ) THEN
-        ALTER TABLE refresh_token
-            DROP CONSTRAINT FK_C74F2195A76ED395;
-    END IF;
-
-    ALTER TABLE refresh_token
-        ADD CONSTRAINT FK_C74F2195A76ED395
-        FOREIGN KEY (user_id)
-        REFERENCES "user" (id)
-        ON DELETE CASCADE
-        NOT DEFERRABLE INITIALLY IMMEDIATE;
-END
-$$;
-SQL);
+        // DROP ... IF EXISTS is case-insensitive and truly idempotent;
+        // the earlier DO $$ IF EXISTS ... END $$ block used the original uppercase
+        // name which PostgreSQL never stores, so the DROP was silently skipped and
+        // the ADD failed on every subsequent boot.
+        $this->addSql('ALTER TABLE refresh_token DROP CONSTRAINT IF EXISTS fk_c74f2195a76ed395');
+        $this->addSql('ALTER TABLE refresh_token ADD CONSTRAINT fk_c74f2195a76ed395 FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
     }
 
     public function down(Schema $schema): void

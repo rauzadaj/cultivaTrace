@@ -154,8 +154,11 @@ test('kyb pending — submitting the form shows pending status', async ({ page }
   await loginAs(page, { licenseStatus: 'pending' })
   await expect(page).toHaveURL(/\/kyb/)
 
+  // Quasar q-select renders options in a portal — use .q-menu text, not getByRole('option')
   await page.getByLabel(/type de licence/i).click()
-  await page.getByRole('option', { name: /health canada/i }).click()
+  await page.locator('.q-menu').waitFor({ timeout: 3_000 })
+  await page.locator('.q-menu').getByText('Health Canada (Canada)').click()
+
   await page.getByLabel(/numéro de licence/i).fill('HC-LP-99999')
   await page.getByRole('button', { name: /soumettre/i }).click()
 
@@ -218,13 +221,11 @@ test('billing success — confirms checkout session and redirects to /billing', 
     await route.fulfill({ json: { plan: 'pro' } })
   })
 
-  // SPA navigation to billing/success — avoids full reload that would lose pinia state.
-  // routerPush awaits the router.push() promise so we know navigation reached /billing/success
-  // before onMounted fires and calls router.replace('/billing').
+  // SPA navigation — routerPush awaits router.push() so navigation reaches /billing/success
+  // before onMounted fires; onMounted calls confirmCheckout then router.replace('/billing').
+  // The intermediate /billing/success URL resolves too fast to assert on with toHaveURL.
   await routerPush(page, '/billing/success?session_id=cs_test_abc123')
-
-  // onMounted confirms checkout then calls router.replace('/billing')
-  await expect(page).toHaveURL(/\/billing(?!\/success)/, { timeout: 15_000 })
+  await page.waitForURL(url => new URL(url).pathname === '/billing', { timeout: 10_000 })
   expect(confirmCalled).toBe(true)
 })
 
@@ -240,6 +241,7 @@ test('billing cancel — navigating to /billing after cancel shows billing view'
   await page.getByRole('link', { name: /Facturation/i }).click()
   await expect(page).toHaveURL(/\/billing/)
 
-  // Billing view heading is unique to this view
+  // 'Changer de plan' is unique to BillingView — avoids strict-mode violations from
+  // getByText(/Starter/) matching multiple plan card elements.
   await expect(page.getByText('Changer de plan')).toBeVisible({ timeout: 5_000 })
 })
