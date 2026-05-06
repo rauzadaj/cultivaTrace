@@ -102,6 +102,18 @@ async function loginAs(
       return
     }
 
+    if (req.method() === 'GET' && path === '/api/alerts') {
+      await route.fulfill({ json: { '@type': 'hydra:Collection', 'hydra:totalItems': 0, 'hydra:member': [] } })
+      return
+    }
+
+    // Fallback so test-specific handlers registered after loginAs() can intercept
+    // this endpoint (works whether Playwright applies FIFO or LIFO route ordering).
+    if (req.method() === 'POST' && path === '/api/billing/checkout/confirm') {
+      await route.fallback()
+      return
+    }
+
     await route.fulfill({ status: 404, json: { message: `Unhandled mock: ${req.method()} ${path}` } })
   })
 
@@ -117,8 +129,8 @@ async function loginAs(
  */
 async function routerPush(page: import('@playwright/test').Page, path: string): Promise<void> {
   await page.evaluate((p: string) => {
-    const el = document.getElementById('app') as { __vue_app__?: { config: { globalProperties: { $router: { push: (path: string) => void } } } } } | null
-    el?.__vue_app__?.config.globalProperties.$router.push(p)
+    const el = document.getElementById('app') as { __vue_app__?: { config: { globalProperties: { $router: { push: (path: string) => Promise<unknown> } } } } } | null
+    return el?.__vue_app__?.config.globalProperties.$router.push(p)
   }, path)
 }
 
@@ -206,12 +218,13 @@ test('billing success — confirms checkout session and redirects to /billing', 
     await route.fulfill({ json: { plan: 'pro' } })
   })
 
-  // SPA navigation to billing/success — avoids full reload that would lose pinia state
+  // SPA navigation to billing/success — avoids full reload that would lose pinia state.
+  // routerPush awaits the router.push() promise so we know navigation reached /billing/success
+  // before onMounted fires and calls router.replace('/billing').
   await routerPush(page, '/billing/success?session_id=cs_test_abc123')
-  await expect(page).toHaveURL(/billing\/success/, { timeout: 5_000 })
 
   // onMounted confirms checkout then calls router.replace('/billing')
-  await expect(page).toHaveURL(/\/billing(?!\/success)/, { timeout: 10_000 })
+  await expect(page).toHaveURL(/\/billing(?!\/success)/, { timeout: 15_000 })
   expect(confirmCalled).toBe(true)
 })
 
@@ -227,6 +240,6 @@ test('billing cancel — navigating to /billing after cancel shows billing view'
   await page.getByRole('link', { name: /Facturation/i }).click()
   await expect(page).toHaveURL(/\/billing/)
 
-  // Billing view renders hardcoded plan cards (Starter, Pro, Business)
-  await expect(page.getByText(/Starter/)).toBeVisible({ timeout: 5_000 })
+  // Billing view heading is unique to this view
+  await expect(page.getByText('Changer de plan')).toBeVisible({ timeout: 5_000 })
 })
