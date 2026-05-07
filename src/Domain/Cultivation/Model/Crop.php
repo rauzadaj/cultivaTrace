@@ -26,6 +26,11 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[ORM\UniqueConstraint(name: 'uniq_crop_batch_code', columns: ['batch_code'])]
 #[UniqueEntity(fields: ['batchCode'])]
 #[Assert\Callback('validateChronology')]
+/**
+ * @internal
+ * @todo(mvp-deferred) Batch/crop aggregate — deferred in favour of the plant-centric model.
+ *                     See src/Domain/Cultivation/DEFERRED.md for promotion criteria.
+ */
 class Crop
 {
     #[ORM\Id]

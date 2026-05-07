@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Cultivation\Model;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Post;
 use App\Domain\Cultivation\Enum\JournalEntryType;
 use App\Domain\Cultivation\ValueObject\NutrientConcentration;
 use App\Domain\Cultivation\ValueObject\PhLevel;
@@ -26,23 +23,18 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Index(name: 'idx_journal_entry_crop_occurred_at', columns: ['crop_id', 'occurred_at'])]
 #[ORM\Index(name: 'idx_journal_entry_metadata_gin', columns: ['metadata'], flags: ['gin'])]
 #[ORM\HasLifecycleCallbacks]
+// Crop-domain entity — not exposed in the plant-centric MVP (operations: [] disables all API Platform routes).
+// See src/Domain/Cultivation/DEFERRED.md for promotion criteria.
 #[ApiResource(
-    operations: [
-        new GetCollection(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
-        ),
-        new Get(
-            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
-        ),
-        new Post(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')",
-            securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
-        ),
-    ],
+    operations: [],
     normalizationContext: ['groups' => ['journal:read']],
     denormalizationContext: ['groups' => ['journal:write']],
     order: ['occurredAt' => 'DESC'],
 )]
+/**
+ * @internal
+ * @todo(mvp-deferred) Part of the batch/crop domain, deferred in favour of the plant-centric model.
+ */
 class JournalEntry
 {
     private bool $sealed = false;
