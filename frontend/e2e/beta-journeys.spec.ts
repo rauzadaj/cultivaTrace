@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test'
 
 // ---------------------------------------------------------------------------
+// Test credentials — configure via env vars; defaults are safe for local dev
+// ---------------------------------------------------------------------------
+
+const DEMO_EMAIL = process.env['E2E_DEMO_EMAIL'] ?? 'demo@cultivatrace.local'
+const DEMO_PASSWORD = process.env['E2E_DEMO_PASSWORD'] ?? 'demo123'
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -40,7 +47,7 @@ async function loginAs(
       await route.fulfill({
         json: {
           id: 'user-1',
-          email: 'demo@cultivatrace.local',
+          email: DEMO_EMAIL,
           roles: ['ROLE_ORG_ADMIN'],
           mfaEnabled: false,
           organization: { id: 'org-1', name: 'CultivaTrace Demo', plan, licenseStatus },
@@ -107,6 +114,11 @@ async function loginAs(
       return
     }
 
+    if (req.method() === 'POST' && path === '/api/auth/logout') {
+      await route.fulfill({ status: 204 })
+      return
+    }
+
     // Fallback so test-specific handlers registered after loginAs() can intercept
     // this endpoint (works whether Playwright applies FIFO or LIFO route ordering).
     if (req.method() === 'POST' && path === '/api/billing/checkout/confirm') {
@@ -118,8 +130,8 @@ async function loginAs(
   })
 
   await page.goto('/auth')
-  await page.getByLabel('Email').fill('demo@cultivatrace.local')
-  await page.getByLabel('Mot de passe').fill('demo123')
+  await page.getByLabel('Email').fill(DEMO_EMAIL)
+  await page.getByLabel('Mot de passe').fill(DEMO_PASSWORD)
   await page.getByRole('button', { name: 'Se connecter' }).click()
 }
 

@@ -18,7 +18,7 @@ describe('useFormValidation', () => {
     expect(validation.fieldErrors.email).toBe('Email requis.')
     expect(validation.fieldErrors.password).toBe('Mot de passe requis.')
 
-    values.email = 'demo@cultivatrace.local'
+    values.email = 'test@example.local'
     values.password = 'secret123'
 
     expect(validation.validateAll()).toBe(true)
