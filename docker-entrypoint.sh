@@ -111,7 +111,12 @@ if [ -n "${DATABASE_URL:-}" ]; then
   done
 
   echo "Running migrations..."
-  php bin/console doctrine:migrations:migrate --no-interaction --env="$APP_ENV"
+  # Use DATABASE_URL_DIRECT if set — required for PgBouncer/Supavisor in transaction mode
+  MIGRATE_URL="${DATABASE_URL_DIRECT:-$DATABASE_URL}"
+  DATABASE_URL="$MIGRATE_URL" php bin/console doctrine:migrations:migrate --no-interaction --env="$APP_ENV" || {
+    echo "[FATAL] Doctrine migrations failed. Refusing to start to prevent running on an incomplete schema." >&2
+    exit 1
+  }
 fi
 
 echo "Warming up cache..."

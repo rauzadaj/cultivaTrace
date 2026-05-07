@@ -320,7 +320,36 @@ class StripeService
 
     private function onPaymentSucceeded(Event $event): void
     {
-        $this->logger->info('[Stripe] Paiement réussi', ['invoice_id' => (string) $event->data->object->id]);
+        $invoice    = $event->data->object;
+        $customerId = $invoice->customer;
+
+        $org = $this->em->getRepository(Organization::class)
+            ->findOneBy(['stripeCustomerId' => $customerId]);
+
+        if (!$org) {
+            $this->logger->info('[Stripe] Paiement réussi — organisation non trouvée', [
+                'customer' => $this->maskCustomerId((string) $customerId),
+            ]);
+            return;
+        }
+
+        try {
+            $this->syncOrganizationSubscription($org);
+
+            // If org was billing-suspended (onSubscriptionDeleted), restore access.
+            // PENDING / REJECTED / EXPIRED are intentionally left untouched.
+            if ($org->getLicenseStatus() === LicenseStatus::SUSPENDED) {
+                $org->setLicenseStatus(LicenseStatus::ACTIVE);
+                $this->em->flush();
+            }
+
+            $this->logger->info('[Stripe] Paiement réussi — abonnement resynchronisé', [
+                'org_id'   => (string) $org->getId(),
+                'customer' => $this->maskCustomerId((string) $customerId),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('[Stripe] Échec resync après paiement réussi', ['error' => $e->getMessage()]);
+        }
     }
 
     private function getPriceId(SubscriptionPlan $plan): string
