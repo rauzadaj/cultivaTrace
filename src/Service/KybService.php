@@ -131,8 +131,8 @@ class KybService
     {
         $licenseNumber = strtoupper(trim($license->getLicenseNumber()));
 
-        // Validate format before lookup (LIC-/LP-/MC-/MR-/RP-/SA- prefix)
-        if (!preg_match('/^(LIC|LP|MC|MR|RP|SA)-[A-Z0-9]{4,}$/i', $licenseNumber)) {
+        // Validate format before lookup — accept single or compound prefixes (e.g. LP-xxxx or HC-LP-xxxx)
+        if (!preg_match('/^[A-Z]{1,3}(-[A-Z]{1,3})?-[A-Z0-9]{3,}$/i', $licenseNumber)) {
             $this->logger->warning('[KYB] Format de licence Health Canada invalide', [
                 'license' => $this->maskLicense($licenseNumber),
             ]);
