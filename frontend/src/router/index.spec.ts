@@ -10,7 +10,7 @@ function buildUser(
 ): User {
   return {
     id: 'user-1',
-    email: 'demo@cultivatrace.local',
+    email: 'test@example.local',
     roles,
     mfaEnabled: false,
     organization: {
