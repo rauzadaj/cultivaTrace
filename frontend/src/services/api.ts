@@ -180,6 +180,15 @@ export const authApi = {
 
   me: () =>
     http.get<User>('/me'),
+
+  logout: (bearerToken?: string) =>
+    http.post('/auth/logout', null, {
+      headers: {
+        'Content-Type': 'application/json',
+        // Explicit token needed when called after clearAuthTokens() clears storage
+        ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+      },
+    }),
 }
 
 export const kybApi = {
