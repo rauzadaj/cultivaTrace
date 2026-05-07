@@ -10,7 +10,6 @@ services:
       - ./:/var/www/html
       - vendor:/var/www/html/vendor
       - symfony_var:/var/www/html/var
-      - cultivatrace_storage:/var/www/html/var/storage
     depends_on:
       - db
       - gotenberg
@@ -93,7 +92,6 @@ volumes:
   pgdata:
   vendor:
   symfony_var:
-  cultivatrace_storage:
 
 ###> symfony/mercure-bundle ###
   mercure_data:
