@@ -8,6 +8,11 @@ use App\Domain\Cultivation\Model\Crop;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Workflow\WorkflowInterface;
 
+/**
+ * @internal
+ * @todo(mvp-deferred) Crop lifecycle workflow — deferred pending Crop domain promotion.
+ *                     See src/Domain/Cultivation/DEFERRED.md.
+ */
 final readonly class CropLifecycleManager
 {
     public function __construct(
