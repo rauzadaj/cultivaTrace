@@ -40,13 +40,13 @@ class HealthCanadaLicensedProducer
     #[ORM\Column(length: 64)]
     private string $province = '';
 
-    #[ORM\Column(type: 'date', nullable: true)]
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $issuedAt = null;
 
-    #[ORM\Column(type: 'date', nullable: true)]
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $expiresAt = null;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $syncedAt;
 
     public function __construct()

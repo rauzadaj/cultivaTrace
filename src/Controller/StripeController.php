@@ -45,7 +45,7 @@ class StripeController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? [];
         $plan = $data['plan'] ?? null;
 
-        $validPlans = ['starter', 'pro', 'business'];
+        $validPlans = ['starter', 'pro', 'business', 'enterprise'];
         if (!in_array($plan, $validPlans, true)) {
             return $this->json([
                 'error'       => 'Plan invalide',

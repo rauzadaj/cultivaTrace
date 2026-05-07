@@ -15,6 +15,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * HarvestRecord — données de récolte d'un plant.
@@ -25,6 +26,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'harvest_record')]
+#[Assert\Callback]
 #[ApiResource(
     operations: [
         new GetCollection(
@@ -114,4 +116,15 @@ class HarvestRecord
     public function setHarvestedBy(User $u): self { $this->harvestedBy = $u; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $n): self { $this->notes = $n; return $this; }
+
+    public function validateWeights(ExecutionContextInterface $context): void
+    {
+        if (isset($this->grossWeightG, $this->netWeightG)
+            && (float) $this->netWeightG > (float) $this->grossWeightG
+        ) {
+            $context->buildViolation('Le poids net ne peut pas dépasser le poids brut.')
+                ->atPath('netWeightG')
+                ->addViolation();
+        }
+    }
 }

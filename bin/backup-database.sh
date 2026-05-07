@@ -35,8 +35,8 @@ parse_db_url() {
     echo "PGHOST=" . ($parts["host"] ?? "") . "\n";
     echo "PGPORT=" . ($parts["port"] ?? 5432) . "\n";
     echo "PGDATABASE=" . ltrim($parts["path"] ?? "", "/") . "\n";
-    echo "PGUSER=" . ($parts["user"] ?? "") . "\n";
-    echo "PGPASSWORD=" . ($parts["pass"] ?? "") . "\n";
+    echo "PGUSER=" . urldecode($parts["user"] ?? "") . "\n";
+    echo "PGPASSWORD=" . urldecode($parts["pass"] ?? "") . "\n";
   '
 }
 
