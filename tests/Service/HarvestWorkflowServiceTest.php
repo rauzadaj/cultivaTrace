@@ -34,6 +34,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     {
         $plant = new Plant();
         $plant->setTenantId(Uuid::v4());
+        $plant->setStage(\App\Enum\PlantStage::FLOWERING);
 
         return $plant;
     }

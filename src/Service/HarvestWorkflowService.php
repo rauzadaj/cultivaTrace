@@ -30,6 +30,15 @@ final readonly class HarvestWorkflowService
             ));
         }
 
+        // Enforce forward-only stage rule: harvest is only allowed from FLOWERING
+        if ($plant->getStage() !== PlantStage::FLOWERING) {
+            throw new \InvalidArgumentException(sprintf(
+                'La récolte n\'est possible que depuis le stade "%s" (stade actuel : "%s").',
+                PlantStage::FLOWERING->value,
+                $plant->getStage()->value,
+            ));
+        }
+
         $grossWeight = $payload['grossWeightG'] ?? null;
         $netWeight = $payload['netWeightG'] ?? null;
         $harvestedAt = (string) ($payload['harvestedAt'] ?? date('Y-m-d'));
