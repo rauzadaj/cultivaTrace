@@ -159,35 +159,22 @@ class KybService
             return $this->fallbackManual($license, 'Licence non trouvée dans le registre local Health Canada. Revue manuelle requise.');
         }
 
-        if (!$producer->isActive()) {
-            $this->logger->info('[KYB] Health Canada — licence inactive', [
-                'license' => $this->maskLicense($licenseNumber),
-                'status'  => $producer->getStatus(),
-            ]);
+        // Health Canada always requires manual review in production.
+        // The registry lookup provides context for the reviewer but does not auto-approve.
+        $statusLabel = $producer->getStatus();
+        $registryNote = sprintf(
+            'Registre Health Canada : "%s" — statut "%s". Revue manuelle requise.',
+            $producer->getCompanyName(),
+            $statusLabel,
+        );
 
-            return [
-                'verified'  => false,
-                'method'    => 'auto_health_canada',
-                'expiresAt' => $producer->getExpiresAt()?->format('Y-m-d'),
-                'reason'    => sprintf(
-                    'La licence "%s" est enregistrée avec le statut "%s" dans le registre Health Canada.',
-                    $producer->getCompanyName(),
-                    $producer->getStatus(),
-                ),
-            ];
-        }
-
-        $this->logger->info('[KYB] Health Canada — licence vérifiée automatiquement', [
+        $this->logger->info('[KYB] Health Canada — licence trouvée, soumise en revue manuelle', [
             'license' => $this->maskLicense($licenseNumber),
             'company' => $producer->getCompanyName(),
+            'status'  => $statusLabel,
         ]);
 
-        return [
-            'verified'  => true,
-            'method'    => 'auto_health_canada',
-            'expiresAt' => $producer->getExpiresAt()?->format('Y-m-d'),
-            'reason'    => null,
-        ];
+        return $this->fallbackManual($license, $registryNote);
     }
 
     /**
