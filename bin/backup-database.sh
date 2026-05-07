@@ -28,19 +28,15 @@ fi
 # Use DATABASE_URL_DIRECT if available (bypasses PgBouncer for direct connection)
 DB_URL="${DATABASE_URL_DIRECT:-$DATABASE_URL}"
 
-parse_db_url() {
-  php -r '
-    $url = getenv("DB_URL");
-    $parts = parse_url($url);
-    echo "PGHOST=" . ($parts["host"] ?? "") . "\n";
-    echo "PGPORT=" . ($parts["port"] ?? 5432) . "\n";
-    echo "PGDATABASE=" . ltrim($parts["path"] ?? "", "/") . "\n";
-    echo "PGUSER=" . urldecode($parts["user"] ?? "") . "\n";
-    echo "PGPASSWORD=" . urldecode($parts["pass"] ?? "") . "\n";
-  '
-}
+# Extract each credential individually via command substitution to avoid eval
+# and prevent shell injection from metacharacters in managed DB passwords.
+_php_parse() { DB_URL="$DB_URL" php -r "$1"; }
 
-eval "$(DB_URL="$DB_URL" parse_db_url)"
+PGHOST=$(    _php_parse '$p=parse_url(getenv("DB_URL")); echo $p["host"] ?? "";')
+PGPORT=$(    _php_parse '$p=parse_url(getenv("DB_URL")); echo $p["port"] ?? 5432;')
+PGDATABASE=$(_php_parse '$p=parse_url(getenv("DB_URL")); echo ltrim($p["path"] ?? "", "/");')
+PGUSER=$(    _php_parse '$p=parse_url(getenv("DB_URL")); echo urldecode($p["user"] ?? "");')
+PGPASSWORD=$(_php_parse '$p=parse_url(getenv("DB_URL")); echo urldecode($p["pass"] ?? "");')
 export PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD
 
 # ── Create backup ──────────────────────────────────────────────────────────
