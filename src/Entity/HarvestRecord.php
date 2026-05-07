@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\State\HarvestRecordPatchProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -38,6 +39,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
         new Patch(
             security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)",
             denormalizationContext: ['groups' => ['harvest:write']],
+            processor: HarvestRecordPatchProcessor::class,
         ),
         // POST uniquement via HarvestController — pas d'opération directe
     ],
