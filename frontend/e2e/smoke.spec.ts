@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
 
+const DEMO_EMAIL = process.env['E2E_DEMO_EMAIL'] ?? 'demo@cultivatrace.local'
+const DEMO_PASSWORD = process.env['E2E_DEMO_PASSWORD'] ?? 'demo123'
+
 type MockPlant = {
   id: string
   '@id': string
@@ -71,7 +74,7 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
       await route.fulfill({
         json: {
           id: 'user-1',
-          email: 'demo@cultivatrace.local',
+          email: DEMO_EMAIL,
           roles: ['ROLE_ORG_ADMIN'],
           mfaEnabled: false,
           organization: {
@@ -168,8 +171,8 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
   await page.goto('/dashboard/overview')
   await expect(page).toHaveURL(/\/auth/)
 
-  await page.getByLabel('Email').fill('demo@cultivatrace.local')
-  await page.getByLabel('Mot de passe').fill('demo123')
+  await page.getByLabel('Email').fill(DEMO_EMAIL)
+  await page.getByLabel('Mot de passe').fill(DEMO_PASSWORD)
   await page.getByRole('button', { name: 'Se connecter' }).click()
 
   await expect(page).toHaveURL(/\/dashboard\/overview/)
