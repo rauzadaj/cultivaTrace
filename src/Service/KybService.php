@@ -119,30 +119,42 @@ class KybService
 
     /**
      * Vérification Health Canada — registre public des producteurs licenciés.
-     * https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/
+     *
+     * Health Canada ne fournit pas d'API REST publique. Le registre officiel est
+     * disponible en téléchargement CSV :
+     *   https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/
      *   licensed-producers/authorized-licensed-producers-list.html
+     *
+     * Options d'intégration à évaluer :
+     *   A) Téléchargement quotidien du CSV + lookup en base (recommandé)
+     *   B) Scraping HTML du registre public (fragile)
+     *   C) Partenariat avec un fournisseur agréé (ex: CannabisCert, Ample Organics)
+     *
+     * En attendant : revue manuelle par l'équipe compliance avec notification admin.
+     * Format attendu des licences HC : LIC-XXXXX ou LP-XXXXX (Production / Micro-cultivation)
      */
     private function verifyHealthCanada(LicenseDocument $license): array
     {
-        try {
-            // Health Canada ne fournit pas d'API REST publique —
-            // on vérifie via le registre HTML (scraping léger)
-            // En prod, envisager un partenariat ou une vérification manuelle assistée
-            $this->logger->info('[KYB] Tentative vérification Health Canada', [
-                'license' => $this->maskLicense($license->getLicenseNumber()),
+        $licenseNumber = $license->getLicenseNumber();
+
+        // Validate Health Canada license number format before manual review
+        if (!preg_match('/^(LIC|LP|MC|MR|RP|SA)-[A-Z0-9]{4,}$/i', $licenseNumber)) {
+            $this->logger->warning('[KYB] Format de licence Health Canada invalide', [
+                'license' => $this->maskLicense($licenseNumber),
             ]);
 
-            // TODO: implémenter la vérification réelle quand l'API sera disponible
-            // Pour l'instant : fallback manuel avec notification admin
-            return $this->fallbackManual($license, 'Vérification Health Canada automatique en cours d\'implémentation');
-
-        } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur Health Canada', [
-                'error'   => $e->getMessage(),
-                'license' => $this->maskLicense($license->getLicenseNumber()),
-            ]);
-            return $this->fallbackManual($license, 'Erreur API Health Canada: ' . $e->getMessage());
+            return [
+                'verified' => false,
+                'method'   => 'format_rejected',
+                'reason'   => 'Le format du numéro de licence Health Canada est invalide. Formats acceptés : LIC-XXXXX, LP-XXXXX, MC-XXXXX.',
+            ];
         }
+
+        $this->logger->info('[KYB] Soumission Health Canada → revue manuelle compliance', [
+            'license' => $this->maskLicense($licenseNumber),
+        ]);
+
+        return $this->fallbackManual($license, 'Revue manuelle requise — intégration automatique Health Canada en cours de développement (voir issue #174)');
     }
 
     /**
