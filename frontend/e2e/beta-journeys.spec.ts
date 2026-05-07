@@ -174,8 +174,10 @@ test('kyb pending — submitting the form shows pending status', async ({ page }
   await page.getByLabel(/numéro de licence/i).fill('HC-LP-99999')
   await page.getByRole('button', { name: /soumettre/i }).click()
 
-  // After upload, KYB view shows pending status text from statusMessage computed
-  await expect(page.getByText(/vérification en cours|en cours|pending/i)).toBeVisible({ timeout: 5_000 })
+  // After upload, KYB view shows pending status text from statusMessage computed.
+  // Two elements can match the regex (status banner + toast notification) — .first()
+  // avoids the strict-mode violation while still asserting the pending state is visible.
+  await expect(page.getByText(/vérification en cours|en cours|pending/i).first()).toBeVisible({ timeout: 5_000 })
 })
 
 // ---------------------------------------------------------------------------
