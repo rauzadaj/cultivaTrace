@@ -85,7 +85,15 @@ final class SyncHealthCanadaRegistryCommand extends Command
             return Command::FAILURE;
         }
 
-        $header = array_shift($rows); // remove header row
+        $header = array_shift($rows);
+
+        if (!$this->isValidHeader($header)) {
+            $io->error('CSV header does not match expected Health Canada format — aborting to prevent corrupt data.');
+            $this->logger->error('[HC Sync] Unexpected CSV header', ['header' => $header]);
+
+            return Command::FAILURE;
+        }
+
         $io->text(sprintf('Downloaded %d producer records.', count($rows)));
 
         if ($dryRun) {
@@ -171,6 +179,25 @@ final class SyncHealthCanadaRegistryCommand extends Command
         fclose($handle);
 
         return $lines;
+    }
+
+    /**
+     * Validates that the CSV header row matches the expected Health Canada format.
+     * Checks minimum column count and keyword presence to catch format changes or
+     * non-CSV responses (e.g. HTML error pages returned with a 200 status).
+     *
+     * @param list<string>|null $header
+     */
+    private function isValidHeader(?array $header): bool
+    {
+        if ($header === null || count($header) < 7) {
+            return false;
+        }
+
+        $col0 = strtolower($header[self::COL_LICENSE_NUMBER] ?? '');
+        $col3 = strtolower($header[self::COL_STATUS] ?? '');
+
+        return str_contains($col0, 'licen') && str_contains($col3, 'status');
     }
 
     private function normalizeStatus(string $raw): string
