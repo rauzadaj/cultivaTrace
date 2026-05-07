@@ -153,12 +153,13 @@ class PlanLimitsService
 
     private function countActivePlants(Organization $org): int
     {
+        // Count all plants ever created for the tenant regardless of status —
+        // prevents quota bypass via archive + recreate cycle.
         return (int) $this->em->createQuery(
             'SELECT COUNT(p.id) FROM App\Entity\Plant p
-             WHERE p.tenantId = :tenantId AND p.status != :archived'
+             WHERE p.tenantId = :tenantId'
         )
         ->setParameter('tenantId', $org->getId(), 'uuid')
-        ->setParameter('archived', PlantStatus::ARCHIVED)
         ->getSingleScalarResult();
     }
 
