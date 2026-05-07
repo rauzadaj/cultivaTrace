@@ -335,6 +335,14 @@ class StripeService
 
         try {
             $this->syncOrganizationSubscription($org);
+
+            // If org was billing-suspended (onSubscriptionDeleted), restore access.
+            // PENDING / REJECTED / EXPIRED are intentionally left untouched.
+            if ($org->getLicenseStatus() === LicenseStatus::SUSPENDED) {
+                $org->setLicenseStatus(LicenseStatus::ACTIVE);
+                $this->em->flush();
+            }
+
             $this->logger->info('[Stripe] Paiement réussi — abonnement resynchronisé', [
                 'org_id'   => (string) $org->getId(),
                 'customer' => $this->maskCustomerId((string) $customerId),
