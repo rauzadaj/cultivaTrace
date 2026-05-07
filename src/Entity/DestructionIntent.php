@@ -96,11 +96,11 @@ class DestructionIntent
     #[ORM\JoinColumn(nullable: true)]
     private ?User $confirmedBy = null;
 
-    public function __construct()
+    public function __construct(int $legalDelayDays = 7)
     {
         $this->id = Uuid::v4();
         $this->declaredAt = new \DateTimeImmutable();
-        $this->legalDateMin = new \DateTimeImmutable('+7 days');
+        $this->legalDateMin = new \DateTimeImmutable(sprintf('+%d days', $legalDelayDays));
     }
 
     public function canBeConfirmed(): bool
