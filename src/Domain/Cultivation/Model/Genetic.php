@@ -3,11 +3,6 @@
 namespace App\Domain\Cultivation\Model;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -22,21 +17,17 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Index(name: 'idx_genetic_metadata_gin', columns: ['metadata'], flags: ['gin'])]
 #[ORM\UniqueConstraint(name: 'uniq_genetic_code', columns: ['code'])]
 #[UniqueEntity(fields: ['code'])]
+// Crop-domain entity — not exposed in the plant-centric MVP (operations: [] disables all API Platform routes).
+// See src/Domain/Cultivation/DEFERRED.md for promotion criteria.
 #[ApiResource(
-    operations: [
-        new GetCollection(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')"
-        ),
-        new Get(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')"
-        ),
-        new Post(security: "is_granted('ROLE_SUPER_ADMIN')"),
-        new Patch(security: "is_granted('ROLE_SUPER_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_SUPER_ADMIN')"),
-    ],
+    operations: [],
     normalizationContext: ['groups' => ['genetic:read']],
     denormalizationContext: ['groups' => ['genetic:write']],
 )]
+/**
+ * @internal
+ * @todo(mvp-deferred) Part of the batch/crop domain, deferred in favour of the plant-centric model.
+ */
 class Genetic
 {
     #[ORM\Id]
