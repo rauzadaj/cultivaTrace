@@ -49,6 +49,7 @@ class StripeService
         private readonly string $priceStarter,
         private readonly string $pricePro,
         private readonly string $priceBusiness,
+        private readonly string $priceEnterprise,
         private readonly string $alertFromEmail = 'billing@cannas.app',
     ) {
         Stripe::setApiKey($this->stripeSecretKey);
@@ -325,10 +326,10 @@ class StripeService
     private function getPriceId(SubscriptionPlan $plan): string
     {
         $priceId = match ($plan) {
-            SubscriptionPlan::STARTER  => $this->priceStarter,
-            SubscriptionPlan::PRO      => $this->pricePro,
-            SubscriptionPlan::BUSINESS => $this->priceBusiness,
-            default                    => throw new \InvalidArgumentException('Plan non géré : ' . $plan->value),
+            SubscriptionPlan::STARTER    => $this->priceStarter,
+            SubscriptionPlan::PRO        => $this->pricePro,
+            SubscriptionPlan::BUSINESS   => $this->priceBusiness,
+            SubscriptionPlan::ENTERPRISE => $this->priceEnterprise,
         };
 
         $priceId = trim($priceId);
@@ -350,9 +351,10 @@ class StripeService
     private function resolvePlanFromPriceId(string $priceId): SubscriptionPlan
     {
         return match ($priceId) {
-            trim($this->priceStarter) => SubscriptionPlan::STARTER,
-            trim($this->pricePro) => SubscriptionPlan::PRO,
-            trim($this->priceBusiness) => SubscriptionPlan::BUSINESS,
+            trim($this->priceStarter)    => SubscriptionPlan::STARTER,
+            trim($this->pricePro)        => SubscriptionPlan::PRO,
+            trim($this->priceBusiness)   => SubscriptionPlan::BUSINESS,
+            trim($this->priceEnterprise) => SubscriptionPlan::ENTERPRISE,
             default => throw new \InvalidArgumentException(sprintf(
                 'Unknown Stripe price ID "%s" returned by subscription sync.',
                 $priceId,
