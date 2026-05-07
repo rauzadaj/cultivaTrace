@@ -24,6 +24,7 @@ final class StripeServiceTest extends TestCase
             'prod_wrong',
             'price_ok',
             'price_ok_business',
+            'price_ok_enterprise',
         );
 
         $method = new \ReflectionMethod($service, 'getPriceId');

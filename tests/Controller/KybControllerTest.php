@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
+use App\Entity\HealthCanadaLicensedProducer;
 use App\Entity\LicenseDocument;
 use App\Entity\Organization;
 use App\Entity\User;
@@ -20,6 +21,7 @@ final class KybControllerTest extends ApiTestCase
             Organization::class,
             User::class,
             LicenseDocument::class,
+            HealthCanadaLicensedProducer::class,
         ]);
     }
 
