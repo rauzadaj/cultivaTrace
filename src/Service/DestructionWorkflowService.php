@@ -33,7 +33,7 @@ final readonly class DestructionWorkflowService
             throw new \InvalidArgumentException('La raison est obligatoire');
         }
 
-        $intent = new DestructionIntent();
+        $intent = new DestructionIntent($this->legalDelayDays($user));
         $intent->setPlant($plant);
         $intent->setTenantId($plant->getTenantId());
         $intent->setReason($reason);
@@ -125,5 +125,20 @@ final readonly class DestructionWorkflowService
             $this->entityManager->rollback();
             throw $exception;
         }
+    }
+
+    /** Legal waiting period before destruction can be confirmed, per jurisdiction. */
+    private function legalDelayDays(User $user): int
+    {
+        $country = strtoupper(
+            ($user->hasOrganization() ? $user->getOrganization()->getCountry() : null) ?? 'FR'
+        );
+
+        return match ($country) {
+            'CA' => 0,
+            'DE' => 1,
+            'US' => 3,
+            default => 7, // FR and all others
+        };
     }
 }

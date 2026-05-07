@@ -11,6 +11,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Organization est le tenant racine.
@@ -32,6 +33,8 @@ class Organization
     private Uuid $id;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private string $name;
 
     #[ORM\Column(length: 2)]

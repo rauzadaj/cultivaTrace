@@ -20,13 +20,9 @@ final readonly class BillingCheckoutService
 
         $planEnum = SubscriptionPlan::from($plan);
 
-        if ($organization->getStripeCustomerId()) {
-            return $this->stripeService->createPortalSession(
-                customerId: $organization->getStripeCustomerId(),
-                returnUrl: $frontendUrl . '/billing',
-            );
-        }
-
+        // Always create a checkout session — Stripe will pre-fill the existing customer
+        // so the user sees the correct plan and doesn't need to re-enter payment details.
+        // The portal flow (manage/cancel subscription) is handled by POST /api/billing/portal.
         return $this->stripeService->createCheckoutSession(
             organization: $organization,
             plan: $planEnum,

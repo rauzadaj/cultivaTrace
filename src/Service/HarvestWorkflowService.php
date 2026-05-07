@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\HarvestRecord;
 use App\Entity\Plant;
 use App\Entity\User;
+use Doctrine\DBAL\LockMode;
 use App\Enum\PlantStage;
 use App\Enum\PlantStatus;
 use App\Repository\PlantEventRepository;
@@ -63,6 +64,15 @@ final readonly class HarvestWorkflowService
         $this->entityManager->beginTransaction();
 
         try {
+            // Pessimistic write lock prevents double-harvest under concurrent requests
+            $this->entityManager->lock($plant, LockMode::PESSIMISTIC_WRITE);
+
+            // Re-check status inside the lock in case a concurrent request harvested first
+            if (!$plant->isActive()) {
+                $this->entityManager->rollback();
+                throw new \InvalidArgumentException('Ce plant a déjà été récolté ou détruit.');
+            }
+
             $harvest = new HarvestRecord();
             $harvest->setPlant($plant);
             $harvest->setTenantId($plant->getTenantId());
