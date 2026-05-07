@@ -7,6 +7,11 @@ use App\Application\Cultivation\Analytics\ReadModel\GeneticCycleAverage;
 use App\Domain\Cultivation\Model\Crop;
 use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * @internal
+ * @todo(mvp-deferred) Crop analytics gateway — deferred with the Crop domain.
+ *                     See src/Domain/Cultivation/DEFERRED.md.
+ */
 final readonly class DoctrineCropCycleAnalyticsGateway implements CropCycleAnalyticsGateway
 {
     public function __construct(

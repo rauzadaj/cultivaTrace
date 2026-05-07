@@ -13,6 +13,11 @@ use Doctrine\ORM\Events;
 use InvalidArgumentException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
+/**
+ * @internal
+ * @todo(mvp-deferred) Crop/JournalEntry tenant assignment — deferred with the Crop domain.
+ *                     See src/Domain/Cultivation/DEFERRED.md.
+ */
 final class CropTenantSubscriber implements EventSubscriber
 {
     public function __construct(

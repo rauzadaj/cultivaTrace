@@ -15,6 +15,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\SecurityBundle\Security;
 
+/**
+ * @internal
+ * @todo(mvp-deferred) Crop lifecycle HTTP endpoint — route registered but intentionally undocumented
+ *                     and unused by the frontend until the Crop domain is promoted to production.
+ *                     See src/Domain/Cultivation/DEFERRED.md for promotion criteria.
+ */
 #[Route('/api/crops/{id}/transitions/{transition}', methods: ['POST'])]
 final readonly class CropLifecycleTransitionController
 {
