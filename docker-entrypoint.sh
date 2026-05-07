@@ -61,7 +61,7 @@ validate_required_env() {
   fi
 
   missing=""
-  for var in APP_SECRET DATABASE_URL JWT_PASSPHRASE MERCURE_JWT_SECRET; do
+  for var in APP_SECRET DATABASE_URL JWT_PASSPHRASE MERCURE_JWT_SECRET STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_STARTER STRIPE_PRICE_PRO STRIPE_PRICE_BUSINESS STRIPE_PRICE_ENTERPRISE; do
     eval "val=\${${var}:-}"
     if [ -z "$val" ]; then
       missing="${missing} ${var}"
@@ -69,7 +69,7 @@ validate_required_env() {
   done
 
   # Warn — not fatal — on optional-but-expected production vars
-  for var in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET MAILER_DSN FRONTEND_URL; do
+  for var in MAILER_DSN FRONTEND_URL; do
     eval "val=\${${var}:-}"
     if [ -z "$val" ]; then
       echo "WARNING: ${var} is not set — some features will be unavailable." >&2
