@@ -70,6 +70,22 @@ final class PlantStateProcessor implements ProcessorInterface
                 $previousPlant = $context['previous_data'];
                 $previousStage = $previousPlant->getStage();
                 $previousRoomId = (string) $previousPlant->getRoom()->getId();
+
+                // Enforce forward-only stage transitions (regulatory requirement)
+                if ($data->getStage() !== $previousStage) {
+                    $allowed = $previousStage->next();
+                    if ($allowed === null || $data->getStage() !== $allowed) {
+                        throw new HttpException(
+                            422,
+                            sprintf(
+                                'Transition de stage invalide : "%s" → "%s". Seule la transition vers "%s" est autorisée.',
+                                $previousStage->value,
+                                $data->getStage()->value,
+                                $allowed?->value ?? 'aucune (stade terminal)',
+                            )
+                        );
+                    }
+                }
             }
         }
 
