@@ -65,6 +65,8 @@ final class PlantStateProcessor implements ProcessorInterface
                     );
                 }
                 $data->setCreatedBy($user);
+                // Force germination stage on creation — clients cannot skip ahead
+                $data->setStage(\App\Enum\PlantStage::GERMINATION);
             } else {
                 /** @var Plant $previousPlant */
                 $previousPlant = $context['previous_data'];
