@@ -92,10 +92,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout(): void {
+  async function logout(): Promise<void> {
+    // Capture token before clearing — needed for the revocation request header
+    const currentToken = token.value
+    // Clear local state synchronously so the router and UI react immediately
     user.value = null
     token.value = null
     clearAuthTokens()
+    // Best-effort server-side revocation using the captured token (storage is already
+    // empty, so the Axios interceptor would not inject the header without it)
+    if (currentToken) {
+      try {
+        await authApi.logout(currentToken)
+      } catch {
+        // network failure is non-fatal
+      }
+    }
   }
 
   function hasRole(role: UserRole): boolean {
