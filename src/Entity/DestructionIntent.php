@@ -2,9 +2,12 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\DestructionStatus;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -26,15 +29,20 @@ use Symfony\Component\Uid\Uuid;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'destruction_intent')]
-#[ApiResource(operations: [
-    new GetCollection(
-        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
-    ),
-    new Get(
-        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
-    ),
-    // Actions via DestructionController uniquement
-])]
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+        ),
+        new Get(
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+        ),
+        // Transitions via DestructionController uniquement (POST /api/plants/{id}/destroy, POST /api/destructions/{id}/confirm)
+    ],
+    order: ['declaredAt' => 'DESC'],
+)]
+#[ApiFilter(SearchFilter::class, properties: ['plant' => 'exact', 'status' => 'exact'])]
+#[ApiFilter(DateFilter::class, properties: ['declaredAt'])]
 class DestructionIntent
 {
     #[ORM\Id]
