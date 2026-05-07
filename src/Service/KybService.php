@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\HealthCanadaLicensedProducer;
 use App\Entity\LicenseDocument;
 use App\Entity\Organization;
 use App\Entity\User;
@@ -118,31 +119,62 @@ class KybService
     }
 
     /**
-     * Vérification Health Canada — registre public des producteurs licenciés.
-     * https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/
-     *   licensed-producers/authorized-licensed-producers-list.html
+     * Vérification Health Canada via le registre local synchronisé quotidiennement.
+     *
+     * Le registre est peuplé par SyncHealthCanadaRegistryCommand (app:sync-health-canada-registry)
+     * qui télécharge le CSV officiel de Health Canada :
+     *   https://health-products.canada.ca/api/dataset/95c29d8f-3688-4a37-aca0-1a50af7b1c86
+     *
+     * Si le registre est vide (première installation), fallback sur revue manuelle.
      */
     private function verifyHealthCanada(LicenseDocument $license): array
     {
-        try {
-            // Health Canada ne fournit pas d'API REST publique —
-            // on vérifie via le registre HTML (scraping léger)
-            // En prod, envisager un partenariat ou une vérification manuelle assistée
-            $this->logger->info('[KYB] Tentative vérification Health Canada', [
-                'license' => $this->maskLicense($license->getLicenseNumber()),
+        $licenseNumber = strtoupper(trim($license->getLicenseNumber()));
+
+        // Validate format before lookup — accept single or compound prefixes (e.g. LP-xxxx or HC-LP-xxxx)
+        if (!preg_match('/^[A-Z]{1,3}(-[A-Z]{1,3})?-[A-Z0-9]{3,}$/i', $licenseNumber)) {
+            $this->logger->warning('[KYB] Format de licence Health Canada invalide', [
+                'license' => $this->maskLicense($licenseNumber),
             ]);
 
-            // TODO: implémenter la vérification réelle quand l'API sera disponible
-            // Pour l'instant : fallback manuel avec notification admin
-            return $this->fallbackManual($license, 'Vérification Health Canada automatique en cours d\'implémentation');
-
-        } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur Health Canada', [
-                'error'   => $e->getMessage(),
-                'license' => $this->maskLicense($license->getLicenseNumber()),
-            ]);
-            return $this->fallbackManual($license, 'Erreur API Health Canada: ' . $e->getMessage());
+            return [
+                'verified' => false,
+                'method'   => 'format_rejected',
+                'reason'   => 'Format de numéro de licence invalide. Formats acceptés : LIC-XXXXX, LP-XXXXX, MC-XXXXX, MR-XXXXX.',
+            ];
         }
+
+        // Lookup in local registry (populated by app:sync-health-canada-registry)
+        $producer = $this->em
+            ->getRepository(HealthCanadaLicensedProducer::class)
+            ->findOneBy(['licenseNumber' => $licenseNumber]);
+
+        if ($producer === null) {
+            // Registry may be empty on first install — fallback to manual review
+            $this->logger->info('[KYB] Health Canada — licence non trouvée dans le registre local', [
+                'license'    => $this->maskLicense($licenseNumber),
+                'suggestion' => 'Lancez app:sync-health-canada-registry pour peupler le registre.',
+            ]);
+
+            return $this->fallbackManual($license, 'Licence non trouvée dans le registre local Health Canada. Revue manuelle requise.');
+        }
+
+        // Health Canada always requires manual review in production.
+        // The registry lookup provides context for the reviewer but does not auto-approve.
+        $statusLabel = $producer->getStatus();
+        $registryNote = sprintf(
+            'Registre Health Canada : "%s" — statut "%s". Revue manuelle requise.',
+            $producer->getCompanyName(),
+            $statusLabel,
+        );
+
+        $this->logger->info('[KYB] Health Canada — licence trouvée, soumise en revue manuelle', [
+            'license' => $this->maskLicense($licenseNumber),
+            'company' => $producer->getCompanyName(),
+            'status'  => $statusLabel,
+        ]);
+
+        return $this->fallbackManual($license, $registryNote);
     }
 
     /**
