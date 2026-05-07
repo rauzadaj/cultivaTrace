@@ -56,6 +56,7 @@ services:
             $priceStarter: '%env(STRIPE_PRICE_STARTER)%'
             $pricePro: '%env(STRIPE_PRICE_PRO)%'
             $priceBusiness: '%env(STRIPE_PRICE_BUSINESS)%'
+            $priceEnterprise: '%env(STRIPE_PRICE_ENTERPRISE)%'
             $alertFromEmail: '%env(STRIPE_ALERT_FROM_EMAIL)%'
 
     App\Scheduler\LicenseExpirationScheduler:
