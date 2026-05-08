@@ -295,6 +295,43 @@ final class KybControllerTest extends ApiTestCase
         self::assertSame('Le fichier fourni est invalide.', $payload['error']);
     }
 
+    public function testUploadDocumentAlwaysBelongsToCurrentUserOrg(): void
+    {
+        $orgA = $this->createOrganization('Org A');
+        $orgB = $this->createOrganization('Org B');
+        $userA = $this->createUser($orgA, 'kyb-ownership@test.local');
+        $this->entityManager->flush();
+
+        // Authenticate as user from org A — even if org B's UUID was in the payload,
+        // the controller ignores it and always uses the authenticated user's org.
+        $this->authorizeClient($userA);
+        $this->client->request(
+            'POST',
+            '/api/kyb/upload',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+            json_encode([
+                'licenseNumber' => 'HC-LP-OWNED-001',
+                'licenseType'   => 'health_canada',
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        $this->assertStatusCode(Response::HTTP_CREATED);
+
+        /** @var LicenseDocument|null $doc */
+        $doc = $this->entityManager->getRepository(LicenseDocument::class)
+            ->findOneBy(['organization' => $orgA]);
+
+        self::assertNotNull($doc, 'LicenseDocument must be associated with the requester\'s org.');
+        self::assertEquals($orgA->getId(), $doc->getOrganization()->getId());
+
+        // Verify no document was accidentally created for org B.
+        $docB = $this->entityManager->getRepository(LicenseDocument::class)
+            ->findOneBy(['organization' => $orgB]);
+        self::assertNull($docB, 'No LicenseDocument must be created for another org.');
+    }
+
     /**
      * @return array{0: Organization, 1: User}
      */

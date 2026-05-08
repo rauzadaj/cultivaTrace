@@ -43,6 +43,7 @@ final class StripeWebhookFlowTest extends TestCase
             'price_starter',
             'price_pro',
             'price_business',
+            'price_enterprise',
             'billing@test.local',
         );
     }
@@ -210,6 +211,76 @@ final class StripeWebhookFlowTest extends TestCase
         [$json, $sig] = $this->signedRequest($payload);
 
         $this->makeService($em, mailer: $mailer)->handleWebhook($json, $sig);
+    }
+
+    // ── invoice.payment_succeeded ─────────────────────────────────────────
+
+    public function testPaymentSucceededWithUnknownCustomerLogsInfoAndDoesNotFlush(): void
+    {
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn(null);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repo);
+        $em->expects(self::never())->method('flush');
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::atLeastOnce())->method('info');
+
+        $invoice = ['id' => 'in_unknown', 'object' => 'invoice', 'customer' => 'cus_no_match'];
+
+        $payload = json_encode([
+            'id'   => 'evt_payment_succeeded_unknown',
+            'type' => 'invoice.payment_succeeded',
+            'data' => ['object' => $invoice],
+        ], JSON_THROW_ON_ERROR);
+
+        [$json, $sig] = $this->signedRequest($payload);
+
+        $this->makeService($em, logger: $logger)->handleWebhook($json, $sig);
+    }
+
+    // ── webhook redelivery idempotence ────────────────────────────────────
+
+    public function testSameCheckoutEventDeliveredTwiceProducesSameState(): void
+    {
+        $org = new Organization();
+        $org->setName('Idempotent Org');
+        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setLicenseStatus(LicenseStatus::ACTIVE);
+
+        $orgId = '01930000-0000-0000-0000-000000000002';
+
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('find')->with($orgId)->willReturn($org);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repo);
+
+        $session = [
+            'id'                  => 'cs_test_idempotent',
+            'object'              => 'checkout.session',
+            'payment_status'      => 'paid',
+            'status'              => 'complete',
+            'customer'            => 'cus_idempotent',
+            'client_reference_id' => $orgId,
+            'metadata'            => ['organization_id' => $orgId, 'plan' => 'pro'],
+        ];
+
+        $payload = json_encode([
+            'id'   => 'evt_idempotent_checkout',
+            'type' => 'checkout.session.completed',
+            'data' => ['object' => $session],
+        ], JSON_THROW_ON_ERROR);
+
+        [$json, $sig] = $this->signedRequest($payload);
+
+        $service = $this->makeService($em);
+        $service->handleWebhook($json, $sig);
+        $service->handleWebhook($json, $sig); // redelivery
+
+        self::assertSame(SubscriptionPlan::PRO, $org->getPlan());
+        self::assertSame('cus_idempotent', $org->getStripeCustomerId());
     }
 
     // ── signature validation ──────────────────────────────────────────────

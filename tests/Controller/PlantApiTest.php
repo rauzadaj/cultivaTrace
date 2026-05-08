@@ -285,6 +285,36 @@ final class PlantApiTest extends ApiTestCase
         ];
     }
 
+    public function testPlantFromAnotherTenantIsNotVisible(): void
+    {
+        $orgA = $this->createOrganization('Org A Cross-Tenant');
+        $orgA->setLicenseStatus(LicenseStatus::ACTIVE);
+        $userA = $this->createUser($orgA, 'owner-a@cross.test', role: 'ROLE_ORG_ADMIN');
+        $farmA = $this->createFarm($orgA, 'Farm A');
+        $roomA = $this->createRoom($farmA, 'Room A');
+        $strainA = $this->createStrain($orgA, 'Strain A');
+        $plantA = $this->createPlant($roomA, $userA, $strainA, rfidTag: 'CROSS-PLANT-A');
+
+        $orgB = $this->createOrganization('Org B Cross-Tenant');
+        $orgB->setLicenseStatus(LicenseStatus::ACTIVE);
+        $userB = $this->createUser($orgB, 'owner-b@cross.test', role: 'ROLE_ORG_ADMIN');
+
+        $this->entityManager->flush();
+
+        // User from org B tries to GET a plant that belongs to org A.
+        // The Doctrine tenant filter scopes queries to org B, so the plant is invisible → 404.
+        $this->authorizeClient($userB);
+        $this->client->request(
+            'GET',
+            sprintf('/api/plants/%s', $plantA->getId()),
+            [],
+            [],
+            ['HTTP_ACCEPT' => 'application/ld+json'],
+        );
+
+        $this->assertStatusCode(Response::HTTP_NOT_FOUND);
+    }
+
     public function testPostPlantsReturns402WhenPlanLimitIsExceeded(): void
     {
         $organization = $this->createOrganization('Org At Limit');
