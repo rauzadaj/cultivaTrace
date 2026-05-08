@@ -11,9 +11,11 @@ use App\Service\Auth\OrganizationInvitationService;
 use App\Service\License\LicenseGuard;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -24,6 +26,8 @@ final class OrganizationAdminController extends AbstractController
         private readonly OrganizationInvitationService $invitationService,
         private readonly OrganizationInvitationRepository $invitationRepository,
         private readonly LicenseGuard $licenseGuard,
+        #[Autowire(service: 'limiter.api_org_invitations')]
+        private readonly RateLimiterFactory $orgInvitationsLimiter,
     ) {
     }
 
@@ -131,6 +135,12 @@ final class OrganizationAdminController extends AbstractController
     {
         $invitedBy = $this->assertOrganizationAdmin($user);
         $this->licenseGuard->assertLicenseApproved($invitedBy->getOrganization());
+
+        $limiter = $this->orgInvitationsLimiter->create((string) $invitedBy->getOrganization()->getId());
+        if (!$limiter->consume(1)->isAccepted()) {
+            return $this->json(['error' => 'Too many invitations sent. Please try again later.'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $email = strtolower(trim((string) ($data['email'] ?? '')));
         $role = trim((string) ($data['role'] ?? 'ROLE_ORG_USER'));
