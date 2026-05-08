@@ -77,14 +77,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
 import { useFormValidation, validators } from '@/composables/useFormValidation'
+import { consumeSessionExpiredFlag } from '@/services/authSession'
 
+const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+
+onMounted(() => {
+  if (consumeSessionExpiredFlag()) {
+    $q.notify({
+      type: 'warning',
+      message: 'Votre session a expiré. Veuillez vous reconnecter.',
+      timeout: 6000,
+    })
+  }
+})
 
 const email = ref(authStore.user?.email ?? '')
 const password = ref('')
