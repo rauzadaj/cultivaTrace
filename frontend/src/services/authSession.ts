@@ -2,6 +2,7 @@ const ACCESS_TOKEN_KEY = 'cultivatrace_token'
 const REFRESH_TOKEN_KEY = 'cultivatrace_refresh_token'
 const LEGACY_TOKEN_KEY = 'jwt_token'
 const USER_EMAIL_KEY = 'cultivatrace_user_email'
+const SESSION_EXPIRED_KEY = 'cultivatrace_session_expired'
 
 export interface StoredAuthTokens {
   token: string
@@ -30,6 +31,19 @@ export function clearAuthTokens(): void {
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(LEGACY_TOKEN_KEY)
   localStorage.removeItem(USER_EMAIL_KEY)
+}
+
+export function signalSessionExpired(): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem(SESSION_EXPIRED_KEY, '1')
+  }
+}
+
+export function consumeSessionExpiredFlag(): boolean {
+  if (typeof window === 'undefined') return false
+  const wasExpired = sessionStorage.getItem(SESSION_EXPIRED_KEY) === '1'
+  sessionStorage.removeItem(SESSION_EXPIRED_KEY)
+  return wasExpired
 }
 
 export function redirectToAuth(): void {

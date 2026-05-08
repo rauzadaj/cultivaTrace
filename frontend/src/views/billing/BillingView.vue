@@ -5,6 +5,12 @@
       <div class="text-h5 text-weight-bold q-mb-xs">Facturation</div>
       <div class="text-body2 text-grey-6 q-mb-xl">Gérez votre abonnement CannaSaaS</div>
 
+      <q-banner v-if="billingLoadError" rounded class="bg-negative text-white q-mb-lg">
+        <template #avatar><q-icon name="warning" /></template>
+        <div class="text-weight-medium">{{ billingLoadError }}</div>
+        <q-btn flat color="white" no-caps label="Réessayer" @click="loadBillingStatus" />
+      </q-banner>
+
       <!-- Plan actuel -->
       <q-card flat bordered class="q-mb-lg current-plan-card">
         <q-card-section>
@@ -158,6 +164,7 @@ const loadingPortal  = ref(false)
 const loadingCheckout = ref<string | null>(null)
 const hasStripeSubscription = ref(false)
 const resolvedPlan = ref<string | null>(null)
+const billingLoadError = ref('')
 
 const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'starter')
 const recommendedPlan = computed(() => 'pro')
@@ -217,12 +224,15 @@ const plans = [
 ]
 
 async function loadBillingStatus(): Promise<void> {
+  billingLoadError.value = ''
   try {
     const { data } = await billingApi.status()
     hasStripeSubscription.value = data.hasActiveSubscription
     limits.value = data.limits
     resolvedPlan.value = data.plan
-  } catch { /* silencieux */ }
+  } catch {
+    billingLoadError.value = 'Impossible de charger le statut de facturation.'
+  }
 }
 
 async function startCheckout(planId: string): Promise<void> {
