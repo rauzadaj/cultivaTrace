@@ -261,7 +261,7 @@ async function openPortal(): Promise<void> {
 }
 
 function contactSales(): void {
-  window.location.href = 'mailto:sales@cannas.app?subject=Enterprise CannaSaaS'
+  window.location.href = 'mailto:jonathan@rauzada.me?subject=Enterprise CannaSaaS'
 }
 
 function actionLabel(planId: string): string {
