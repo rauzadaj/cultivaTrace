@@ -80,6 +80,46 @@ final class KybAccessListenerTest extends ApiTestCase
         self::assertStringContainsString('pending', (string) ($body['detail'] ?? ''));
     }
 
+    // ── SUSPENDED status ──────────────────────────────────────────────────────
+
+    public function testSuspendedLicenseBlocksAllAccess(): void
+    {
+        $org = $this->createOrganization('Suspended Org');
+        $org->setLicenseStatus(LicenseStatus::SUSPENDED);
+        $user = $this->createUser($org, 'suspended@test.local');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($user);
+        // SUSPENDED orgs are blocked by the UserChecker before the request is dispatched,
+        // resulting in 401 (authentication failure) rather than 403.
+        $this->client->request('GET', '/api/plants', [], [], ['HTTP_ACCEPT' => 'application/ld+json']);
+
+        $status = $this->client->getResponse()->getStatusCode();
+        self::assertContains(
+            $status,
+            [Response::HTTP_UNAUTHORIZED, Response::HTTP_FORBIDDEN],
+            'Suspended org must not have access (expected 401 or 403).',
+        );
+    }
+
+    public function testSuspendedLicenseBlocksWriteAccess(): void
+    {
+        $org = $this->createOrganization('Suspended Write Org');
+        $org->setLicenseStatus(LicenseStatus::SUSPENDED);
+        $user = $this->createUser($org, 'suspended-write@test.local', role: 'ROLE_ORG_ADMIN');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($user);
+        $this->apiJsonRequest('PATCH', '/api/plants/nonexistent-id', []);
+
+        $status = $this->client->getResponse()->getStatusCode();
+        self::assertContains(
+            $status,
+            [Response::HTTP_UNAUTHORIZED, Response::HTTP_FORBIDDEN],
+            'Suspended org write must not succeed (expected 401 or 403).',
+        );
+    }
+
     // ── ACTIVE status ─────────────────────────────────────────────────────────
 
     public function testActiveLicensePassesThroughKybCheck(): void
