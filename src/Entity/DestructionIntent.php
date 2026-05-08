@@ -12,6 +12,7 @@ use App\Enum\DestructionStatus;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -39,6 +40,7 @@ use Symfony\Component\Uid\Uuid;
         ),
         // Transitions via DestructionController uniquement (POST /api/plants/{id}/destroy, POST /api/destructions/{id}/confirm)
     ],
+    normalizationContext: ['groups' => ['destruction:read']],
     order: ['declaredAt' => 'DESC'],
 )]
 #[ApiFilter(SearchFilter::class, properties: ['plant' => 'exact', 'status' => 'exact'])]
@@ -49,6 +51,7 @@ class DestructionIntent
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    #[Groups(['destruction:read'])]
     private Uuid $id;
 
     #[ORM\Column(type: UuidType::NAME)]
@@ -56,23 +59,29 @@ class DestructionIntent
 
     #[ORM\ManyToOne(targetEntity: Plant::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['destruction:read'])]
     private Plant $plant;
 
     #[ORM\Column(type: 'text')]
+    #[Groups(['destruction:read'])]
     private string $reason;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Groups(['destruction:read'])]
     private \DateTimeImmutable $declaredAt;
 
     /** Date légale minimum = declaredAt + 7 jours */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Groups(['destruction:read'])]
     private \DateTimeImmutable $legalDateMin;
 
     /** pending | confirmed | cancelled */
     #[ORM\Column(length: 50, enumType: DestructionStatus::class)]
+    #[Groups(['destruction:read'])]
     private DestructionStatus $status = DestructionStatus::Pending;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['destruction:read'])]
     private ?string $totalWeightG = null;
 
     /**
@@ -80,20 +89,25 @@ class DestructionIntent
      * Ex: 0.55 = 55% de matières non-cannabiques mélangées
      */
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
+    #[Groups(['destruction:read'])]
     private ?string $nonCannabisRatio = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['destruction:read'])]
     private ?array $photoUrls = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['destruction:read'])]
     private ?\DateTimeImmutable $confirmedAt = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['destruction:read'])]
     private User $declaredBy;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['destruction:read'])]
     private ?User $confirmedBy = null;
 
     public function __construct(int $legalDelayDays = 7)
@@ -115,6 +129,7 @@ class DestructionIntent
         return (float) $this->nonCannabisRatio >= 0.50;
     }
 
+    #[Groups(['destruction:read'])]
     public function getDaysRemaining(): int
     {
         $now = new \DateTimeImmutable();
