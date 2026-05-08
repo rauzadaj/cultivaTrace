@@ -26,8 +26,7 @@ final class CheckExpiredLicensesCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly MailerInterface $mailer,
-        #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(string:MAILER_FROM)%')]
-        private readonly string $mailerFrom = 'noreply@cannas.app',
+        private readonly string $alertFromEmail = 'alerts@cannas.app',
     ) {
         parent::__construct();
     }
@@ -97,7 +96,7 @@ final class CheckExpiredLicensesCommand extends Command
 
         try {
             $email = (new Email())
-                ->from($this->mailerFrom)
+                ->from($this->alertFromEmail)
                 ->to($firstUser->getEmail())
                 ->subject('⚠️ Votre licence CannaSaaS a expiré')
                 ->text(sprintf(
