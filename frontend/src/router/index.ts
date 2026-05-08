@@ -133,6 +133,12 @@ const router = createRouter({
           meta: { roles: ORG_ADMIN_ROLES },
         },
         {
+          path: 'billing/cancel',
+          name: 'billing-cancel',
+          component: () => import('../views/billing/BillingCancelView.vue'),
+          meta: { roles: ORG_ADMIN_ROLES },
+        },
+        {
           path: 'dashboard/lots',
           redirect: '/plants',
         },
