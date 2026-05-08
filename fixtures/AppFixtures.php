@@ -33,8 +33,7 @@ final class AppFixtures extends Fixture
         if (!$demoUser instanceof User) {
             $demoUser = (new User())
                 ->setEmail('demo@cultivatrace.local')
-                ->setRole('ROLE_ADMIN')
-                ->setRoles(['ROLE_ADMIN']);
+                ->setRoles(['ROLE_ORG_ADMIN']);
             $demoUser->setPassword($this->passwordHasher->hashPassword($demoUser, 'demo123'));
             $manager->persist($demoUser);
             $manager->flush();

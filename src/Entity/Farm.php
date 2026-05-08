@@ -16,6 +16,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'farm')]
@@ -69,10 +70,13 @@ class Farm
 
     #[ORM\Column(length: 255)]
     #[Groups(['farm:read', 'farm:write'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['farm:read', 'farm:write'])]
+    #[Assert\Length(max: 2000)]
     private ?string $address = null;
 
     #[ORM\Column(type: 'float', nullable: true)]
