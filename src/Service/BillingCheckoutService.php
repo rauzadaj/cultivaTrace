@@ -18,14 +18,16 @@ final readonly class BillingCheckoutService
     {
         $frontendUrl = rtrim($frontendUrl, '/');
 
-        $planEnum = SubscriptionPlan::from($plan);
-
-        if ($organization->getStripeCustomerId()) {
+        // Existing Stripe customer: route to the Customer Portal so the user updates their
+        // existing subscription rather than opening a second one (double-billing risk).
+        if ($organization->getStripeCustomerId() !== null) {
             return $this->stripeService->createPortalSession(
                 customerId: $organization->getStripeCustomerId(),
                 returnUrl: $frontendUrl . '/billing',
             );
         }
+
+        $planEnum = SubscriptionPlan::from($plan);
 
         return $this->stripeService->createCheckoutSession(
             organization: $organization,
