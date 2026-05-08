@@ -134,11 +134,12 @@ final readonly class DestructionWorkflowService
             ($user->hasOrganization() ? $user->getOrganization()->getCountry() : null) ?? 'FR'
         );
 
-        return match ($country) {
+        // 7 days is the mandatory regulatory minimum — country-specific values may not go below it.
+        return max(7, match ($country) {
             'CA' => 0,
             'DE' => 1,
             'US' => 3,
-            default => 7, // FR and all others
-        };
+            default => 7,
+        });
     }
 }
