@@ -63,6 +63,10 @@ services:
         arguments:
             $alertFromEmail: '%env(LICENSE_ALERT_FROM_EMAIL)%'
 
+    App\Command\CheckExpiredLicensesCommand:
+        arguments:
+            $alertFromEmail: '%env(LICENSE_ALERT_FROM_EMAIL)%'
+
     App\Service\KybService:
         arguments:
             $appEnv: '%kernel.environment%'
