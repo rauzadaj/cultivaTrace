@@ -144,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { kybApi } from '@/services/api'
@@ -294,7 +294,8 @@ async function submitLicense(): Promise<void> {
       await authStore.fetchMe()
       $q.notify({ type: 'positive', message: '✅ Licence validée ! Accès complet activé.' })
     } else if (data.status === 'pending') {
-      $q.notify({ type: 'warning', message: '⏳ Vérification manuelle en cours (24-48h).' })
+      $q.notify({ type: 'warning', message: '⏳ Soumission reçue — vérification en cours (24-48h).' })
+      startPolling()
     } else if (data.status === 'rejected') {
       $q.notify({ type: 'negative', message: 'Licence rejetée. Corrigez les informations avant une nouvelle tentative.' })
     }
@@ -304,6 +305,32 @@ async function submitLicense(): Promise<void> {
     $q.notify({ type: 'negative', message: submitError.value })
   } finally {
     loading.value = false
+  }
+}
+
+let pollingInterval: ReturnType<typeof setInterval> | null = null
+
+function startPolling(): void {
+  stopPolling()
+  const deadline = Date.now() + 5 * 60 * 1000
+  pollingInterval = setInterval(async () => {
+    if (Date.now() > deadline) {
+      stopPolling()
+      return
+    }
+    await loadStatus()
+    if (kybStatus.value?.licenseStatus === 'active') {
+      stopPolling()
+      await authStore.fetchMe()
+      $q.notify({ type: 'positive', message: '✅ Licence activée ! Accès complet débloqué.' })
+    }
+  }, 30_000)
+}
+
+function stopPolling(): void {
+  if (pollingInterval !== null) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
   }
 }
 
@@ -319,7 +346,13 @@ function goToDashboard(): void {
   void router.push('/dashboard/overview')
 }
 
-onMounted(loadStatus)
+onMounted(async () => {
+  await loadStatus()
+  if (kybStatus.value?.licenseStatus === 'pending') {
+    startPolling()
+  }
+})
+onUnmounted(stopPolling)
 </script>
 
 <style scoped>
