@@ -21,7 +21,7 @@ import type {
   KybStatusResponse,
   KybSubmitResponse,
 } from '@/types/api'
-import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens } from './authSession'
+import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens, signalSessionExpired } from './authSession'
 
 function resolveRailwayApiBaseUrl(): string | null {
   if (typeof window === 'undefined') {
@@ -147,9 +147,12 @@ http.interceptors.response.use(
         return http.request(originalRequest)
       }
 
+      // Refresh failed — session truly expired
+      signalSessionExpired()
       redirectToAuth()
     } else if (axiosError.response?.status === 401) {
       clearAuthTokens()
+      signalSessionExpired()
       redirectToAuth()
     }
 
