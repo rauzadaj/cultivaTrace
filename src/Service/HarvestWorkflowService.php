@@ -69,7 +69,6 @@ final readonly class HarvestWorkflowService
 
             // Re-check status inside the lock in case a concurrent request harvested first
             if (!$plant->isActive()) {
-                $this->entityManager->rollback();
                 throw new \InvalidArgumentException('Ce plant a déjà été récolté ou détruit.');
             }
 
