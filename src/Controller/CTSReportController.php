@@ -18,10 +18,10 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  *
  * Rapport mensuel Health Canada CTS (Cannabis Tracking System).
  *
- * ⚠️ SYNC-03 : le format CSV doit être validé par un vrai client canadien
+ * ⚠️ SYNC-03: the CSV format must be validated by a real Canadian client
  * avec son contact Health Canada avant utilisation en production.
  *
- * La spec officielle est disponible sur :
+ * The official spec is available at:
  * https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/
  *    licensed-producers/cannabis-tracking-system.html
  */
@@ -53,10 +53,10 @@ class CTSReportController extends AbstractController
         $response = new StreamedResponse(function () use ($plants, $month) {
             $handle = fopen('php://output', 'w');
 
-            // BOM UTF-8 pour Excel
+            // UTF-8 BOM for Excel
             fwrite($handle, "\xEF\xBB\xBF");
 
-            // En-têtes CTS Health Canada
+            // CTS Health Canada headers
             fputcsv($handle, [
                 'Report Period',
                 'Plant ID',

@@ -1,6 +1,6 @@
 <template>
   <div class="alert-badge" :class="`alert-badge--${severity}`">
-    <q-icon :name="icon" size="18px" />
+    <q-icon :name="icon" size="14px" />
     <span><slot /></span>
   </div>
 </template>
@@ -25,32 +25,37 @@ const icon = computed(() => {
 .alert-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 6px 10px;
+  gap: 6px;
+  min-height: 26px;
+  padding: 3px 10px;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .alert-badge--warning {
-  color: #8a5a08;
-  background: rgba(245, 158, 11, 0.14);
+  color: #92400E;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
 }
 
 .alert-badge--critical {
-  color: #c53030;
-  background: rgba(197, 48, 48, 0.12);
-  animation: pulse 1.6s ease-in-out infinite;
+  color: #991B1B;
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .alert-badge--healthy {
-  color: #1b6b3a;
-  background: rgba(27, 107, 58, 0.12);
+  color: #065F46;
+  background: #D1FAE5;
+  border: 1px solid #A7F3D0;
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(197, 48, 48, 0.18); }
-  50% { box-shadow: 0 0 0 8px rgba(197, 48, 48, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); }
+  50%       { box-shadow: 0 0 0 5px rgba(220, 38, 38, 0); }
 }
 </style>
