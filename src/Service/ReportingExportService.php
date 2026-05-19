@@ -7,11 +7,13 @@ namespace App\Service;
 use App\Entity\Organization;
 use App\Entity\ReportExport;
 use App\Entity\User;
+use App\Service\Pdf\SimplePdfGenerator;
 use App\Service\Storage\ArtifactStorage;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
 use Sensiolabs\GotenbergBundle\Processor\FileProcessor;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 final class ReportingExportService
 {
@@ -20,6 +22,7 @@ final class ReportingExportService
         private readonly GotenbergPdfInterface $gotenberg,
         private readonly Filesystem $filesystem,
         private readonly ArtifactStorage $artifactStorage,
+        private readonly SimplePdfGenerator $simplePdfGenerator,
     ) {
     }
 
@@ -89,6 +92,7 @@ final class ReportingExportService
                 'generatedAt' => new \DateTimeImmutable(),
             ],
             $absolutePath,
+            $this->buildHarvestSummaryFallbackLines($organization, $filters, $summary, $rows),
         );
 
         return $this->persistExport($organization, $user, 'harvest_summary', 'pdf', $fileName, $storagePath, $filters, $summary);
@@ -141,6 +145,7 @@ final class ReportingExportService
                     'generatedAt' => new \DateTimeImmutable(),
                 ],
                 $absolutePath,
+                $this->buildAuditExportFallbackLines($organization, $filters, $summary, $rows),
             );
         } else {
             $this->writeCsv($absolutePath, $rows);
@@ -172,18 +177,129 @@ final class ReportingExportService
         fclose($handle);
     }
 
-    private function renderPdfToPath(string $template, array $context, string $absolutePath): void
+    /**
+     * @param array<string, mixed> $context
+     * @param list<string> $fallbackLines
+     */
+    private function renderPdfToPath(string $template, array $context, string $absolutePath, array $fallbackLines): void
     {
         $directory = \dirname($absolutePath);
         $fileName = pathinfo($absolutePath, \PATHINFO_FILENAME);
 
-        $this->gotenberg
-            ->html()
-            ->content($template, $context)
-            ->fileName($fileName)
-            ->generate()
-            ->processor(new FileProcessor($this->filesystem, $directory))
-            ->process();
+        try {
+            $this->gotenberg
+                ->html()
+                ->content($template, $context)
+                ->fileName($fileName)
+                ->generate()
+                ->processor(new FileProcessor($this->filesystem, $directory))
+                ->process();
+        } catch (\Throwable $exception) {
+            if (!$this->isPdfInfrastructureFailure($exception)) {
+                throw $exception;
+            }
+
+            $this->simplePdfGenerator->writeTextDocument($absolutePath, $fallbackLines);
+        }
+    }
+
+    private function isPdfInfrastructureFailure(\Throwable $exception): bool
+    {
+        if ($exception instanceof TransportExceptionInterface) {
+            return true;
+        }
+
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'gotenberg')
+            || str_contains($message, 'connection refused')
+            || str_contains($message, 'failed to open stream')
+            || str_contains($message, 'could not resolve host')
+            || str_contains($message, 'connection timed out');
+    }
+
+    /**
+     * @param array{dateFrom: string, dateTo: string, farmId?: string|null, roomId?: string|null} $filters
+     * @param array{harvestCount: int, grossWeightG: float, netWeightG: float} $summary
+     * @param list<array<string, mixed>> $rows
+     * @return list<string>
+     */
+    private function buildHarvestSummaryFallbackLines(Organization $organization, array $filters, array $summary, array $rows): array
+    {
+        $lines = [
+            'Harvest Summary',
+            $organization->getName(),
+            sprintf('Periode: %s -> %s', $filters['dateFrom'], $filters['dateTo']),
+            sprintf('Recoltes: %d', $summary['harvestCount']),
+            sprintf('Poids brut total: %.2f g', $summary['grossWeightG']),
+            sprintf('Poids net total: %.2f g', $summary['netWeightG']),
+            '',
+            'Details',
+        ];
+
+        foreach ($rows as $row) {
+            $lines[] = sprintf(
+                '%s | %s | %s | %s | %s | brut %s g | net %s g',
+                $this->formatDateValue($row['harvestedAt'] ?? null, 'd/m/Y'),
+                trim((string) ($row['rfidTag'] ?? '')) !== '' ? (string) $row['rfidTag'] : substr((string) ($row['plantId'] ?? ''), 0, 8),
+                (string) ($row['strainName'] ?? 'N/A'),
+                (string) ($row['farmName'] ?? ''),
+                (string) ($row['roomName'] ?? ''),
+                (string) ($row['grossWeightG'] ?? '0'),
+                (string) ($row['netWeightG'] ?? '0'),
+            );
+        }
+
+        if (count($rows) === 0) {
+            $lines[] = 'Aucune recolte sur cette periode.';
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param array{dateFrom: string, dateTo: string, format: string} $filters
+     * @param array{eventCount: int, range: array{dateFrom: string, dateTo: string}} $summary
+     * @param list<array<string, mixed>> $rows
+     * @return list<string>
+     */
+    private function buildAuditExportFallbackLines(Organization $organization, array $filters, array $summary, array $rows): array
+    {
+        $lines = [
+            'Tenant Audit Export',
+            $organization->getName(),
+            sprintf('Periode: %s -> %s', $filters['dateFrom'], $filters['dateTo']),
+            sprintf('Evenements: %d', $summary['eventCount']),
+            '',
+            'Details',
+        ];
+
+        foreach ($rows as $row) {
+            $lines[] = sprintf(
+                '%s | %s | plant %s | salle %s | user %s | %s',
+                $this->formatDateValue($row['occurredAt'] ?? null),
+                (string) ($row['eventType'] ?? ''),
+                trim((string) ($row['rfidTag'] ?? '')) !== '' ? (string) $row['rfidTag'] : substr((string) ($row['plantId'] ?? ''), 0, 8),
+                (string) ($row['roomName'] ?? ''),
+                (string) ($row['userEmail'] ?? ''),
+                (string) ($row['notes'] ?? ''),
+            );
+        }
+
+        if (count($rows) === 0) {
+            $lines[] = 'Aucun evenement sur cette periode.';
+        }
+
+        return $lines;
+    }
+
+    private function formatDateValue(mixed $value, string $format = \DateTimeInterface::ATOM): string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format($format);
+        }
+
+        return (string) $value;
     }
 
     /**

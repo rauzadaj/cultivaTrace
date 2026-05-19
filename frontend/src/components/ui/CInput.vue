@@ -48,29 +48,43 @@ const componentName = computed(() => props.select ? 'q-select' : 'q-input')
 
 <style scoped>
 .c-input {
-  --q-primary: #1b6b3a;
+  --q-primary: #16A34A;
 }
 
 .c-input :deep(.q-field__control) {
   min-height: 52px;
-  border-radius: 12px;
+  border-radius: 10px;
+  background: #FFFFFF;
 }
 
 .c-input :deep(.q-field__label) {
   font-size: 0.875rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.c-input :deep(.q-field__native),
+.c-input :deep(.q-field__input) {
+  color: #111827;
+  font-family: 'Inter', sans-serif;
 }
 
 .c-input :deep(.q-field--outlined .q-field__control:before) {
-  border-color: #e2e8f0;
+  border-color: #E5E7EB;
+  transition: border-color 0.15s;
 }
 
 .c-input :deep(.q-field--focused .q-field__control:before),
 .c-input :deep(.q-field--focused .q-field__control:after) {
-  border-color: #1b6b3a;
+  border-color: #16A34A;
 }
 
 .c-input :deep(.q-field--error .q-field__control:before),
 .c-input :deep(.q-field--error .q-field__control:after) {
-  border-color: #c53030;
+  border-color: #DC2626;
+}
+
+.c-input :deep(.q-field__marginal) {
+  color: #9CA3AF;
 }
 </style>

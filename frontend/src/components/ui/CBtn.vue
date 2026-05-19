@@ -41,29 +41,32 @@ const color = computed(() => {
 
 <style scoped>
 .c-btn {
-  min-height: 48px;
+  min-height: 44px;
   border-radius: 8px;
   font-weight: 600;
-  letter-spacing: 0;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
 }
 
 .c-btn--primary {
-  background: #1b6b3a;
-  color: #fff;
+  background: #16A34A;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3);
 }
 
 .c-btn--secondary {
   background: transparent;
-  border-color: #1b6b3a;
-  color: #1b6b3a;
+  border-color: #E5E7EB;
+  color: #374151;
 }
 
 .c-btn--danger {
-  background: #c53030;
-  color: #fff;
+  background: #DC2626;
+  color: #FFFFFF;
 }
 
 .c-btn--ghost {
   background: transparent;
+  color: #6B7280;
 }
 </style>
