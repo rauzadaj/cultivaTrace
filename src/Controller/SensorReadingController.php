@@ -27,7 +27,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  *
  * Reçoit une lecture capteur (depuis le script de simulation MQTT
  * ou un capteur réel), la stocke dans sensor_reading,
- * publie vers Mercure pour le dashboard temps réel,
+ * publishes to Mercure for the real-time dashboard,
  * et vérifie les seuils pour les alertes.
  */
 #[Route('/api/sensors/{id}/reading', methods: ['POST'])]
@@ -55,7 +55,7 @@ class SensorReadingController extends AbstractController
         $value = $data['value'] ?? null;
 
         if ($value === null || !is_numeric($value)) {
-            return $this->json(['error' => 'value est obligatoire et doit être numérique'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => 'value is required and must be numeric'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $value = (float) $value;
