@@ -49,7 +49,7 @@ final class KybControllerTest extends ApiTestCase
 
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('pending', $payload['status']);
-        self::assertStringContainsString('Vérification manuelle', $payload['message']);
+        self::assertStringContainsString('Manual verification', $payload['message']);
     }
 
     public function testUploadQueuesInvalidMetrcLicenseForManualReviewWhenAutoVerificationFails(): void
@@ -261,7 +261,7 @@ final class KybControllerTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
 
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('Le fichier fourni est invalide.', $payload['error']);
+        self::assertSame('The provided file is invalid.', $payload['error']);
     }
 
     public function testUploadRejectsFileAboveTenMegabytes(): void
@@ -290,7 +290,7 @@ final class KybControllerTest extends ApiTestCase
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
 
         $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('Le fichier fourni est invalide.', $payload['error']);
+        self::assertSame('The provided file is invalid.', $payload['error']);
     }
 
     /**
