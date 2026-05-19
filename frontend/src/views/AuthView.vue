@@ -135,122 +135,150 @@ function resolveRedirectTarget() {
 
 .auth-shell {
   background:
-    radial-gradient(circle at top left, rgba(27, 107, 58, 0.12), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.08), transparent 30%),
-    #f7f8fa;
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(22, 163, 74, 0.05) 0%, transparent 60%),
+    #F7F8FA;
+  min-height: 100vh;
 }
 
 .auth-layout {
   min-height: 100vh;
   display: grid;
-  gap: 20px;
+  gap: 24px;
   align-items: start;
-  padding: 20px 16px 32px;
+  padding: 24px 20px 40px;
   min-width: 0;
 }
 
 .auth-hero {
-  color: #33434d;
+  color: var(--ct-text-1);
 }
 
 .auth-hero__brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-  padding: 10px 14px;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: #FFFFFF;
+  border: 1px solid var(--ct-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .auth-hero__brand span {
-  color: #33434d;
+  color: var(--ct-text-1);
   font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
 }
 
 .auth-hero__logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   object-fit: cover;
 }
 
 .auth-hero__eyebrow,
 .auth-card__eyebrow {
-  margin: 0 0 8px;
-  color: #78909c;
-  font-size: 0.75rem;
+  margin: 0 0 10px;
+  color: var(--ct-accent);
+  font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 .auth-hero h1,
 .auth-card h2 {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 .auth-hero h1 {
   max-width: 14ch;
-  font-size: clamp(2rem, 8vw, 4.5rem);
-  line-height: 1;
+  font-size: clamp(1.875rem, 6vw, 4rem);
+  line-height: 1.05;
   overflow-wrap: anywhere;
+  color: var(--ct-text-1);
 }
 
 .auth-hero__copy {
   max-width: 44ch;
-  color: #607d8b;
+  color: var(--ct-text-2);
+  line-height: 1.65;
+  margin-top: 16px;
+  font-size: 0.9375rem;
 }
 
 .auth-hero__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 8px;
+  margin-top: 28px;
 }
 
 .auth-hero__chips span {
-  padding: 10px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  color: #455a64;
+  background: #FFFFFF;
+  border: 1px solid var(--ct-border);
+  color: var(--ct-text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .auth-card {
   min-width: 0;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: 20px;
+  padding: 28px;
+  border: 1px solid var(--ct-border);
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.03);
 }
 
 .auth-card__header {
   display: grid;
   gap: 18px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.auth-card h2 {
+  font-size: 1.5rem;
+  color: var(--ct-text-1);
 }
 
 .auth-form {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .auth-error {
-  color: #8c2f39;
-  background: #fdecec;
-  border: 1px solid #f3c9cf;
+  color: #991B1B;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
 }
 
 .auth-footer {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 18px;
-  color: #607d8b;
-  font-size: 0.92rem;
+  margin-top: 20px;
+  color: var(--ct-text-2);
+  font-size: 0.875rem;
+}
+
+.auth-footer a {
+  color: var(--ct-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
 }
 
 @include bp.mobile {
@@ -261,9 +289,9 @@ function resolveRedirectTarget() {
 
 @include bp.desktop {
   .auth-layout {
-    grid-template-columns: minmax(0, 1.15fr) minmax(380px, 0.85fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(400px, 0.8fr);
     align-items: center;
-    padding: 40px;
+    padding: 48px;
   }
 
   .auth-card__header {
