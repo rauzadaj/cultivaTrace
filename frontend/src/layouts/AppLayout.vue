@@ -85,7 +85,7 @@
       v-model="drawerOpen"
       :mini="drawerMini"
       :width="drawerWidth"
-      :mini-width="60"
+      :mini-width="64"
       :overlay="isMobile"
       :behavior="isMobile ? 'mobile' : 'desktop'"
       bordered
@@ -101,13 +101,22 @@
             :key="item.to"
             :to="item.to"
             class="app-nav__item"
+            :class="{ 'app-nav__item--collapsed': !showDrawerLabels }"
             active-class="app-nav__item--active"
             @click="handleNavigationClick"
           >
-            <q-icon :name="item.icon" size="22px" />
-            <span v-if="showDrawerLabels">{{ item.label }}</span>
+            <q-icon :name="item.icon" size="20px" class="app-nav__icon" />
+            <span v-if="showDrawerLabels" class="app-nav__label">{{ item.label }}</span>
+            <q-tooltip v-if="!showDrawerLabels" anchor="center right" self="center left" :offset="[12, 0]" class="app-nav__tooltip">
+              {{ item.label }}
+            </q-tooltip>
           </RouterLink>
         </nav>
+
+        <button v-if="!isMobile" class="sidebar-collapse-btn" :class="{ 'sidebar-collapse-btn--collapsed': !showDrawerLabels }" @click="toggleDesktopSidebar">
+          <q-icon :name="desktopSidebarCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left'" size="16px" />
+          <span v-if="showDrawerLabels">Réduire</span>
+        </button>
 
         <div v-if="isMobile" class="app-drawer__footer">
           <div class="app-drawer__user">
@@ -302,6 +311,7 @@ const offlineState = useOfflineQueue()
 
 const drawerOpen = ref(true)
 const drawerHover = ref(false)
+const desktopSidebarCollapsed = ref(false)
 const notificationsOpen = ref(false)
 const createPlantOpen = ref(false)
 const stageDialogOpen = ref(false)
@@ -326,15 +336,17 @@ const isPortrait = computed(() => $q.screen.height > $q.screen.width)
 const isLandscape = computed(() => $q.screen.width >= $q.screen.height)
 const showMobileFooter = computed(() => isMobile.value && isPortrait.value)
 const showFab = computed(() => route.name === 'plants-list' || route.name === 'plant-detail')
-const drawerMini = computed(() => isTablet.value && isPortrait.value)
+const drawerMini = computed(() =>
+  (isTablet.value && isPortrait.value) || (isDesktop.value && desktopSidebarCollapsed.value),
+)
 const drawerWidth = computed(() => {
-  if (isDesktop.value) return 240
-  if (isTablet.value && isPortrait.value) return 60
+  if (isDesktop.value) return desktopSidebarCollapsed.value ? 64 : 240
+  if (isTablet.value && isPortrait.value) return 64
   return 220
 })
 const showDrawerLabels = computed(() => {
   if (isMobile.value) return true
-  if (isDesktop.value) return true
+  if (isDesktop.value) return !desktopSidebarCollapsed.value
   return !drawerMini.value || drawerHover.value
 })
 const alertCount = computed(() => notifications.value.filter((alert) => !alert.acknowledgedAt).length)
@@ -515,6 +527,10 @@ onUnmounted(() => {
   window.removeEventListener('plant-stage:open', openStageDialog)
 })
 
+function toggleDesktopSidebar() {
+  desktopSidebarCollapsed.value = !desktopSidebarCollapsed.value
+}
+
 function handleFab() {
   if (route.name === 'plant-detail') {
     stageDialogOpen.value = true
@@ -629,53 +645,60 @@ async function runConfirmedAction() {
 <style scoped lang="scss">
 @use '../css/breakpoints.sass' as bp;
 
+/* ── Shell ───────────────────────────────────────────── */
+
 .app-shell {
-  background: #f7f8fa;
-  color: #1a202c;
+  background: var(--ct-bg);
+  color: var(--ct-text-1);
   min-height: 100vh;
 }
+
+/* ── Banners ─────────────────────────────────────────── */
 
 .offline-banner {
   position: sticky;
   top: 0;
   z-index: 2100;
-  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-  background: #fff7d6;
-  color: #8a5a08;
-  font-size: 0.875rem;
-  font-weight: 600;
+  padding: calc(10px + env(safe-area-inset-top)) 20px 10px;
+  background: #FFFBEB;
+  color: #78350F;
+  border-bottom: 1px solid #FDE68A;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .license-banner {
-  border-bottom: 1px solid #f6e05e;
-  background: #fff8db;
-  color: #744210;
+  background: #FFFBEB;
+  color: #78350F;
+  border-bottom: 1px solid #FDE68A;
 }
 
+/* ── Header ──────────────────────────────────────────── */
+
 .app-header {
-  background: rgba(247, 248, 250, 0.96);
-  color: #1a202c;
-  border-bottom: 1px solid #e2e8f0;
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ct-text-1);
+  border-bottom: 1px solid var(--ct-border);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 
 .app-header__toolbar {
   min-height: 56px;
-  padding: env(safe-area-inset-top) 12px 0;
-  gap: 10px;
+  padding: env(safe-area-inset-top) 16px 0;
+  gap: 8px;
 }
 
 .app-header__brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
-.app-header__copy {
-  min-width: 0;
-}
+.app-header__copy { min-width: 0; }
 
 .app-header__brand--centered {
   justify-content: center;
@@ -683,94 +706,207 @@ async function runConfirmedAction() {
 }
 
 .app-header__brand strong,
-.app-header__brand span {
-  display: block;
-}
+.app-header__brand span { display: block; }
 
 .app-header__brand strong {
-  font-size: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.02em;
+  color: var(--ct-text-1);
 }
 
 .app-header__brand span {
-  color: #718096;
-  font-size: 0.875rem;
+  color: var(--ct-text-3);
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .app-header__kicker {
-  font-size: 0.72rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+  color: var(--ct-text-3);
+  font-weight: 700;
 }
 
 .app-header__logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
 }
 
 .app-header__search {
-  width: min(420px, 100%);
+  width: min(380px, 100%);
+  :deep(.q-field__control) {
+    background: #F3F4F6 !important;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  :deep(.q-field__control:before) { border: none !important; }
+  :deep(.q-field--focused .q-field__control) { border-color: #16A34A !important; background: #fff !important; }
 }
 
-.app-header__notify {
-  min-width: 48px;
-  min-height: 48px;
+.app-header__notify,
+.app-header__menu {
+  min-width: 36px;
+  min-height: 36px;
   flex: 0 0 auto;
+  color: var(--ct-text-2);
+  border-radius: 8px;
 }
 
 .app-header__action {
-  min-width: 48px;
-  min-height: 48px;
+  min-width: 36px;
+  min-height: 36px;
   flex: 0 0 auto;
-  color: #1b6b3a;
+  color: var(--ct-accent);
+  border-radius: 8px;
 }
 
-.app-header__menu {
-  min-width: 48px;
-  min-height: 48px;
-  flex: 0 0 auto;
-}
+/* ── Drawer / Sidebar ────────────────────────────────── */
 
 .app-drawer {
-  background: #fff;
+  background: #FFFFFF !important;
+  border-right: 1px solid var(--ct-border) !important;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .app-drawer__content {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  padding: calc(16px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
+  height: 100%;
+  padding: calc(10px + env(safe-area-inset-top)) 8px calc(10px + env(safe-area-inset-bottom));
+  gap: 4px;
 }
 
+/* ── Navigation ──────────────────────────────────────── */
+
 .app-nav {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .app-nav__item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: #4a5568;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--ct-text-2);
   text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.12s, color 0.12s;
+  cursor: pointer;
 }
 
-.app-nav__item--active,
-.app-nav__item:hover {
-  background: #e8f5ee;
-  color: #1b6b3a;
+.app-nav__icon {
+  flex-shrink: 0;
+  transition: color 0.12s;
 }
+
+.app-nav__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+/* Collapsed state — icon centré */
+.app-nav__item--collapsed {
+  justify-content: center;
+  padding: 0;
+}
+
+.app-nav__item:hover {
+  background: var(--ct-surface-2);
+  color: var(--ct-text-1);
+}
+
+/* Active — indicateur gauche + fond */
+.app-nav__item--active {
+  background: var(--ct-accent-light);
+  color: var(--ct-accent);
+  font-weight: 600;
+}
+
+.app-nav__item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ct-accent);
+}
+
+.app-nav__item--collapsed.app-nav__item--active::before {
+  display: none;
+}
+
+/* Tooltip Quasar */
+:deep(.app-nav__tooltip) {
+  background: #111827;
+  color: #FFFFFF;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Sidebar collapse button ─────────────────────────── */
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ct-border);
+  background: #FFFFFF;
+  color: var(--ct-text-3);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--ct-surface-2);
+  color: var(--ct-text-2);
+  border-color: #D1D5DB;
+}
+
+.sidebar-collapse-btn--collapsed {
+  justify-content: center;
+  padding: 0;
+  border: none;
+}
+
+/* ── Page ────────────────────────────────────────────── */
 
 .app-page-container {
   overflow-x: hidden;
@@ -778,7 +914,7 @@ async function runConfirmedAction() {
 }
 
 .app-page {
-  background: #f7f8fa;
+  background: var(--ct-bg);
   min-height: auto;
   height: auto;
   overflow: visible;
@@ -787,38 +923,37 @@ async function runConfirmedAction() {
 .app-page__inner {
   width: 100%;
   margin: 0 auto;
-  padding: 12px 0 calc(128px + env(safe-area-inset-bottom));
+  padding: 20px 0 calc(120px + env(safe-area-inset-bottom));
 }
 
+/* ── Mobile footer ───────────────────────────────────── */
+
 .app-footer {
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid #e2e8f0;
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  border-top: 1px solid var(--ct-border);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bottom-tabs {
   min-height: 56px;
-  color: #718096;
+  color: var(--ct-text-3);
 }
 
 .bottom-tabs :deep(.q-tab) {
   min-height: 56px;
-  color: #718096;
+  color: var(--ct-text-3);
+  padding: 0 8px;
 }
 
 .bottom-tabs :deep(.q-tab__icon),
-.bottom-tabs :deep(.q-tab__label) {
-  color: inherit;
-}
+.bottom-tabs :deep(.q-tab__label) { color: inherit; }
 
-.bottom-tabs :deep(.q-tab--active) {
-  color: #1b6b3a;
-}
+.bottom-tabs :deep(.q-tab--active) { color: var(--ct-accent); }
+.bottom-tabs :deep(.q-tab--inactive) { color: var(--ct-text-3); }
 
-.bottom-tabs :deep(.q-tab--inactive) {
-  color: #718096;
-}
+/* ── Dialogs & panels ────────────────────────────────── */
 
 .notifications-panel,
 .action-dialog {
@@ -826,7 +961,10 @@ async function runConfirmedAction() {
   max-width: none;
   min-height: calc(100vh - 56px - env(safe-area-inset-top));
   border-radius: 0;
-  padding: 16px;
+  padding: 24px 20px;
+  background: #FFFFFF !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .notifications-panel__header,
@@ -835,28 +973,31 @@ async function runConfirmedAction() {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 .notifications-panel__eyebrow {
-  margin: 0 0 6px;
-  color: #718096;
-  font-size: 0.75rem;
+  margin: 0 0 4px;
+  color: var(--ct-accent);
+  font-size: 0.625rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
+  font-weight: 700;
 }
 
 .notifications-panel__header h2,
 .action-dialog__header h2 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: var(--ct-text-1);
 }
 
 .notifications-panel__list,
 .action-dialog__body {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .action-dialog__body--chips {
@@ -866,10 +1007,10 @@ async function runConfirmedAction() {
 .notifications-panel__item {
   display: grid;
   gap: 8px;
-  padding: 12px;
-  border-radius: 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--ct-surface-2);
+  border: 1px solid var(--ct-border);
 }
 
 .notifications-panel__item-top {
@@ -879,21 +1020,22 @@ async function runConfirmedAction() {
 }
 
 .notifications-panel__severity {
-  padding: 4px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .notifications-panel__severity--warning {
-  background: #fff5e7;
-  color: #b7791f;
+  background: #FEF3C7;
+  color: #92400E;
 }
 
 .notifications-panel__severity--critical {
-  background: #fff0f0;
-  color: #c53030;
+  background: #FEE2E2;
+  color: #991B1B;
 }
 
 .notifications-panel__actions {
@@ -904,27 +1046,30 @@ async function runConfirmedAction() {
 .notifications-panel__empty {
   display: grid;
   justify-items: start;
-  gap: 10px;
-  padding: 12px 0 4px;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--ct-text-2);
 }
 
 .action-dialog__footer {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
+
+/* ── Sidebar user footer ─────────────────────────────── */
 
 .app-drawer__footer {
   display: grid;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ct-border);
 }
 
 .app-drawer__user {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .app-drawer__user strong,
@@ -935,94 +1080,81 @@ async function runConfirmedAction() {
   white-space: nowrap;
 }
 
-.app-drawer__user span {
-  color: #718096;
+.app-drawer__user strong {
+  color: var(--ct-text-1);
   font-size: 0.875rem;
-}
-
-.action-dialog__hint {
-  margin: 0;
-  color: #4a5568;
-  line-height: 1.55;
-}
-
-.action-dialog__chip {
-  min-height: 48px;
-  align-items: center;
-  justify-content: center;
   font-weight: 600;
 }
 
-.action-dialog--confirm {
-  max-width: 460px;
+.app-drawer__user span {
+  color: var(--ct-text-2);
+  font-size: 0.75rem;
 }
 
-.action-dialog :deep(.q-field__control) {
-  background: #fff;
+/* ── Dialog body misc ────────────────────────────────── */
+
+.action-dialog__hint {
+  margin: 0;
+  color: var(--ct-text-2);
+  line-height: 1.65;
+  font-size: 0.9rem;
 }
+
+.action-dialog__chip {
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.action-dialog--confirm { max-width: 460px; }
+
+.action-dialog :deep(.q-field__control) { background: #FFFFFF; }
 
 .action-dialog :deep(.q-field__native),
 .action-dialog :deep(.q-field__input) {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  color: var(--ct-text-1);
 }
 
-.action-dialog :deep(.q-field__label) {
-  color: #718096;
-}
+.action-dialog :deep(.q-field__label) { color: var(--ct-text-2); }
+
+/* ── Breakpoints ─────────────────────────────────────── */
 
 @include bp.mobile-landscape {
-  .app-header__toolbar {
-    min-height: 48px;
-  }
-
-  .app-page__inner {
-    padding-bottom: 16px;
-  }
-
+  .app-header__toolbar { min-height: 48px; }
+  .app-page__inner { padding-bottom: 16px; }
   .notifications-panel,
-  .action-dialog {
-    min-height: calc(100vh - 48px - env(safe-area-inset-top));
-  }
+  .action-dialog { min-height: calc(100vh - 48px - env(safe-area-inset-top)); }
 }
 
 @include bp.tablet {
-  .app-header__toolbar {
-    min-height: 64px;
-    padding: 0 16px;
-  }
+  .app-header__toolbar { min-height: 60px; padding: 0 20px; }
 
   .app-page__inner {
     width: min(100%, 1280px);
-    padding-top: 16px;
-    padding-bottom: 32px;
+    padding-top: 24px;
+    padding-bottom: 40px;
   }
 
   .notifications-panel,
   .action-dialog {
-    width: min(600px, calc(100vw - 48px));
-    max-width: 600px;
+    width: min(560px, calc(100vw - 48px));
+    max-width: 560px;
     min-height: auto;
     border-radius: 20px;
-    padding: 18px;
+    padding: 28px;
+    border: 1px solid var(--ct-border) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.10) !important;
   }
 
-  .action-dialog__body--chips {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .action-dialog__footer {
-    display: flex;
-    justify-content: flex-end;
-  }
+  .action-dialog__body--chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .action-dialog__footer { display: flex; justify-content: flex-end; }
 }
 
 @include bp.desktop {
-  .app-header__toolbar {
-    min-height: 64px;
-  }
-
-  .app-page__inner {
-    width: min(100%, 1280px);
-  }
+  .app-header__toolbar { min-height: 60px; }
+  .app-page__inner { width: min(100%, 1280px); }
 }
 </style>
