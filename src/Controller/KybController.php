@@ -27,13 +27,13 @@ class KybController extends AbstractController
     /**
      * POST /api/kyb/upload
      *
-     * Étape 1 du KYB : soumettre le numéro de licence + document.
-     * Lance la vérification automatique en arrière-plan.
+     * Step 1 of KYB: submit the license number + document.
+     * Triggers automatic verification in the background.
      *
      * Body (multipart/form-data) :
-     *   licenseNumber : string (obligatoire)
+     *   licenseNumber : string (required)
      *   licenseType   : metrc_usa | health_canada | bfarm_de | ansm_fr | ctls_dev (dev/test only)
-     *   file          : fichier PDF ou image (optionnel en dev)
+     *   file          : PDF or image file (optional in dev)
      */
     #[Route('/api/kyb/upload', methods: ['POST'])]
     public function upload(Request $request, #[CurrentUser] ?User $user): JsonResponse
@@ -55,7 +55,7 @@ class KybController extends AbstractController
         $licenseType   = isset($payload['licenseType']) ? trim((string) $payload['licenseType']) : null;
 
         if (!$licenseNumber || !$licenseType) {
-            return $this->json(['error' => 'licenseNumber et licenseType sont obligatoires'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => 'licenseNumber and licenseType are required'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $validTypes = ['metrc_usa', 'health_canada', 'bfarm_de', 'ansm_fr'];
@@ -65,7 +65,7 @@ class KybController extends AbstractController
 
         if (!in_array($licenseType, $validTypes, true)) {
             return $this->json([
-                'error'       => 'licenseType invalide',
+                'error'       => 'Invalid licenseType',
                 'valid_types' => $validTypes,
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -78,7 +78,7 @@ class KybController extends AbstractController
                 $request->files->get('file'),
             );
         } catch (\InvalidArgumentException) {
-            return $this->json(['error' => 'Le fichier fourni est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => 'The provided file is invalid.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return $this->json([
@@ -87,10 +87,10 @@ class KybController extends AbstractController
             'status'             => $license->getStatus(),
             'verificationMethod' => $license->getVerificationMethod(),
             'message'            => match ($license->getStatus()) {
-                'active'  => 'Licence vérifiée et activée. Accès complet débloqué.',
-                'pending' => 'Licence soumise. Vérification manuelle en cours (24-48h).',
-                'rejected'=> 'Licence non reconnue. Vérifiez votre numéro et réessayez.',
-                default   => 'Statut inconnu.',
+                'active'  => 'License verified and activated. Full access unlocked.',
+                'pending' => 'License submitted. Manual verification in progress (24-48h).',
+                'rejected'=> 'License not recognized. Please check your number and try again.',
+                default   => 'Unknown status.',
             },
         ], Response::HTTP_CREATED);
     }
@@ -98,13 +98,17 @@ class KybController extends AbstractController
     /**
      * GET /api/kyb/status
      *
-     * Retourne le statut KYB de l'organisation courante.
+     * Returns the KYB status of the current organization.
      */
     #[Route('/api/kyb/status', methods: ['GET'])]
-    public function status(#[CurrentUser] $user): JsonResponse
+    public function status(#[CurrentUser] ?User $user): JsonResponse
     {
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Authentication required.'], Response::HTTP_UNAUTHORIZED);
+        }
+
         if (!$user->hasOrganization()) {
-            return $this->json(['error' => 'Aucune organisation'], Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => 'No organization found'], Response::HTTP_NOT_FOUND);
         }
 
         $org = $user->getOrganization();
@@ -131,8 +135,8 @@ class KybController extends AbstractController
     /**
      * POST /api/kyb/admin/validate/{id}
      *
-     * Backoffice admin CannaSaaS — valider ou rejeter manuellement une licence.
-     * Accès ROLE_SUPER_ADMIN uniquement.
+     * CannaSaaS admin backoffice — manually approve or reject a license.
+     * Access restricted to ROLE_SUPER_ADMIN only.
      */
     #[Route('/api/kyb/admin/validate/{id}', methods: ['POST'])]
     public function adminValidate(LicenseDocument $license, Request $request): JsonResponse
@@ -144,7 +148,7 @@ class KybController extends AbstractController
         $reason = $data['reason'] ?? null;
 
         if (!in_array($action, ['approve', 'reject'], true)) {
-            return $this->json(['error' => 'action doit être approve ou reject'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => 'action must be approve or reject'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $result = [
@@ -162,7 +166,7 @@ class KybController extends AbstractController
 
         return $this->json([
             'status'  => $license->getStatus(),
-            'message' => $action === 'approve' ? 'Licence approuvée' : 'Licence rejetée',
+            'message' => $action === 'approve' ? 'License approved' : 'License rejected',
         ]);
     }
 
