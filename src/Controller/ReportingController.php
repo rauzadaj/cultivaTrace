@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -37,7 +38,7 @@ final class ReportingController extends AbstractController
         $payload = json_decode($request->getContent(), true) ?? [];
 
         if (!$this->isValidDateRange($payload['dateFrom'] ?? null, $payload['dateTo'] ?? null)) {
-            return $this->json(['error' => 'dateFrom et dateTo sont obligatoires au format YYYY-MM-DD.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => 'dateFrom and dateTo are required in YYYY-MM-DD format.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $export = $this->reportingExportService->createHarvestSummaryExport($organization, $user, [
@@ -58,7 +59,7 @@ final class ReportingController extends AbstractController
         $payload = json_decode($request->getContent(), true) ?? [];
 
         if (!$this->isValidDateRange($payload['dateFrom'] ?? null, $payload['dateTo'] ?? null)) {
-            return $this->json(['error' => 'dateFrom et dateTo sont obligatoires au format YYYY-MM-DD.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => 'dateFrom and dateTo are required in YYYY-MM-DD format.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $export = $this->reportingExportService->createAuditExport($organization, $user, [
@@ -84,7 +85,11 @@ final class ReportingController extends AbstractController
             throw $this->createNotFoundException('Report file not found.');
         }
 
-        return $this->file($absolutePath, $export->getFileName());
+        $response = new BinaryFileResponse($absolutePath);
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $export->getFileName());
+        $response->headers->set('Content-Type', $this->resolveDownloadContentType($export));
+
+        return $response;
     }
 
     private function assertAdminUser(?User $user): \App\Entity\Organization
@@ -122,5 +127,14 @@ final class ReportingController extends AbstractController
             'createdAt' => $export->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'downloadUrl' => sprintf('/api/reporting/exports/%s/download', $export->getId()),
         ];
+    }
+
+    private function resolveDownloadContentType(ReportExport $export): string
+    {
+        return match (strtolower($export->getFormat())) {
+            'csv' => 'text/csv; charset=UTF-8',
+            'pdf' => 'application/pdf',
+            default => 'application/octet-stream',
+        };
     }
 }

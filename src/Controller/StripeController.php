@@ -35,7 +35,7 @@ class StripeController extends AbstractController
      *
      * Crée une session Stripe Checkout pour s'abonner à un plan.
      *
-     * Body JSON :
+     * JSON body:
      *   plan : starter | pro | business
      */
     #[Route('/api/billing/checkout', methods: ['POST'])]
@@ -48,7 +48,7 @@ class StripeController extends AbstractController
         $validPlans = ['starter', 'pro', 'business'];
         if (!in_array($plan, $validPlans, true)) {
             return $this->json([
-                'error'       => 'Plan invalide',
+                'error'       => 'Invalid plan',
                 'valid_plans' => $validPlans,
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -89,7 +89,7 @@ class StripeController extends AbstractController
 
         if (!$org->getStripeCustomerId()) {
             return $this->json(
-                ['error' => 'Aucun abonnement actif trouvé'],
+                ['error' => 'No active subscription found'],
                 Response::HTTP_NOT_FOUND
             );
         }
@@ -155,7 +155,7 @@ class StripeController extends AbstractController
      * Webhook Stripe — reçoit les événements de paiement.
      * URL à configurer dans le dashboard Stripe.
      *
-     * Événements traités :
+     * Handled events:
      *   - checkout.session.completed → activer l'abonnement
      *   - customer.subscription.deleted → suspendre l'organisation
      *   - invoice.payment_failed → envoyer email de relance

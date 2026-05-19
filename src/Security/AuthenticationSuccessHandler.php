@@ -46,10 +46,11 @@ final readonly class AuthenticationSuccessHandler implements AuthenticationSucce
         $refreshToken = $issued['refreshToken'];
 
         $accessToken = $this->jwtTokenManager->createFromPayload($user, [
+            'userId'   => $user->getId(),
             'tenantId' => (string) $organization->getId(),
-            'roles' => $user->getRoles(),
-            'sid' => $refreshToken->getId(),
-            'iat' => time(),
+            'roles'    => $user->getRoles(),
+            'sid'      => $refreshToken->getId(),
+            'iat'      => time(),
         ]);
 
         return new JsonResponse([
