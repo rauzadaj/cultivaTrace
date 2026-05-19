@@ -109,7 +109,7 @@ final class SensorControllerTest extends ApiTestCase
         $this->apiJsonRequest('POST', sprintf('/api/sensors/%s/reading', $sensor->getId()), []);
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertStringContainsString('value est obligatoire', $this->client->getResponse()->getContent() ?: '');
+        self::assertStringContainsString('value is required', $this->client->getResponse()->getContent() ?: '');
     }
 
     public function testPostReadingRejectsUserWithoutWriteRole(): void
