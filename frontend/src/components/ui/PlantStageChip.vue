@@ -29,31 +29,36 @@ const label = computed(() => {
 .stage-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  min-height: 22px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
   font-weight: 600;
-  color: #fff;
+  letter-spacing: 0.02em;
 }
 
 .stage-chip--germination {
-  background: #81c784;
+  background: #DCFCE7;
+  color: #15803D;
 }
 
 .stage-chip--vegetation {
-  background: #4caf50;
+  background: #BBF7D0;
+  color: #166534;
 }
 
 .stage-chip--flowering {
-  background: #ff9800;
+  background: #FFEDD5;
+  color: #C2410C;
 }
 
 .stage-chip--harvest {
-  background: #f44336;
+  background: #FEE2E2;
+  color: #991B1B;
 }
 
 .stage-chip--archived {
-  background: #9e9e9e;
+  background: #F3F4F6;
+  color: #6B7280;
 }
 </style>
