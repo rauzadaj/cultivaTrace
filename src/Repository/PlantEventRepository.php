@@ -10,8 +10,9 @@ use App\Service\HashChainService;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\LockMode;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * PlantEventRepository — APPEND-ONLY.
@@ -25,6 +26,8 @@ class PlantEventRepository extends ServiceEntityRepository
         ManagerRegistry $registry,
         private readonly HashChainService $hashChainService,
         private readonly RequestStack $requestStack,
+        #[Autowire('%env(AUDIT_CHAIN_SECRET)%')]
+        private readonly string $auditSecret,
     ) {
         parent::__construct($registry, PlantEvent::class);
     }
@@ -53,9 +56,9 @@ class PlantEventRepository extends ServiceEntityRepository
         $event->setPhotoUrls($photoUrls);
         $event->setTenantId($plant->getTenantId());
         $event->setHashPrevious($previousHash);
-        $event->setIpAddress(
-            $this->requestStack->getCurrentRequest()?->getClientIp() ?? '0.0.0.0'
-        );
+        // Store pseudonymized IP (HMAC) rather than the raw value — GDPR Art. 4.1 compliance
+        $rawIp = $this->requestStack->getCurrentRequest()?->getClientIp() ?? '0.0.0.0';
+        $event->setIpAddress(hash_hmac('sha256', $rawIp, $this->auditSecret));
         $event->setOccurredAt(
             new \DateTimeImmutable($event->getOccurredAt()->format('Y-m-d H:i:s'))
         );
