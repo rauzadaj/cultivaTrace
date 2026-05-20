@@ -165,8 +165,11 @@ class KybController extends AbstractController
                 return $this->json(['error' => 'Invalid expiresAt date format. Use YYYY-MM-DD.'], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
-            $minDate = new \DateTimeImmutable('+1 day');
-            $maxDate = new \DateTimeImmutable('+5 years');
+            // Normalize both bounds to midnight for date-only comparison; $expiresAt is parsed
+            // from YYYY-MM-DD so it is already at 00:00:00, but DateTimeImmutable('+1 day') is
+            // "now + 24h" which rejects a valid tomorrow date for most of the day.
+            $minDate = new \DateTimeImmutable('tomorrow midnight');
+            $maxDate = (new \DateTimeImmutable('today midnight'))->modify('+5 years');
 
             if ($expiresAt < $minDate || $expiresAt > $maxDate) {
                 return $this->json(
