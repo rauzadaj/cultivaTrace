@@ -40,6 +40,7 @@ jobs:
       GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: change-me-in-local-and-prod
+      AUDIT_CHAIN_SECRET: ci_test_audit_chain_secret_not_for_production
     steps:
     - uses: shivammathur/setup-php@v2
       with:

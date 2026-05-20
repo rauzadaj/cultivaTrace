@@ -111,8 +111,8 @@ class PlantEvent
     #[Groups(['plant_event:read'])]
     private string $hashSelf;
 
-    #[ORM\Column(length: 45)]
-    #[Groups(['plant_event:read'])]
+    // Stored as HMAC-SHA256 pseudonym — raw IP is never persisted (GDPR compliance)
+    #[ORM\Column(length: 64)]
     private string $ipAddress;
 
     public function __construct()
