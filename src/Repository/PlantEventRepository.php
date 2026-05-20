@@ -8,6 +8,7 @@ use App\Entity\Plant;
 use App\Entity\PlantEvent;
 use App\Service\HashChainService;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\LockMode;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -83,6 +84,7 @@ class PlantEventRepository extends ServiceEntityRepository
             ->orderBy('e.occurredAt', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
             ->getOneOrNullResult();
     }
 
