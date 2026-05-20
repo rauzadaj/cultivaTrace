@@ -65,9 +65,9 @@ final readonly class RegisterOrganizationController
         }
 
         /** @var Organization|null $existingOrganization */
-        $existingOrganization = $this->entityManager->getRepository(Organization::class)->findOneBy([
-            'name' => $organizationName,
-        ]);
+        $existingOrganization = $this->entityManager->createQuery(
+            'SELECT o FROM App\Entity\Organization o WHERE LOWER(o.name) = LOWER(:name)'
+        )->setParameter('name', $organizationName)->getOneOrNullResult();
         if ($existingOrganization instanceof Organization) {
             return new JsonResponse([
                 'error' => 'An organization with this name already exists.',

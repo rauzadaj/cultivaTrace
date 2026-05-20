@@ -92,11 +92,12 @@ class StripeService
             $params['customer_email'] = $firstUser instanceof User ? $firstUser->getEmail() : null;
         }
 
+        // Unique per attempt — day-granularity would return expired sessions on retry same day
         $idempotencyKey = sprintf(
             'checkout-%s-%s-%s',
             (string) $organization->getId(),
             $plan->value,
-            (new \DateTimeImmutable())->format('Ymd')
+            bin2hex(random_bytes(8))
         );
 
         $session = Session::create($params, ['idempotencyKey' => $idempotencyKey]);

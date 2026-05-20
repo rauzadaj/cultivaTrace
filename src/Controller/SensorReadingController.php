@@ -60,6 +60,13 @@ class SensorReadingController extends AbstractController
 
         $value = (float) $value;
 
+        if (!$this->isValueInBounds($sensor->getType(), $value)) {
+            return $this->json(
+                ['error' => sprintf('Value %.4f is out of valid physical range for sensor type "%s".', $value, $sensor->getType())],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
         $this->readings->insert(
             (string) $sensor->getId(),
             (string) $sensor->getTenantId(),
@@ -107,6 +114,24 @@ class SensorReadingController extends AbstractController
             'alerted' => $alerted,
             'vpd'     => $vpdData,
         ], Response::HTTP_CREATED);
+    }
+
+    private const VALUE_BOUNDS = [
+        'temperature' => [-50.0,  80.0],
+        'humidity'    => [0.0,   100.0],
+        'co2'         => [0.0, 10000.0],
+        'ph'          => [0.0,    14.0],
+        'ec'          => [0.0,   100.0],
+        'vpd'         => [0.0,    10.0],
+    ];
+
+    private function isValueInBounds(string $type, float $value): bool
+    {
+        $bounds = self::VALUE_BOUNDS[$type] ?? null;
+        if ($bounds === null) {
+            return true;
+        }
+        return $value >= $bounds[0] && $value <= $bounds[1];
     }
 
     private function assertWriteAccess(Sensor $sensor, ?User $user): void
