@@ -132,7 +132,8 @@ class SensorReadingController extends AbstractController
     private function computeVpdForRoom(Sensor $sensor, float $currentValue): ?array
     {
         $roomId   = (string) $sensor->getRoom()->getId();
-        $recent   = $this->readings->findRecentForRoom($roomId, 5);
+        $tenantId = (string) $sensor->getTenantId();
+        $recent   = $this->readings->findRecentForRoom($roomId, $tenantId, 5);
 
         $sensors  = $this->em->getRepository(Sensor::class)->findBy([
             'room' => $sensor->getRoom(),
@@ -145,7 +146,7 @@ class SensorReadingController extends AbstractController
             $temp = $currentValue;
             foreach ($sensors as $s) {
                 if ($s->getType() === 'humidity') {
-                    $latest = $this->readings->findLatest((string) $s->getId());
+                    $latest = $this->readings->findLatest((string) $s->getId(), $tenantId);
                     if ($latest) {
                         $humidity = (float) $latest['value'];
                     }
@@ -155,7 +156,7 @@ class SensorReadingController extends AbstractController
             $humidity = $currentValue;
             foreach ($sensors as $s) {
                 if ($s->getType() === 'temperature') {
-                    $latest = $this->readings->findLatest((string) $s->getId());
+                    $latest = $this->readings->findLatest((string) $s->getId(), $tenantId);
                     if ($latest) {
                         $temp = (float) $latest['value'];
                     }

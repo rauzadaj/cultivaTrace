@@ -68,13 +68,29 @@ final readonly class ArtifactStorage
         $currentPrefix = $prefix . '/';
 
         if (str_starts_with($normalizedPath, $legacyPrefix)) {
-            return $this->projectDir . '/' . $normalizedPath;
+            $resolved = $this->projectDir . '/' . $normalizedPath;
+        } else {
+            $relativePath = str_starts_with($normalizedPath, $currentPrefix)
+                ? substr($normalizedPath, strlen($currentPrefix))
+                : $normalizedPath;
+
+            $resolved = rtrim(str_replace('\\', '/', $root), '/') . '/' . ltrim($relativePath, '/');
         }
 
-        $relativePath = str_starts_with($normalizedPath, $currentPrefix)
-            ? substr($normalizedPath, strlen($currentPrefix))
-            : $normalizedPath;
+        // Prevent path traversal: resolved path must stay within its storage root
+        $rootReal = realpath($root) ?: rtrim(str_replace('\\', '/', $root), '/');
+        $resolvedDir = realpath(\dirname($resolved));
 
-        return rtrim(str_replace('\\', '/', $root), '/') . '/' . ltrim($relativePath, '/');
+        if ($resolvedDir === false) {
+            // Directory does not exist yet — verify the path without resolving symlinks
+            $resolvedNormalized = str_replace('\\', '/', $resolved);
+            if (!str_starts_with($resolvedNormalized, rtrim(str_replace('\\', '/', $rootReal), '/'))) {
+                throw new \InvalidArgumentException(sprintf('Path traversal detected for storage path: %s', $storagePath));
+            }
+        } elseif (!str_starts_with($resolvedDir, $rootReal)) {
+            throw new \InvalidArgumentException(sprintf('Path traversal detected for storage path: %s', $storagePath));
+        }
+
+        return $resolved;
     }
 }

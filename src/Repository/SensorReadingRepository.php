@@ -63,15 +63,16 @@ class SensorReadingRepository
     /**
      * Dernière lecture d'un capteur.
      */
-    public function findLatest(string $sensorId): ?array
+    public function findLatest(string $sensorId, string $tenantId): ?array
     {
         return $this->connection->fetchAssociative(
             'SELECT value, recorded_at
              FROM sensor_reading
              WHERE sensor_id = :sensorId
+               AND tenant_id = :tenantId
              ORDER BY recorded_at DESC
              LIMIT 1',
-            ['sensorId' => $sensorId]
+            ['sensorId' => $sensorId, 'tenantId' => $tenantId]
         ) ?: null;
     }
 
@@ -81,7 +82,7 @@ class SensorReadingRepository
      *
      * @return array<array{bucket: string, avg_value: float, min_value: float, max_value: float}>
      */
-    public function findHistory(string $sensorId, string $period = '30d'): array
+    public function findHistory(string $sensorId, string $tenantId, string $period = '30d'): array
     {
         [$days, $bucket] = match ($period) {
             '7d'   => [7,   '1 hour'],
@@ -104,11 +105,13 @@ class SensorReadingRepository
                     MAX(value) AS max_value
                  FROM sensor_reading
                  WHERE sensor_id = :sensorId
+                   AND tenant_id = :tenantId
                    AND recorded_at > :since
                  GROUP BY strftime('%Y-%m-%d %H:00:00', recorded_at)
                  ORDER BY bucket ASC",
                 [
                     'sensorId' => $sensorId,
+                    'tenantId' => $tenantId,
                     'since'    => $since,
                 ]
             );
@@ -124,12 +127,14 @@ class SensorReadingRepository
                     MAX(value)  AS max_value
                  FROM sensor_reading
                  WHERE sensor_id = :sensorId
+                   AND tenant_id = :tenantId
                    AND recorded_at > :since
                  GROUP BY bucket
                  ORDER BY bucket ASC",
                 [
                     'bucket'   => $bucket,
                     'sensorId' => $sensorId,
+                    'tenantId' => $tenantId,
                     'since'    => $since,
                 ]
             );
@@ -143,11 +148,13 @@ class SensorReadingRepository
                     MAX(value) AS max_value
                  FROM sensor_reading
                  WHERE sensor_id = :sensorId
+                   AND tenant_id = :tenantId
                    AND recorded_at > :since
                  GROUP BY bucket
                  ORDER BY bucket ASC",
                 [
                     'sensorId' => $sensorId,
+                    'tenantId' => $tenantId,
                     'since'    => $since,
                 ]
             );
@@ -160,7 +167,7 @@ class SensorReadingRepository
      *
      * @return array<array{sensor_id: string, value: float, recorded_at: string}>
      */
-    public function findRecentForRoom(string $roomId, int $minutes = 5): array
+    public function findRecentForRoom(string $roomId, string $tenantId, int $minutes = 5): array
     {
         $since = (new \DateTimeImmutable(sprintf('-%d minutes', $minutes)))->format(\DateTimeInterface::ATOM);
 
@@ -169,11 +176,13 @@ class SensorReadingRepository
              FROM sensor_reading sr
              INNER JOIN sensor s ON s.id = sr.sensor_id
              WHERE s.room_id = :roomId
+               AND sr.tenant_id = :tenantId
                AND sr.recorded_at > :since
              ORDER BY sr.recorded_at DESC',
             [
-                'roomId' => $roomId,
-                'since'  => $since,
+                'roomId'   => $roomId,
+                'tenantId' => $tenantId,
+                'since'    => $since,
             ]
         );
     }
