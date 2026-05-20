@@ -113,10 +113,16 @@ final readonly class RegisterOrganizationController
             throw $exception;
         }
 
-        // Stripe customer created after DB commit to avoid orphaned customers on DB failure
-        $stripeCustomerId = $this->stripeService->createCustomer($organization, $email, $selectedPlan);
-        $organization->setStripeCustomerId($stripeCustomerId);
-        $this->entityManager->flush();
+        // Stripe customer is created after the DB commit so a DB failure never orphans a
+        // Stripe customer.  A Stripe outage must not break registration — the missing customer
+        // is detected and created lazily on the first billing interaction.
+        try {
+            $stripeCustomerId = $this->stripeService->createCustomer($organization, $email, $selectedPlan);
+            $organization->setStripeCustomerId($stripeCustomerId);
+            $this->entityManager->flush();
+        } catch (\Throwable) {
+            // Non-fatal: user is registered and holds valid tokens; Stripe setup retried later.
+        }
 
         return new JsonResponse([
             'token' => $accessToken,

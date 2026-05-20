@@ -308,7 +308,8 @@ const mercureTopic = computed(() => {
     return null
   }
 
-  return `https://cultivatrace.com/tenants/${orgId.value}/rooms/${currentRoomId.value}`
+  const appOrigin = ((import.meta.env.VITE_FRONTEND_URL as string | undefined) ?? 'https://cultivatrace.com').replace(/\/$/, '')
+  return `${appOrigin}/tenants/${orgId.value}/rooms/${currentRoomId.value}`
 })
 
 const subscriptionWarning = computed(() => {
