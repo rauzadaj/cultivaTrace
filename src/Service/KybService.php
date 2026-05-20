@@ -81,9 +81,6 @@ class KybService
             'type'    => $license->getLicenseType(),
         ]);
 
-        // Simuler un délai d'appel API
-        sleep(1);
-
         if ($license->getLicenseType() === 'ctls_dev') {
             if (!preg_match('/^TEST-CTLS-[A-Z0-9-]{4,}$/', strtoupper($license->getLicenseNumber()))) {
                 return [
@@ -180,17 +177,33 @@ class KybService
     /**
      * Vérification METRC — API officielle des États US.
      */
+    /** US states supported by METRC */
+    private const METRC_ALLOWED_STATES = ['co', 'ca', 'or', 'wa', 'ma', 'mi', 'il', 'nv', 'me', 'ak', 'mo', 'md', 'mn', 'mt', 'nm', 'nj'];
+
     private function verifyMetrc(LicenseDocument $license): array
     {
         if (empty($this->metrcApiKey)) {
             return $this->fallbackManual($license, 'Clé API METRC non configurée');
         }
 
+        $licenseNumber = $license->getLicenseNumber();
+
+        // Strict format validation — prevents subdomain injection and path traversal
+        if (!preg_match('/^([A-Z]{2})-([A-Z0-9\-]+)$/i', $licenseNumber, $matches)) {
+            return $this->fallbackManual($license, 'Format METRC invalide (attendu: ST-XXXXXX)');
+        }
+
+        $stateCode = strtolower($matches[1]);
+        if (!in_array($stateCode, self::METRC_ALLOWED_STATES, true)) {
+            return $this->fallbackManual($license, 'État METRC non supporté');
+        }
+
         try {
-            // METRC API endpoint (varie selon l'État)
-            // https://api-{state}.metrc.com/v1/licenses/{licenseNumber}
-            $stateCode = $this->extractStateCode($license->getLicenseNumber());
-            $endpoint  = "https://api-{$stateCode}.metrc.com/v1/licenses/{$license->getLicenseNumber()}";
+            $endpoint = sprintf(
+                'https://api-%s.metrc.com/v1/licenses/%s',
+                $stateCode,
+                urlencode($licenseNumber)
+            );
 
             $response = $this->httpClient->request('GET', $endpoint, [
                 'auth_basic' => [$this->metrcApiKey, ''],
@@ -212,9 +225,11 @@ class KybService
         } catch (\Throwable $e) {
             $this->logger->error('[KYB] Erreur METRC', [
                 'error'   => $e->getMessage(),
-                'license' => $this->maskLicense($license->getLicenseNumber()),
+                'license' => $this->maskLicense($licenseNumber),
+                'trace'   => $e->getTraceAsString(),
             ]);
-            return $this->fallbackManual($license, 'Erreur API METRC: ' . $e->getMessage());
+            // Return generic message — do not expose internal error details to client
+            return $this->fallbackManual($license, 'Impossible de vérifier la licence via METRC. Revue manuelle requise.');
         }
     }
 
@@ -390,13 +405,6 @@ class KybService
         } catch (\Throwable $e) {
             $this->logger->error('[KYB] Erreur email rejet', ['error' => $e->getMessage()]);
         }
-    }
-
-    private function extractStateCode(string $licenseNumber): string
-    {
-        // Format METRC typique : CO-LIC-12345 → co
-        $parts = explode('-', strtolower($licenseNumber));
-        return $parts[0] ?? 'co';
     }
 
     private function maskLicense(string $licenseNumber): string
