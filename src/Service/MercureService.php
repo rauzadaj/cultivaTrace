@@ -10,29 +10,35 @@ use Symfony\Component\Mercure\Update;
 
 final readonly class MercureService
 {
-    private const TOPIC_BASE = 'https://cultivatrace.com/tenants';
     private const TOKEN_TTL = 900;
 
     public function __construct(
         private HubInterface $hub,
         #[Autowire('%env(default:app.default_mercure_jwt_secret:MERCURE_JWT_SECRET)%')]
         private string $mercureJwtSecret,
+        #[Autowire('%env(default:app.default_frontend_url:FRONTEND_URL)%')]
+        private string $frontendUrl,
     ) {
+    }
+
+    private function topicBase(): string
+    {
+        return rtrim($this->frontendUrl, '/') . '/tenants';
     }
 
     public function buildTenantSelector(string $tenantId): string
     {
-        return sprintf('%s/%s/*', self::TOPIC_BASE, $tenantId);
+        return sprintf('%s/%s/*', $this->topicBase(), $tenantId);
     }
 
     public function buildRoomTopic(string $tenantId, string $roomId): string
     {
-        return sprintf('%s/%s/rooms/%s', self::TOPIC_BASE, $tenantId, $roomId);
+        return sprintf('%s/%s/rooms/%s', $this->topicBase(), $tenantId, $roomId);
     }
 
     public function buildSensorTopic(string $tenantId, string $sensorId): string
     {
-        return sprintf('%s/%s/sensors/%s', self::TOPIC_BASE, $tenantId, $sensorId);
+        return sprintf('%s/%s/sensors/%s', $this->topicBase(), $tenantId, $sensorId);
     }
 
     /**

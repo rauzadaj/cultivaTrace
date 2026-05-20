@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Plant;
 use App\Entity\Sensor;
 use App\Entity\User;
+use App\Enum\PlantStage;
 use App\Repository\SensorReadingRepository;
 use App\Security\Voter\TenantAwareVoter;
 use App\Service\AlertService;
@@ -193,7 +195,33 @@ class SensorReadingController extends AbstractController
             return null;
         }
 
-        return $this->vpd->computeAndEvaluate($temp, $humidity, 'vegetation');
+        $dominantStage = $this->dominantStageForRoom($sensor);
+
+        return $this->vpd->computeAndEvaluate($temp, $humidity, $dominantStage->value);
+    }
+
+    private function dominantStageForRoom(Sensor $sensor): PlantStage
+    {
+        $result = $this->em->createQuery(
+            'SELECT p.stage, COUNT(p.id) AS cnt
+             FROM App\Entity\Plant p
+             WHERE p.room = :room
+               AND p.tenantId = :tenantId
+             GROUP BY p.stage
+             ORDER BY cnt DESC'
+        )
+        ->setParameter('room', $sensor->getRoom())
+        ->setParameter('tenantId', $sensor->getTenantId(), 'uuid')
+        ->setMaxResults(1)
+        ->getOneOrNullResult();
+
+        if ($result === null) {
+            return PlantStage::VEGETATION;
+        }
+
+        return $result['stage'] instanceof PlantStage
+            ? $result['stage']
+            : PlantStage::from($result['stage']);
     }
 
     private function getUnit(string $type): string
