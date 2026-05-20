@@ -159,7 +159,23 @@ class KybController extends AbstractController
         ];
 
         if ($action === 'approve' && isset($data['expiresAt'])) {
-            $result['expiresAt'] = $data['expiresAt'];
+            try {
+                $expiresAt = new \DateTimeImmutable($data['expiresAt']);
+            } catch (\Throwable) {
+                return $this->json(['error' => 'Invalid expiresAt date format. Use YYYY-MM-DD.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $minDate = new \DateTimeImmutable('+1 day');
+            $maxDate = new \DateTimeImmutable('+5 years');
+
+            if ($expiresAt < $minDate || $expiresAt > $maxDate) {
+                return $this->json(
+                    ['error' => 'expiresAt must be between tomorrow and 5 years from now.'],
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $result['expiresAt'] = $expiresAt->format('Y-m-d');
         }
 
         $this->kybService->applyVerificationResult($license, $result);
@@ -176,8 +192,8 @@ class KybController extends AbstractController
             throw $this->createAccessDeniedException('Authenticated user required.');
         }
 
-        if (!array_intersect($user->getRoles(), ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
-            throw $this->createAccessDeniedException('Insufficient role for KYB writes.');
+        if (!array_intersect($user->getRoles(), ['ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
+            throw $this->createAccessDeniedException('Only organization administrators can submit KYB documents.');
         }
 
         if (!$user->hasOrganization()) {
