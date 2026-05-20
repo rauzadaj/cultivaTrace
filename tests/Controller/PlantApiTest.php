@@ -194,7 +194,7 @@ final class PlantApiTest extends ApiTestCase
         $eventRepository->appendEvent($plant, 'note', $user, ['message' => 'Initial observation'], 'First note');
         $eventRepository->appendEvent($plant, 'stage_change', $user, ['from' => 'germination', 'to' => 'vegetation']);
 
-        $hashChain = new HashChainService($this->container->get('doctrine'));
+        $hashChain = $this->container->get(HashChainService::class);
         $verification = $hashChain->verify($plant->getId());
 
         self::assertTrue($verification['valid']);

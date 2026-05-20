@@ -113,7 +113,7 @@ class PlantEvent
 
     // Stored as HMAC-SHA256 pseudonym — raw IP is never persisted (GDPR compliance)
     #[ORM\Column(length: 64)]
-    private string $ipAddress;
+    private string $ipAddress = '';
 
     public function __construct()
     {
