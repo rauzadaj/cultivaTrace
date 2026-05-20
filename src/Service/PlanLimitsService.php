@@ -83,7 +83,7 @@ class PlanLimitsService
     public function checkUserLimit(Organization $org): void
     {
         $max     = $org->getPlan()->maxUsers();
-        $current = $org->getUsers()->count();
+        $current = $this->countUsers($org);
 
         if ($current >= $max) {
             throw new PlanLimitExceededException(
@@ -126,7 +126,7 @@ class PlanLimitsService
         $plan           = $org->getPlan();
         $activePlants   = $this->countActivePlants($org);
         $rooms          = $this->countRooms($org);
-        $users          = $org->getUsers()->count();
+        $users          = $this->countUsers($org);
 
         return [
             'plan'   => $plan->value,
@@ -149,6 +149,15 @@ class PlanLimitsService
                 'available' => $plan->hasIoT(),
             ],
         ];
+    }
+
+    private function countUsers(Organization $org): int
+    {
+        return (int) $this->em->createQuery(
+            'SELECT COUNT(u.id) FROM App\Entity\User u WHERE u.organization = :org'
+        )
+        ->setParameter('org', $org->getId(), 'uuid')
+        ->getSingleScalarResult();
     }
 
     private function countActivePlants(Organization $org): int

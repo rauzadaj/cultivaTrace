@@ -58,9 +58,10 @@ final readonly class RegisterOrganizationController
         /** @var User|null $existingUser */
         $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingUser instanceof User) {
+            // Generic response to prevent email enumeration — do not reveal whether email exists
             return new JsonResponse([
-                'error' => 'An account already exists for this email address.',
-            ], Response::HTTP_CONFLICT);
+                'message' => 'If the registration can be completed, a confirmation email will be sent.',
+            ], Response::HTTP_OK);
         }
 
         /** @var Organization|null $existingOrganization */
@@ -91,10 +92,6 @@ final readonly class RegisterOrganizationController
         $connection->beginTransaction();
 
         try {
-            $organization->setStripeCustomerId(
-                $this->stripeService->createCustomer($organization, $email, $selectedPlan),
-            );
-
             $this->entityManager->persist($organization);
             $this->entityManager->persist($user);
             $this->entityManager->flush();
@@ -115,6 +112,11 @@ final readonly class RegisterOrganizationController
 
             throw $exception;
         }
+
+        // Stripe customer created after DB commit to avoid orphaned customers on DB failure
+        $stripeCustomerId = $this->stripeService->createCustomer($organization, $email, $selectedPlan);
+        $organization->setStripeCustomerId($stripeCustomerId);
+        $this->entityManager->flush();
 
         return new JsonResponse([
             'token' => $accessToken,

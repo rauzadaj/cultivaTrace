@@ -6,13 +6,17 @@ namespace App\Service;
 
 use App\Entity\PlantEvent;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * HashChainService — garantit l'intégrité de l'audit trail.
  *
  * Chaque PlantEvent a un hashSelf calculé ainsi :
- *   hashSelf = SHA-256(id + JSON(payload) + occurredAt.timestamp + hashPrevious)
+ *   hashSelf = HMAC-SHA256(id|JSON(payload)|occurredAt|notes|JSON(photoUrls)|ipAddress|hashPrevious, AUDIT_CHAIN_SECRET)
+ *
+ * L'utilisation de HMAC avec une clé secrète (hors DB) empêche un admin DB
+ * de recalculer les hashes après modification — contrairement au SHA-256 pur.
  *
  * Le premier event d'un plant a hashPrevious = "0000...0000" (64 zéros).
  *
@@ -24,10 +28,12 @@ class HashChainService
 {
     public function __construct(
         private readonly ManagerRegistry $registry,
+        #[Autowire('%env(AUDIT_CHAIN_SECRET)%')]
+        private readonly string $auditSecret,
     ) {}
 
     /**
-     * Calcule le hashSelf d'un event.
+     * Calcule le hashSelf d'un event via HMAC-SHA256.
      * À appeler AVANT de persister l'event.
      */
     public function computeHash(PlantEvent $event, string $hashPrevious): string
@@ -35,11 +41,14 @@ class HashChainService
         $data = implode('|', [
             (string) $event->getId(),
             json_encode($event->getPayload(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-            $event->getOccurredAt()->format('U'), // timestamp Unix
+            $event->getOccurredAt()->format('U'),
+            $event->getNotes() ?? '',
+            json_encode($event->getPhotoUrls() ?? [], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            $event->getIpAddress(),
             $hashPrevious,
         ]);
 
-        return hash('sha256', $data);
+        return hash_hmac('sha256', $data, $this->auditSecret);
     }
 
     /**
@@ -59,7 +68,7 @@ class HashChainService
         foreach ($events as $event) {
             $expectedHash = $this->computeHash($event, $previousHash);
 
-            if ($event->getHashSelf() !== $expectedHash) {
+            if (!hash_equals($event->getHashSelf(), $expectedHash)) {
                 return [
                     'valid'      => false,
                     'broken_at'  => (string) $event->getId(),
