@@ -6,6 +6,7 @@ services:
       args:
         INSTALL_DEV_DEPENDENCIES: "1"
     container_name: cultivatrace_app
+    restart: unless-stopped
     volumes:
       - ./:/var/www/html
       - vendor:/var/www/html/vendor
@@ -17,7 +18,7 @@ services:
       APP_ENV: dev
       APP_AUTO_BOOTSTRAP: "1"
       APP_BOOTSTRAP_SEED_DEMO: "1"
-      DATABASE_URL: postgresql://cultiva:password@db:5432/cultivatrace?serverVersion=13&charset=utf8
+      DATABASE_URL: postgresql://cultiva:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD env var is required}@db:5432/cultivatrace?serverVersion=13&charset=utf8
     healthcheck:
       test: ["CMD", "sh", "/var/www/html/docker/app/healthcheck.sh"]
       interval: 15s
@@ -28,6 +29,7 @@ services:
   web:
     image: nginx:1.27-alpine
     container_name: cultivatrace_web
+    restart: unless-stopped
     depends_on:
       - app
     ports:
@@ -49,10 +51,11 @@ services:
   db:
     image: postgres:13
     container_name: cultivatrace_db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: cultivatrace
       POSTGRES_USER: cultiva
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD env var is required}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
