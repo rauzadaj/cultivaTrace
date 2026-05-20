@@ -81,14 +81,18 @@ class PlantEventRepository extends ServiceEntityRepository
 
     public function findLastForPlant(Uuid $plantId): ?PlantEvent
     {
-        return $this->createQueryBuilder('e')
+        $query = $this->createQueryBuilder('e')
             ->where('e.plant = :id')
             ->setParameter('id', $plantId, 'uuid')
             ->orderBy('e.occurredAt', 'DESC')
             ->setMaxResults(1)
-            ->getQuery()
-            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
-            ->getOneOrNullResult();
+            ->getQuery();
+
+        if ($this->getEntityManager()->getConnection()->isTransactionActive()) {
+            $query->setLockMode(LockMode::PESSIMISTIC_WRITE);
+        }
+
+        return $query->getOneOrNullResult();
     }
 
     /** @return PlantEvent[] */
