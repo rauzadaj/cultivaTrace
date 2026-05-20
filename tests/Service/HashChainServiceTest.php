@@ -35,7 +35,7 @@ final class HashChainServiceTest extends ApiTestCase
             PlantEvent::class,
         ]);
 
-        $this->hashChain = new HashChainService($this->container->get('doctrine'));
+        $this->hashChain = $this->container->get(HashChainService::class);
     }
 
     public function testComputeHashIsDeterministic(): void
