@@ -16,6 +16,7 @@ use App\Service\License\LicenseGuard;
 use App\Service\PlanLimitExceededException;
 use App\Service\PlanLimitsService;
 use App\State\PlantStateProcessor;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -66,6 +67,7 @@ final class PlantStateProcessorTest extends TestCase
             $eventRepository,
             $licenseGuard,
             $planLimits,
+            $this->createMock(EntityManagerInterface::class),
         );
 
         $operation = new Post();
@@ -118,6 +120,7 @@ final class PlantStateProcessorTest extends TestCase
             $this->createMock(PlantEventRepository::class),
             $licenseGuard,
             $planLimits,
+            $this->createMock(EntityManagerInterface::class),
         );
 
         $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
