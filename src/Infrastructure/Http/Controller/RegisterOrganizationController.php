@@ -58,17 +58,14 @@ final readonly class RegisterOrganizationController
         /** @var User|null $existingUser */
         $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingUser instanceof User) {
-            // Generic response to prevent email enumeration — do not reveal whether email exists
             return new JsonResponse([
-                'message' => 'If the registration can be completed, a confirmation email will be sent.',
-            ], Response::HTTP_OK);
+                'error' => 'An account with this email address already exists.',
+            ], Response::HTTP_CONFLICT);
         }
 
-        /** @var Organization|null $existingOrganization */
-        $existingOrganization = $this->entityManager->createQuery(
-            'SELECT o FROM App\Entity\Organization o WHERE LOWER(o.name) = LOWER(:name)'
-        )->setParameter('name', $organizationName)->getOneOrNullResult();
-        if ($existingOrganization instanceof Organization) {
+        /** @var \App\Repository\OrganizationRepository $orgRepo */
+        $orgRepo = $this->entityManager->getRepository(Organization::class);
+        if ($orgRepo->findByNameInsensitive($organizationName) !== null) {
             return new JsonResponse([
                 'error' => 'An organization with this name already exists.',
             ], Response::HTTP_CONFLICT);

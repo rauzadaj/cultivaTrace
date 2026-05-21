@@ -10,6 +10,8 @@ use App\Entity\User;
 use App\Enum\SubscriptionPlan;
 use App\Enum\UserAccountStatus;
 use App\Infrastructure\Http\Controller\RegisterOrganizationController;
+use App\Repository\OrganizationRepository;
+use App\Repository\RefreshTokenRepository;
 use App\Service\Auth\PasswordPolicy;
 use App\Service\Auth\RefreshTokenService;
 use App\Service\Auth\TokenHasher;
@@ -17,7 +19,6 @@ use App\Service\StripeService;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
-use App\Repository\RefreshTokenRepository;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Doctrine\Persistence\ManagerRegistry;
@@ -33,8 +34,8 @@ final class RegisterOrganizationControllerTest extends TestCase
     {
         $persisted = [];
 
-        $userRepository = $this->createRepositoryMock(null);
-        $organizationRepository = $this->createRepositoryMock(null);
+        $userRepository = $this->createUserRepositoryMock(null);
+        $orgRepository  = $this->createOrgRepositoryMock(null);
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::once())->method('beginTransaction');
         $connection->expects(self::once())->method('commit');
@@ -46,10 +47,11 @@ final class RegisterOrganizationControllerTest extends TestCase
             ->willReturnCallback(static function (object $entity) use (&$persisted): void {
                 $persisted[] = $entity;
             });
-        $entityManager->expects(self::exactly(2))->method('flush');
+        // 3 flushes: (1) org+user inside transaction, (2) refresh token inside issue(), (3) stripe id after commit
+        $entityManager->expects(self::exactly(3))->method('flush');
         $entityManager->expects(self::exactly(2))->method('getRepository')->willReturnMap([
             [User::class, $userRepository],
-            [Organization::class, $organizationRepository],
+            [Organization::class, $orgRepository],
         ]);
         $entityManager->method('getConnection')->willReturn($connection);
 
@@ -141,8 +143,7 @@ final class RegisterOrganizationControllerTest extends TestCase
         $entityManager->expects(self::never())->method('persist');
         $entityManager->expects(self::never())->method('flush');
         $entityManager->method('getRepository')->willReturnMap([
-            [User::class, $this->createRepositoryMock($existingUser)],
-            [Organization::class, $this->createRepositoryMock(null)],
+            [User::class, $this->createUserRepositoryMock($existingUser)],
         ]);
 
         $controller = new RegisterOrganizationController(
@@ -179,7 +180,7 @@ final class RegisterOrganizationControllerTest extends TestCase
         ], new InMemoryStorage());
     }
 
-    private function createRepositoryMock(mixed $result): EntityRepository
+    private function createUserRepositoryMock(?User $existingUser): EntityRepository
     {
         $repository = $this->getMockBuilder(EntityRepository::class)
             ->disableOriginalConstructor()
@@ -187,9 +188,20 @@ final class RegisterOrganizationControllerTest extends TestCase
             ->getMock();
         $repository->method('findOneBy')->willReturnCallback(
             static fn (array $criteria): mixed => $criteria === ['email' => 'admin@cultivatrace.local']
-                ? ($result instanceof User ? $result : null)
-                : ($result instanceof Organization ? $result : null),
+                ? $existingUser
+                : null,
         );
+
+        return $repository;
+    }
+
+    private function createOrgRepositoryMock(?Organization $existing): OrganizationRepository
+    {
+        $repository = $this->getMockBuilder(OrganizationRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findByNameInsensitive'])
+            ->getMock();
+        $repository->method('findByNameInsensitive')->willReturn($existing);
 
         return $repository;
     }
