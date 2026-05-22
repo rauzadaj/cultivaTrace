@@ -31,7 +31,7 @@ class DestructionController extends AbstractController
     #[Route('/api/plants/{id}/destroy', methods: ['POST'])]
     public function intent(Plant $plant, Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
-        if (!str_starts_with($request->headers->get('Content-Type', ''), 'application/json')) {
+        if (!str_contains($request->headers->get('Content-Type', ''), 'json')) {
             return $this->json(['error' => 'Content-Type application/json is required.'], Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
@@ -68,7 +68,7 @@ class DestructionController extends AbstractController
     #[Route('/api/destructions/{id}/confirm', methods: ['POST'])]
     public function confirm(DestructionIntent $intent, Request $request, #[CurrentUser] ?User $user): JsonResponse
     {
-        if (!str_starts_with($request->headers->get('Content-Type', ''), 'application/json')) {
+        if (!str_contains($request->headers->get('Content-Type', ''), 'json')) {
             return $this->json(['error' => 'Content-Type application/json is required.'], Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
