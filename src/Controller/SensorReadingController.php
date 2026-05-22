@@ -8,6 +8,7 @@ use App\Entity\Plant;
 use App\Entity\Sensor;
 use App\Entity\User;
 use App\Enum\PlantStage;
+use App\Enum\PlantStatus;
 use App\Repository\SensorReadingRepository;
 use App\Security\Voter\TenantAwareVoter;
 use App\Service\AlertService;
@@ -207,11 +208,13 @@ class SensorReadingController extends AbstractController
              FROM App\Entity\Plant p
              WHERE p.room = :room
                AND p.tenantId = :tenantId
+               AND p.status = :status
              GROUP BY p.stage
              ORDER BY cnt DESC'
         )
         ->setParameter('room', $sensor->getRoom())
         ->setParameter('tenantId', $sensor->getTenantId(), 'uuid')
+        ->setParameter('status', PlantStatus::ACTIVE)
         ->setMaxResults(1)
         ->getOneOrNullResult();
 
