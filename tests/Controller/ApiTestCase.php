@@ -34,7 +34,7 @@ abstract class ApiTestCase extends KernelTestCase
         parent::setUp();
 
         self::bootKernel();
-        $this->container = static::$kernel->getContainer();
+        $this->container = static::getContainer();
         $this->client = new KernelBrowser(static::$kernel, [], new History(), new CookieJar());
         $this->client->setServerParameter('HTTP_ACCEPT', 'application/ld+json');
         /** @var ManagerRegistry $doctrine */
