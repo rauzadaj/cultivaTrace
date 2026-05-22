@@ -78,7 +78,7 @@ final class SensorControllerTest extends ApiTestCase
         self::assertFalse($payload['alerted']);
 
         $readingRepository = new SensorReadingRepository($this->entityManager->getConnection());
-        $latest = $readingRepository->findLatest((string) $sensor->getId());
+        $latest = $readingRepository->findLatest((string) $sensor->getId(), (string) $sensor->getTenantId());
 
         self::assertNotNull($latest);
         self::assertSame(25.5, (float) $latest['value']);
