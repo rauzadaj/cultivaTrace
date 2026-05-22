@@ -210,7 +210,7 @@ class SensorReadingController extends AbstractController
                AND p.tenantId = :tenantId
                AND p.status = :status
              GROUP BY p.stage
-             ORDER BY cnt DESC'
+             ORDER BY cnt DESC, p.stage ASC'
         )
         ->setParameter('room', $sensor->getRoom())
         ->setParameter('tenantId', $sensor->getTenantId(), 'uuid')
