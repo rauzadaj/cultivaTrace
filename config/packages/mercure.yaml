@@ -22,5 +22,5 @@ mercure:
             jwt:
                 secret: '%env(default:app.default_mercure_jwt_secret:MERCURE_JWT_SECRET)%'
                 publish:
-                    - 'https://cultivatrace.com/tenants/*'
+                    - '*'
                 subscribe: []
