@@ -41,12 +41,16 @@ final class ReportingController extends AbstractController
             return $this->json(['error' => 'dateFrom and dateTo are required in YYYY-MM-DD format.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $export = $this->reportingExportService->createHarvestSummaryExport($organization, $user, [
-            'dateFrom' => (string) $payload['dateFrom'],
-            'dateTo' => (string) $payload['dateTo'],
-            'farmId' => isset($payload['farmId']) ? (string) $payload['farmId'] : null,
-            'roomId' => isset($payload['roomId']) ? (string) $payload['roomId'] : null,
-        ]);
+        try {
+            $export = $this->reportingExportService->createHarvestSummaryExport($organization, $user, [
+                'dateFrom' => (string) $payload['dateFrom'],
+                'dateTo' => (string) $payload['dateTo'],
+                'farmId' => isset($payload['farmId']) ? (string) $payload['farmId'] : null,
+                'roomId' => isset($payload['roomId']) ? (string) $payload['roomId'] : null,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         return $this->json($this->normalizeExport($export), Response::HTTP_CREATED);
     }
@@ -62,11 +66,15 @@ final class ReportingController extends AbstractController
             return $this->json(['error' => 'dateFrom and dateTo are required in YYYY-MM-DD format.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $export = $this->reportingExportService->createAuditExport($organization, $user, [
-            'dateFrom' => (string) $payload['dateFrom'],
-            'dateTo' => (string) $payload['dateTo'],
-            'format' => \in_array(($payload['format'] ?? 'csv'), ['csv', 'pdf'], true) ? (string) $payload['format'] : 'csv',
-        ]);
+        try {
+            $export = $this->reportingExportService->createAuditExport($organization, $user, [
+                'dateFrom' => (string) $payload['dateFrom'],
+                'dateTo' => (string) $payload['dateTo'],
+                'format' => \in_array(($payload['format'] ?? 'csv'), ['csv', 'pdf'], true) ? (string) $payload['format'] : 'csv',
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         return $this->json($this->normalizeExport($export), Response::HTTP_CREATED);
     }
