@@ -66,19 +66,23 @@ final readonly class ArtifactStorage
         $normalizedPath = ltrim(str_replace('\\', '/', $storagePath), '/');
         $legacyPrefix = 'var/' . $prefix . '/';
         $currentPrefix = $prefix . '/';
+        $isLegacy = str_starts_with($normalizedPath, $legacyPrefix);
 
-        if (str_starts_with($normalizedPath, $legacyPrefix)) {
+        if ($isLegacy) {
             $resolved = $this->projectDir . '/' . $normalizedPath;
+            // Legacy paths are anchored to the project root, not the storage root
+            $checkRoot = $this->projectDir;
         } else {
             $relativePath = str_starts_with($normalizedPath, $currentPrefix)
                 ? substr($normalizedPath, strlen($currentPrefix))
                 : $normalizedPath;
 
             $resolved = rtrim(str_replace('\\', '/', $root), '/') . '/' . ltrim($relativePath, '/');
+            $checkRoot = $root;
         }
 
-        // Prevent path traversal: resolved path must stay within its storage root
-        $rootReal = realpath($root) ?: rtrim(str_replace('\\', '/', $root), '/');
+        // Prevent path traversal: resolved path must stay within its check root
+        $rootReal = realpath($checkRoot) ?: rtrim(str_replace('\\', '/', $checkRoot), '/');
         $resolvedDir = realpath(\dirname($resolved));
 
         if ($resolvedDir === false) {
