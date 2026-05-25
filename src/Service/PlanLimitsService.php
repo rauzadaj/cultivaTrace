@@ -156,7 +156,7 @@ class PlanLimitsService
         return (int) $this->em->createQuery(
             'SELECT COUNT(u.id) FROM App\Entity\User u WHERE u.organization = :org'
         )
-        ->setParameter('org', $org->getId(), 'uuid')
+        ->setParameter('org', $org)
         ->getSingleScalarResult();
     }
 
