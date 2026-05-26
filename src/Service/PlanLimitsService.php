@@ -177,9 +177,9 @@ class PlanLimitsService
         return (int) $this->em->createQuery(
             'SELECT COUNT(r.id) FROM App\Entity\Room r
              INNER JOIN r.farm f
-             WHERE f.organization = :org'
+             WHERE f.tenantId = :tenantId'
         )
-        ->setParameter('org', $org->getId(), UuidType::NAME)
+        ->setParameter('tenantId', $org->getId(), UuidType::NAME)
         ->getSingleScalarResult();
     }
 
