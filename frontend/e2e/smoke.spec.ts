@@ -182,9 +182,9 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
   await expect(page).toHaveURL(/\/plants/)
   await expect(page.getByText('RFID-001')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Nouveau plant' }).click()
-  await page.getByLabel('Numero RFID').fill('RFID-NEW-001')
-  await page.getByRole('button', { name: 'Creer' }).last().click()
+  await page.getByRole('button', { name: 'New plant' }).click()
+  await page.getByLabel('RFID number').fill('RFID-NEW-001')
+  await page.getByRole('button', { name: 'Create' }).last().click()
 
   await expect(page).toHaveURL(/\/plants\/plant-2/)
   await expect(page.getByRole('heading', { name: 'RFID-NEW-001' })).toBeVisible()
