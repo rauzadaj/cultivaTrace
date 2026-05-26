@@ -10,13 +10,13 @@ describe('useFormValidation', () => {
     })
 
     const validation = useFormValidation(values, {
-      email: [validators.required('Email requis.'), validators.email('Email invalide.')],
-      password: [validators.required('Mot de passe requis.'), validators.minLength(8, 'Minimum 8 caractères.')],
+      email: [validators.required('Email required.'), validators.email('Invalid email.')],
+      password: [validators.required('Password required.'), validators.minLength(8, 'Minimum 8 characters.')],
     })
 
     expect(validation.validateAll()).toBe(false)
-    expect(validation.fieldErrors.email).toBe('Email requis.')
-    expect(validation.fieldErrors.password).toBe('Mot de passe requis.')
+    expect(validation.fieldErrors.email).toBe('Email required.')
+    expect(validation.fieldErrors.password).toBe('Password required.')
 
     values.email = 'test@example.local'
     values.password = 'secret123'
@@ -32,7 +32,7 @@ describe('useFormValidation', () => {
     })
 
     const validation = useFormValidation(values, {
-      licenseNumber: [validators.required('Licence requise.')],
+      licenseNumber: [validators.required('License required.')],
     })
 
     validation.applyApiError(
@@ -42,16 +42,16 @@ describe('useFormValidation', () => {
             violations: [
               {
                 propertyPath: 'licenseNumber',
-                message: 'Ce numéro existe déjà.',
+                message: 'This number already exists.',
               },
             ],
           },
         },
       },
-      'Erreur générique.',
+      'Generic error.',
     )
 
-    expect(validation.fieldErrors.licenseNumber).toBe('Ce numéro existe déjà.')
+    expect(validation.fieldErrors.licenseNumber).toBe('This number already exists.')
     expect(validation.formError.value).toBe('')
   })
 })

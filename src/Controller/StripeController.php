@@ -33,7 +33,7 @@ class StripeController extends AbstractController
     /**
      * POST /api/billing/checkout
      *
-     * Crée une session Stripe Checkout pour s'abonner à un plan.
+     * Creates a Stripe Checkout session to subscribe to a plan.
      *
      * JSON body:
      *   plan : starter | pro | business
@@ -80,7 +80,7 @@ class StripeController extends AbstractController
     /**
      * POST /api/billing/portal
      *
-     * Crée une session Stripe Customer Portal (gérer l'abonnement, factures).
+     * Creates a Stripe Customer Portal session (manage subscription, invoices).
      */
     #[Route('/api/billing/portal', methods: ['POST'])]
     public function portal(#[CurrentUser] ?User $user): JsonResponse
@@ -152,13 +152,13 @@ class StripeController extends AbstractController
     /**
      * POST /api/billing/webhook
      *
-     * Webhook Stripe — reçoit les événements de paiement.
-     * URL à configurer dans le dashboard Stripe.
+     * Stripe webhook — receives payment events.
+     * URL must be configured in the Stripe dashboard.
      *
      * Handled events:
-     *   - checkout.session.completed → activer l'abonnement
-     *   - customer.subscription.deleted → suspendre l'organisation
-     *   - invoice.payment_failed → envoyer email de relance
+     *   - checkout.session.completed → activate subscription
+     *   - customer.subscription.deleted → suspend organization
+     *   - invoice.payment_failed → send follow-up email
      */
     #[Route('/api/billing/webhook', methods: ['POST'])]
     public function webhook(Request $request): Response

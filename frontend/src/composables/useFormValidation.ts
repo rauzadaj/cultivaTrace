@@ -105,7 +105,7 @@ function extractApiError(error: unknown, fallback: string): { field: string | nu
 
 export const validators = {
   required:
-    (message = 'Champ obligatoire') =>
+    (message = 'Required field') =>
     (value: unknown): string | null => {
       if (typeof value === 'string') {
         return value.trim() ? null : message
@@ -115,7 +115,7 @@ export const validators = {
     },
 
   email:
-    (message = 'Email invalide') =>
+    (message = 'Invalid email') =>
     (value: unknown): string | null => {
       if (typeof value !== 'string' || value.trim() === '') {
         return message
@@ -128,14 +128,14 @@ export const validators = {
     (length: number, message?: string) =>
     (value: unknown): string | null => {
       if (typeof value !== 'string') {
-        return message ?? `Minimum ${length} caractères`
+        return message ?? `Minimum ${length} characters`
       }
 
-      return value.trim().length >= length ? null : (message ?? `Minimum ${length} caractères`)
+      return value.trim().length >= length ? null : (message ?? `Minimum ${length} characters`)
     },
 
   isoDate:
-    (message = 'Date invalide') =>
+    (message = 'Invalid date') =>
     (value: unknown): string | null => {
       if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return message
@@ -155,7 +155,7 @@ export const validators = {
     },
 
   positiveInteger:
-    (message = 'Valeur invalide') =>
+    (message = 'Invalid value') =>
     (value: unknown): string | null => {
       if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
         return message

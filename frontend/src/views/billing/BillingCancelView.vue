@@ -2,22 +2,22 @@
   <q-page class="billing-cancel-page">
     <div class="billing-cancel-card">
       <q-icon name="mdi-close-circle-outline" color="grey-6" size="56px" />
-      <h1>Paiement annulé</h1>
-      <p>Votre paiement a été annulé. Aucun montant n'a été débité.</p>
+      <h1>Payment cancelled</h1>
+      <p>Your payment was cancelled. No amount has been charged.</p>
       <p class="billing-cancel-card__sub">
-        Vous pouvez choisir un plan à tout moment depuis votre espace facturation.
+        You can choose a plan at any time from your billing dashboard.
       </p>
       <div class="billing-cancel-card__actions">
         <q-btn
           color="primary"
           unelevated
-          label="Retour à la facturation"
+          label="Back to billing"
           @click="goToBilling"
         />
         <q-btn
           flat
           color="grey-7"
-          label="Aller au dashboard"
+          label="Go to dashboard"
           @click="goToDashboard"
         />
       </div>
