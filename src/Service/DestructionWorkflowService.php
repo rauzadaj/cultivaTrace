@@ -33,7 +33,7 @@ final readonly class DestructionWorkflowService
             throw new \InvalidArgumentException('La raison est obligatoire');
         }
 
-        $intent = new DestructionIntent($this->legalDelayDays($user));
+        $intent = new DestructionIntent($this->legalDelayDays());
         $intent->setPlant($plant);
         $intent->setTenantId($plant->getTenantId());
         $intent->setReason($reason);
@@ -127,19 +127,13 @@ final readonly class DestructionWorkflowService
         }
     }
 
-    /** Legal waiting period before destruction can be confirmed, per jurisdiction. */
-    private function legalDelayDays(User $user): int
+    /**
+     * Legal waiting period before destruction can be confirmed.
+     * 7 days is the universal regulatory minimum across all supported jurisdictions.
+     * Country-specific delays (CA/DE/US) must be validated by legal counsel before enabling.
+     */
+    private function legalDelayDays(): int
     {
-        $country = strtoupper(
-            ($user->hasOrganization() ? $user->getOrganization()->getCountry() : null) ?? 'FR'
-        );
-
-        // 7 days is the mandatory regulatory minimum — country-specific values may not go below it.
-        return max(7, match ($country) {
-            'CA' => 0,
-            'DE' => 1,
-            'US' => 3,
-            default => 7,
-        });
+        return 7;
     }
 }

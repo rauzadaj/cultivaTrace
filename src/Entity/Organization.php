@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
@@ -21,7 +23,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * NE PAS exposer cette entité via API publique directement.
  * L'accès se fait via /me ou /organizations/{id} (ADMIN uniquement).
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: \App\Repository\OrganizationRepository::class)]
 #[ORM\Table(name: 'organization')]
 #[ApiResource(operations: [])] // pas d'opération CRUD publique directe
 class Organization

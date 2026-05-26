@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Plant;
 use App\Entity\Sensor;
 use App\Entity\User;
+use App\Enum\PlantStage;
+use App\Enum\PlantStatus;
 use App\Repository\SensorReadingRepository;
 use App\Security\Voter\TenantAwareVoter;
 use App\Service\AlertService;
@@ -60,6 +63,13 @@ class SensorReadingController extends AbstractController
 
         $value = (float) $value;
 
+        if (!$this->isValueInBounds($sensor->getType(), $value)) {
+            return $this->json(
+                ['error' => sprintf('Value %.4f is out of valid physical range for sensor type "%s".', $value, $sensor->getType())],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
         $this->readings->insert(
             (string) $sensor->getId(),
             (string) $sensor->getTenantId(),
@@ -109,6 +119,24 @@ class SensorReadingController extends AbstractController
         ], Response::HTTP_CREATED);
     }
 
+    private const VALUE_BOUNDS = [
+        'temperature' => [-50.0,  80.0],
+        'humidity'    => [0.0,   100.0],
+        'co2'         => [0.0, 10000.0],
+        'ph'          => [0.0,    14.0],
+        'ec'          => [0.0,   100.0],
+        'vpd'         => [0.0,    10.0],
+    ];
+
+    private function isValueInBounds(string $type, float $value): bool
+    {
+        $bounds = self::VALUE_BOUNDS[$type] ?? null;
+        if ($bounds === null) {
+            return true;
+        }
+        return $value >= $bounds[0] && $value <= $bounds[1];
+    }
+
     private function assertWriteAccess(Sensor $sensor, ?User $user): void
     {
         if (!$user instanceof User) {
@@ -132,7 +160,8 @@ class SensorReadingController extends AbstractController
     private function computeVpdForRoom(Sensor $sensor, float $currentValue): ?array
     {
         $roomId   = (string) $sensor->getRoom()->getId();
-        $recent   = $this->readings->findRecentForRoom($roomId, 5);
+        $tenantId = (string) $sensor->getTenantId();
+        $recent   = $this->readings->findRecentForRoom($roomId, $tenantId, 5);
 
         $sensors  = $this->em->getRepository(Sensor::class)->findBy([
             'room' => $sensor->getRoom(),
@@ -145,7 +174,7 @@ class SensorReadingController extends AbstractController
             $temp = $currentValue;
             foreach ($sensors as $s) {
                 if ($s->getType() === 'humidity') {
-                    $latest = $this->readings->findLatest((string) $s->getId());
+                    $latest = $this->readings->findLatest((string) $s->getId(), $tenantId);
                     if ($latest) {
                         $humidity = (float) $latest['value'];
                     }
@@ -155,7 +184,7 @@ class SensorReadingController extends AbstractController
             $humidity = $currentValue;
             foreach ($sensors as $s) {
                 if ($s->getType() === 'temperature') {
-                    $latest = $this->readings->findLatest((string) $s->getId());
+                    $latest = $this->readings->findLatest((string) $s->getId(), $tenantId);
                     if ($latest) {
                         $temp = (float) $latest['value'];
                     }
@@ -167,7 +196,35 @@ class SensorReadingController extends AbstractController
             return null;
         }
 
-        return $this->vpd->computeAndEvaluate($temp, $humidity, 'vegetation');
+        $dominantStage = $this->dominantStageForRoom($sensor);
+
+        return $this->vpd->computeAndEvaluate($temp, $humidity, $dominantStage->value);
+    }
+
+    private function dominantStageForRoom(Sensor $sensor): PlantStage
+    {
+        $result = $this->em->createQuery(
+            'SELECT p.stage, COUNT(p.id) AS cnt
+             FROM App\Entity\Plant p
+             WHERE p.room = :room
+               AND p.tenantId = :tenantId
+               AND p.status = :status
+             GROUP BY p.stage
+             ORDER BY cnt DESC, p.stage ASC'
+        )
+        ->setParameter('room', $sensor->getRoom())
+        ->setParameter('tenantId', $sensor->getTenantId(), 'uuid')
+        ->setParameter('status', PlantStatus::ACTIVE)
+        ->setMaxResults(1)
+        ->getOneOrNullResult();
+
+        if ($result === null) {
+            return PlantStage::VEGETATION;
+        }
+
+        return $result['stage'] instanceof PlantStage
+            ? $result['stage']
+            : PlantStage::from($result['stage']);
     }
 
     private function getUnit(string $type): string

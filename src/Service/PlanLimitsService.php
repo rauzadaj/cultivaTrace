@@ -83,7 +83,7 @@ class PlanLimitsService
     public function checkUserLimit(Organization $org): void
     {
         $max     = $org->getPlan()->maxUsers();
-        $current = $org->getUsers()->count();
+        $current = $this->countUsers($org);
 
         if ($current >= $max) {
             throw new PlanLimitExceededException(
@@ -126,7 +126,7 @@ class PlanLimitsService
         $plan           = $org->getPlan();
         $activePlants   = $this->countActivePlants($org);
         $rooms          = $this->countRooms($org);
-        $users          = $org->getUsers()->count();
+        $users          = $this->countUsers($org);
 
         return [
             'plan'   => $plan->value,
@@ -151,6 +151,15 @@ class PlanLimitsService
         ];
     }
 
+    private function countUsers(Organization $org): int
+    {
+        return (int) $this->em->createQuery(
+            'SELECT COUNT(u.id) FROM App\Entity\User u WHERE u.organization = :org'
+        )
+        ->setParameter('org', $org)
+        ->getSingleScalarResult();
+    }
+
     private function countActivePlants(Organization $org): int
     {
         // Count all plants ever created for the tenant regardless of status —
@@ -168,9 +177,9 @@ class PlanLimitsService
         return (int) $this->em->createQuery(
             'SELECT COUNT(r.id) FROM App\Entity\Room r
              INNER JOIN r.farm f
-             WHERE f.organization = :org'
+             WHERE f.tenantId = :tenantId'
         )
-        ->setParameter('org', $org->getId(), UuidType::NAME)
+        ->setParameter('tenantId', $org->getId(), UuidType::NAME)
         ->getSingleScalarResult();
     }
 

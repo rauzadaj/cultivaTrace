@@ -2,6 +2,7 @@ parameters:
     app.default_mercure_url: 'http://127.0.0.1/.well-known/mercure'
     app.default_mercure_public_url: 'http://127.0.0.1/.well-known/mercure'
     app.default_mercure_jwt_secret: 'change-me-in-production'
+    app.default_frontend_url: 'http://127.0.0.1:8000'
 
 # config/packages/mercure.yaml
 #
@@ -21,5 +22,5 @@ mercure:
             jwt:
                 secret: '%env(default:app.default_mercure_jwt_secret:MERCURE_JWT_SECRET)%'
                 publish:
-                    - 'https://cultivatrace.com/tenants/*'
+                    - '*'
                 subscribe: []

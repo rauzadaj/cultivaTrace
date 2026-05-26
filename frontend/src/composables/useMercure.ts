@@ -43,6 +43,7 @@ export function useMercure() {
 
   const mercureUrl = import.meta.env.VITE_MERCURE_PUBLIC_URL
     ?? '/.well-known/mercure'
+  const appOrigin = ((import.meta.env.VITE_FRONTEND_URL as string | undefined) ?? 'https://cultivatrace.com').replace(/\/$/, '')
   const tokenRefreshLeewayMs = 60_000
 
   let mercureToken: { value: string; expiresAt: number } | null = null
@@ -56,7 +57,7 @@ export function useMercure() {
     const legacyMatch = /^cannas\/([^/]+)\/rooms\/([^/]+)$/.exec(topic)
     if (legacyMatch) {
       const [, tenantId, roomId] = legacyMatch
-      return `https://cultivatrace.com/tenants/${tenantId}/rooms/${roomId}`
+      return `${appOrigin}/tenants/${tenantId}/rooms/${roomId}`
     }
 
     return topic
