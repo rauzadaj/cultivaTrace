@@ -28,10 +28,10 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 /**
  * POST /api/sensors/{id}/reading
  *
- * Reçoit une lecture capteur (depuis le script de simulation MQTT
- * ou un capteur réel), la stocke dans sensor_reading,
+ * Receives a sensor reading (from the MQTT simulation script
+ * or a real sensor), stores it in sensor_reading,
  * publishes to Mercure for the real-time dashboard,
- * et vérifie les seuils pour les alertes.
+ * and checks thresholds for alerts.
  */
 #[Route('/api/sensors/{id}/reading', methods: ['POST'])]
 class SensorReadingController extends AbstractController

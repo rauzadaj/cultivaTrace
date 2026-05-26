@@ -3,8 +3,8 @@
     <header class="reporting-view__header">
       <div>
         <p class="eyebrow">Reporting</p>
-        <h1>Exports opérationnels</h1>
-        <p>Générez des rapports tenant-wide et téléchargez l’historique des exports.</p>
+        <h1>Operational exports</h1>
+        <p>Generate tenant-wide reports and download export history.</p>
       </div>
     </header>
 
@@ -12,25 +12,25 @@
       <q-card class="reporting-card">
         <q-card-section>
           <p class="eyebrow">Harvest summary</p>
-          <h2>Récoltes par période</h2>
+          <h2>Harvests by period</h2>
         </q-card-section>
         <q-card-section class="reporting-card__controls">
-          <q-input v-model="harvestFilters.dateFrom" type="date" label="Du" outlined />
-          <q-input v-model="harvestFilters.dateTo" type="date" label="Au" outlined />
-          <q-btn color="primary" no-caps :loading="harvestLoading" label="Générer le PDF" @click="generateHarvestSummary" />
+          <q-input v-model="harvestFilters.dateFrom" type="date" label="From" outlined />
+          <q-input v-model="harvestFilters.dateTo" type="date" label="To" outlined />
+          <q-btn color="primary" no-caps :loading="harvestLoading" label="Generate PDF" @click="generateHarvestSummary" />
         </q-card-section>
       </q-card>
 
       <q-card class="reporting-card">
         <q-card-section>
           <p class="eyebrow">Audit export</p>
-          <h2>Journal tenant</h2>
+          <h2>Tenant audit log</h2>
         </q-card-section>
         <q-card-section class="reporting-card__controls">
-          <q-input v-model="auditFilters.dateFrom" type="date" label="Du" outlined />
-          <q-input v-model="auditFilters.dateTo" type="date" label="Au" outlined />
+          <q-input v-model="auditFilters.dateFrom" type="date" label="From" outlined />
+          <q-input v-model="auditFilters.dateTo" type="date" label="To" outlined />
           <q-select v-model="auditFilters.format" :options="formatOptions" emit-value map-options label="Format" outlined />
-          <q-btn color="primary" no-caps :loading="auditLoading" label="Générer l’export" @click="generateAuditExport" />
+          <q-btn color="primary" no-caps :loading="auditLoading" label="Generate export" @click="generateAuditExport" />
         </q-card-section>
       </q-card>
     </section>
@@ -38,10 +38,10 @@
     <q-card class="reporting-card">
       <q-card-section class="reporting-history__head">
         <div>
-          <p class="eyebrow">Historique</p>
-          <h2>Exports récents</h2>
+          <p class="eyebrow">History</p>
+          <h2>Recent exports</h2>
         </div>
-        <q-btn flat color="primary" no-caps label="Rafraîchir" :loading="loading" @click="loadHistory" />
+        <q-btn flat color="primary" no-caps label="Refresh" :loading="loading" @click="loadHistory" />
       </q-card-section>
 
       <q-card-section>
@@ -54,13 +54,13 @@
             </div>
             <div class="reporting-history__meta">
               <q-badge color="primary" outline>{{ item.format.toUpperCase() }}</q-badge>
-              <q-btn flat no-caps color="primary" label="Télécharger" @click="downloadExport(item)" />
+              <q-btn flat no-caps color="primary" label="Download" @click="downloadExport(item)" />
             </div>
           </article>
         </div>
         <div v-else class="reporting-history__empty">
           <q-icon name="mdi-file-chart-outline" size="28px" />
-          <strong>Aucun export généré</strong>
+          <strong>No exports generated</strong>
         </div>
       </q-card-section>
     </q-card>
@@ -112,7 +112,7 @@ async function loadHistory() {
     const { data } = await reportingApi.list()
     exports.value = collectionMembers(data)
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Impossible de charger l’historique.' })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Unable to load history.' })
   } finally {
     loading.value = false
   }
@@ -122,11 +122,11 @@ async function generateHarvestSummary() {
   harvestLoading.value = true
   try {
     const { data } = await reportingApi.createHarvestSummary(harvestFilters.value)
-    $q.notify({ type: 'positive', message: 'Harvest summary généré.' })
+    $q.notify({ type: 'positive', message: 'Harvest summary generated.' })
     await loadHistory()
     await downloadExport(data)
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Export impossible.' })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Export failed.' })
   } finally {
     harvestLoading.value = false
   }
@@ -136,11 +136,11 @@ async function generateAuditExport() {
   auditLoading.value = true
   try {
     const { data } = await reportingApi.createAuditExport(auditFilters.value)
-    $q.notify({ type: 'positive', message: 'Audit export généré.' })
+    $q.notify({ type: 'positive', message: 'Audit export generated.' })
     await loadHistory()
     await downloadExport(data)
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Export impossible.' })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Export failed.' })
   } finally {
     auditLoading.value = false
   }
@@ -155,7 +155,7 @@ function reportTypeLabel(type: ReportExport['type']): string {
 }
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('fr-FR')
+  return new Date(value).toLocaleString('en-US')
 }
 
 onMounted(async () => {

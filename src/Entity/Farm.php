@@ -59,7 +59,7 @@ class Farm
 
     /**
      * tenantId = Organization::$id
-     * Injecté automatiquement par TenantListener — NE PAS setter manuellement
+     * Injected automatically by TenantListener — DO NOT set manually
      */
     #[ORM\Column(type: UuidType::NAME)]
     private Uuid $tenantId;

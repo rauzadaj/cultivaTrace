@@ -17,8 +17,8 @@ use Symfony\Component\Uid\Uuid;
 /**
  * PlantEventRepository — APPEND-ONLY.
  *
- * RÈGLE ABSOLUE : utiliser appendEvent() pour créer un PlantEvent.
- * Ne jamais appeler EntityManager::remove() ni ::flush() sur un PlantEvent existant.
+ * ABSOLUTE RULE: use appendEvent() to create a PlantEvent.
+ * Never call EntityManager::remove() or ::flush() on an existing PlantEvent.
  */
 class PlantEventRepository extends ServiceEntityRepository
 {
@@ -33,8 +33,8 @@ class PlantEventRepository extends ServiceEntityRepository
     }
 
     /**
-     * Crée et persiste un PlantEvent avec hash-chaining automatique.
-     * C'est la SEULE façon de créer un PlantEvent.
+     * Creates and persists a PlantEvent with automatic hash-chaining.
+     * This is the ONLY way to create a PlantEvent.
      */
     public function appendEvent(
         Plant   $plant,

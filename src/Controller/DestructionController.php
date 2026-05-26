@@ -25,7 +25,7 @@ class DestructionController extends AbstractController
     }
 
     /**
-     * Étape 1 — Déclarer l'intention de destruction.
+     * Step 1 — Declare destruction intent.
      * POST /api/plants/{id}/destroy
      */
     #[Route('/api/plants/{id}/destroy', methods: ['POST'])]
@@ -62,7 +62,7 @@ class DestructionController extends AbstractController
     }
 
     /**
-     * Étape 2 — Confirmer la destruction après le délai légal.
+     * Step 2 — Confirm destruction after the legal waiting period.
      * POST /api/destructions/{id}/confirm
      */
     #[Route('/api/destructions/{id}/confirm', methods: ['POST'])]

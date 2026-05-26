@@ -15,8 +15,8 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * GET /api/sensors/{id}/readings?period=30d
  *
- * Retourne l'historique agrégé d'un capteur.
- * Periods disponibles : 7d | 30d | 90d | 365d
+ * Returns the aggregated history for a sensor.
+ * Available periods: 7d | 30d | 90d | 365d
  */
 #[Route('/api/sensors/{id}/readings', methods: ['GET'])]
 class SensorHistoryController extends AbstractController
@@ -34,7 +34,7 @@ class SensorHistoryController extends AbstractController
 
         if (!in_array($period, ['7d', '30d', '90d', '365d'], true)) {
             return $this->json(
-                ['error' => 'period invalide. Valeurs : 7d, 30d, 90d, 365d'],
+                ['error' => 'Invalid period. Values: 7d, 30d, 90d, 365d'],
                 Response::HTTP_BAD_REQUEST
             );
         }

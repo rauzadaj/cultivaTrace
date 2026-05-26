@@ -3,10 +3,10 @@
     <q-card class="sensor-form">
       <q-card-section class="sensor-form__header">
         <div>
-          <p class="sensor-form__eyebrow">Capteurs</p>
-          <h2>Nouveau capteur</h2>
+          <p class="sensor-form__eyebrow">Sensors</p>
+          <h2>New sensor</h2>
         </div>
-        <q-btn flat round icon="mdi-close" aria-label="Fermer" @click="close" />
+        <q-btn flat round icon="mdi-close" aria-label="Close" @click="close" />
       </q-card-section>
 
       <q-form class="sensor-form__body" @submit.prevent="submit">
@@ -23,7 +23,7 @@
         />
         <q-input
           v-model="form.deviceId"
-          label="Identifiant appareil *"
+          label="Device ID *"
           outlined
           :error="!!fieldErrors.deviceId"
           :error-message="fieldErrors.deviceId"
@@ -44,7 +44,7 @@
         <q-select
           v-model="form.room"
           :options="roomOptions"
-          label="Salle *"
+          label="Room *"
           emit-value
           map-options
           outlined
@@ -57,7 +57,7 @@
         <div class="sensor-form__thresholds">
           <q-input
             v-model.number="form.thresholdMin"
-            label="Seuil minimum"
+            label="Minimum threshold"
             type="number"
             outlined
             :error="!!fieldErrors.thresholdMin"
@@ -66,7 +66,7 @@
           />
           <q-input
             v-model.number="form.thresholdMax"
-            label="Seuil maximum"
+            label="Maximum threshold"
             type="number"
             outlined
             :error="!!fieldErrors.thresholdMax"
@@ -75,7 +75,7 @@
           />
           <q-input
             v-model="form.thresholdUnit"
-            label="Unité"
+            label="Unit"
             placeholder="°C, %, ppm..."
             outlined
             :error="!!fieldErrors.thresholdUnit"
@@ -89,8 +89,8 @@
         </q-banner>
 
         <div class="sensor-form__actions">
-          <q-btn flat label="Annuler" class="action-btn" @click="close" />
-          <q-btn color="primary" label="Ajouter" class="action-btn" :loading="submitting" type="submit" />
+          <q-btn flat label="Cancel" class="action-btn" @click="close" />
+          <q-btn color="primary" label="Add" class="action-btn" :loading="submitting" type="submit" />
         </div>
       </q-form>
     </q-card>
@@ -127,10 +127,10 @@ const form = reactive({
 const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
   form,
   {
-    type: [validators.required('Type obligatoire.')],
-    deviceId: [validators.required('Identifiant appareil obligatoire.')],
-    protocol: [validators.required('Protocole obligatoire.')],
-    room: [validators.required('Salle obligatoire.')],
+    type: [validators.required('Type required.')],
+    deviceId: [validators.required('Device ID required.')],
+    protocol: [validators.required('Protocol required.')],
+    room: [validators.required('Room required.')],
     thresholdMin: [
       (value, values) => {
         if (value === null || value === undefined || value === '') {
@@ -138,11 +138,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
         }
 
         if (typeof value !== 'number') {
-          return 'Seuil minimum invalide.'
+          return 'Invalid minimum threshold.'
         }
 
         if (values.thresholdMax !== null && typeof values.thresholdMax === 'number' && value > values.thresholdMax) {
-          return 'Le seuil minimum doit être inférieur au seuil maximum.'
+          return 'Minimum threshold must be less than maximum threshold.'
         }
 
         return null
@@ -155,11 +155,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
         }
 
         if (typeof value !== 'number') {
-          return 'Seuil maximum invalide.'
+          return 'Invalid maximum threshold.'
         }
 
         if (values.thresholdMin !== null && typeof values.thresholdMin === 'number' && value < values.thresholdMin) {
-          return 'Le seuil maximum doit être supérieur au seuil minimum.'
+          return 'Maximum threshold must be greater than minimum threshold.'
         }
 
         return null
@@ -173,7 +173,7 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
           return null
         }
 
-        return typeof value === 'string' && value.trim() !== '' ? null : 'Unité obligatoire si un seuil est défini.'
+        return typeof value === 'string' && value.trim() !== '' ? null : 'Unit required when a threshold is set.'
       },
     ],
   },
@@ -214,7 +214,7 @@ async function fetchRooms() {
       form.room = roomOptions.value[0].value
     }
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Chargement des salles impossible.' })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Failed to load rooms.' })
   } finally {
     roomsLoading.value = false
   }
@@ -243,7 +243,7 @@ async function submit() {
     form.thresholdUnit = form.thresholdUnit.trim()
 
     if (!validateAll()) {
-      setFormError('Corrigez les champs invalides avant de créer le capteur.')
+      setFormError('Fix invalid fields before creating the sensor.')
       return
     }
 
@@ -266,10 +266,10 @@ async function submit() {
     emit('created', data)
     close()
     resetForm()
-    $q.notify({ type: 'positive', message: 'Capteur ajouté.' })
+    $q.notify({ type: 'positive', message: 'Sensor added.' })
   } catch (error) {
-    applyApiError(error, 'Création du capteur impossible.')
-    $q.notify({ type: 'negative', message: formError.value || 'Création du capteur impossible.' })
+    applyApiError(error, 'Failed to create sensor.')
+    $q.notify({ type: 'negative', message: formError.value || 'Failed to create sensor.' })
   } finally {
     submitting.value = false
   }

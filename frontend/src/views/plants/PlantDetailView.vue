@@ -27,7 +27,7 @@
       >
         <q-tab name="info" label="Infos" />
         <q-tab name="timeline" label="Timeline" />
-        <q-tab name="inputs" label="Intrants" />
+        <q-tab name="inputs" label="Inputs" />
         <q-tab name="photos" label="Photos" />
       </q-tabs>
 
