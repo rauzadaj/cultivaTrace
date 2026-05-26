@@ -132,7 +132,7 @@ async function submit() {
     await authStore.login(normalizedEmail, password.value)
     await router.push(resolveRedirectTarget())
   } catch (caughtError) {
-    applyApiError(caughtError, ‘Authentication failed.’)
+    applyApiError(caughtError, 'Authentication failed.')
   } finally {
     loading.value = false
   }

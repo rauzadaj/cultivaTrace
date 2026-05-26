@@ -86,7 +86,7 @@ async function submit() {
       void router.push('/auth')
     }, 1200)
   } catch (caughtError) {
-    applyApiError(caughtError, ‘Failed to activate invitation.’)
+    applyApiError(caughtError, 'Failed to activate invitation.')
   } finally {
     loading.value = false
   }

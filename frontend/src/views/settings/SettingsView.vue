@@ -226,7 +226,7 @@ async function inviteMember() {
     success.value = 'Invitation sent.'
     await loadInvitations()
   } catch (caughtError) {
-    error.value = caughtError instanceof Error ? caughtError.message : ‘Failed to send invitation.’
+    error.value = caughtError instanceof Error ? caughtError.message : 'Failed to send invitation.'
   } finally {
     inviting.value = false
   }
