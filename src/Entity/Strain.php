@@ -66,8 +66,8 @@ class Strain
 
     /**
      * hemp | marijuana
-     * Requis pour la distinction post-Hemp Loophole (deadline : 12 novembre 2026)
-     * hemp : THC <= 0.3% — marijuana : THC > 0.3%
+     * Required for post-Hemp Loophole distinction (deadline: November 12, 2026)
+     * hemp: THC <= 0.3% — marijuana: THC > 0.3%
      */
     #[ORM\Column(length: 20)]
     #[Assert\Choice(choices: ['hemp', 'marijuana'])]
@@ -80,7 +80,7 @@ class Strain
     private ?int $floweringDays = null;
 
     /**
-     * Paramètres de culture recommandés — utilisés pour les alertes VPD :
+     * Recommended grow parameters — used for VPD alerts:
      * {
      *   "temp_min": 20, "temp_max": 28,
      *   "humidity_min": 40, "humidity_max": 70,

@@ -18,15 +18,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * PlantEvent = audit trail immuable, append-only.
+ * PlantEvent = immutable audit trail, append-only.
  *
- * ⚠️ RÈGLE ABSOLUE : jamais de UPDATE ni DELETE sur cette table.
- * Toujours passer par PlantEventRepository::appendEvent().
+ * ⚠️ ABSOLUTE RULE: never UPDATE or DELETE on this table.
+ * Always go through PlantEventRepository::appendEvent().
  *
- * Le hash-chaining garantit l'intégrité :
+ * Hash-chaining guarantees integrity:
  *   hashSelf = SHA-256(id + JSON(payload) + occurredAt.format('U') + hashPrevious)
  *
- * Types d'événements valides :
+ * Valid event types:
  *   germination | stage_change | note | photo | input_record |
  *   harvest | destruction_intent | destruction_confirmed | room_move
  */

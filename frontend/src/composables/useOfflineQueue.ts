@@ -1,14 +1,14 @@
 /**
  * apps/frontend/src/composables/useOfflineQueue.ts
  *
- * Queue des actions offline — stockage IndexedDB via localStorage simplifié.
- * Les actions POST/PATCH effectuées sans connexion sont mises en file
- * et rejouées dans l'ordre quand la connexion revient.
+ * Offline action queue — simplified IndexedDB storage via localStorage.
+ * POST/PATCH actions made without a connection are queued
+ * and replayed in order when the connection is restored.
  *
- * Usage :
+ * Usage:
  *   const { enqueue, syncQueue, pendingCount, isOnline } = useOfflineQueue()
  *
- *   // Au lieu de appeler l'API directement :
+ *   // Instead of calling the API directly:
  *   if (!isOnline.value) {
  *     await enqueue({ url: '/plant-events', method: 'POST', body: eventData })
  *   } else {
@@ -68,7 +68,7 @@ export function useOfflineQueue() {
     }
     queue.value.push(queued)
     saveQueue()
-    console.info(`[OfflineQueue] Action mise en file : ${action.method} ${action.url}`)
+    console.info(`[OfflineQueue] Action queued: ${action.method} ${action.url}`)
   }
 
   async function syncQueue(): Promise<void> {
@@ -87,13 +87,13 @@ export function useOfflineQueue() {
           data: action.body,
           headers: action.headers,
         })
-        console.info(`[OfflineQueue] Synchronisé : ${action.method} ${action.url}`)
+        console.info(`[OfflineQueue] Synced: ${action.method} ${action.url}`)
       } catch (error) {
         action.retries++
         if (action.retries < 3) {
           failed.push(action)
         } else {
-          console.error(`[OfflineQueue] Abandon après 3 tentatives : ${action.url}`, error)
+          console.error(`[OfflineQueue] Abandoned after 3 attempts: ${action.url}`, error)
         }
       }
     }
@@ -103,7 +103,7 @@ export function useOfflineQueue() {
     syncing.value = false
 
     if (failed.length === 0) {
-      console.info('[OfflineQueue] Toutes les actions synchronisées')
+      console.info('[OfflineQueue] All actions synced')
     }
   }
 
@@ -119,7 +119,7 @@ export function useOfflineQueue() {
   onMounted(() => {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    // Sync au démarrage si en ligne
+    // Sync on startup if online
     if (isOnline.value && queue.value.length > 0) {
       syncQueue()
     }

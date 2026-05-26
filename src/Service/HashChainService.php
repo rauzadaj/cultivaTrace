@@ -10,19 +10,19 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * HashChainService — garantit l'intégrité de l'audit trail.
+ * HashChainService — guarantees the integrity of the audit trail.
  *
- * Chaque PlantEvent a un hashSelf calculé ainsi :
+ * Each PlantEvent has a hashSelf computed as:
  *   hashSelf = HMAC-SHA256(id|JSON(payload)|occurredAt|notes|JSON(photoUrls)|ipAddress|hashPrevious, AUDIT_CHAIN_SECRET)
  *
- * L'utilisation de HMAC avec une clé secrète (hors DB) empêche un admin DB
- * de recalculer les hashes après modification — contrairement au SHA-256 pur.
+ * Using HMAC with a secret key (outside the DB) prevents a DB admin
+ * from recomputing hashes after modification — unlike plain SHA-256.
  *
- * Le premier event d'un plant a hashPrevious = "0000...0000" (64 zéros).
+ * The first event of a plant has hashPrevious = "0000...0000" (64 zeros).
  *
- * Utilisation :
- *   $service->computeHash($event, $previousHash)  // calcule le hash
- *   $service->verify($plantId)                    // vérifie toute la chaîne
+ * Usage:
+ *   $service->computeHash($event, $previousHash)  // computes the hash
+ *   $service->verify($plantId)                    // verifies the entire chain
  */
 class HashChainService
 {
@@ -33,8 +33,8 @@ class HashChainService
     ) {}
 
     /**
-     * Calcule le hashSelf d'un event via HMAC-SHA256.
-     * À appeler AVANT de persister l'event.
+     * Computes the hashSelf of an event via HMAC-SHA256.
+     * Must be called BEFORE persisting the event.
      */
     public function computeHash(PlantEvent $event, string $hashPrevious): string
     {
@@ -52,7 +52,7 @@ class HashChainService
     }
 
     /**
-     * Vérifie l'intégrité de toute la chaîne d'events d'un plant.
+     * Verifies the integrity of the entire event chain for a plant.
      *
      * @return array{valid: bool, broken_at: string|null, checked: int}
      */
