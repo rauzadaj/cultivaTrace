@@ -33,6 +33,7 @@ final class ReportingExportService
     {
         $startDate = new \DateTimeImmutable($filters['dateFrom'] . ' 00:00:00');
         $endDate = new \DateTimeImmutable($filters['dateTo'] . ' 23:59:59');
+        $this->validateDateRange($startDate, $endDate);
         $farmId = $filters['farmId'] ?? null;
         $roomId = $filters['roomId'] ?? null;
 
@@ -105,6 +106,7 @@ final class ReportingExportService
     {
         $startDate = new \DateTimeImmutable($filters['dateFrom'] . ' 00:00:00');
         $endDate = new \DateTimeImmutable($filters['dateTo'] . ' 23:59:59');
+        $this->validateDateRange($startDate, $endDate);
         $format = $filters['format'] === 'pdf' ? 'pdf' : 'csv';
 
         $rows = $this->entityManager->createQuery(
@@ -152,6 +154,20 @@ final class ReportingExportService
         }
 
         return $this->persistExport($organization, $user, 'audit_export', $format, $fileName, $storagePath, $filters, $summary);
+    }
+
+    private function validateDateRange(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate, int $maxDays = 366): void
+    {
+        if ($startDate > $endDate) {
+            throw new \InvalidArgumentException('dateFrom must be before or equal to dateTo.');
+        }
+
+        $rangeDays = (int) $startDate->diff($endDate)->days;
+        if ($rangeDays > $maxDays) {
+            throw new \InvalidArgumentException(
+                sprintf('Date range cannot exceed %d days. Requested: %d days.', $maxDays, $rangeDays)
+            );
+        }
     }
 
     private function writeCsv(string $absolutePath, array $rows): void

@@ -41,6 +41,7 @@ class SensorHistoryController extends AbstractController
 
         $history = $this->readings->findHistory(
             (string) $sensor->getId(),
+            (string) $sensor->getTenantId(),
             $period
         );
 

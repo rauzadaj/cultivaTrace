@@ -12,6 +12,7 @@ use App\Repository\PlantEventRepository;
 use App\Service\License\LicenseGuard;
 use App\Service\PlanLimitExceededException;
 use App\Service\PlanLimitsService;
+use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -26,6 +27,7 @@ final class PlantStateProcessor implements ProcessorInterface
         private readonly PlantEventRepository $plantEventRepository,
         private readonly LicenseGuard $licenseGuard,
         private readonly PlanLimitsService $planLimits,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -91,47 +93,55 @@ final class PlantStateProcessor implements ProcessorInterface
             }
         }
 
-        $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+        $this->entityManager->beginTransaction();
+        try {
+            $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
-        if ($result instanceof Plant && $user instanceof User) {
-            if ($isCreate) {
-                $this->plantEventRepository->appendEvent(
-                    $result,
-                    'germination',
-                    $user,
-                    [
-                        'to' => $result->getStage()->value,
-                        'roomId' => (string) $result->getRoom()->getId(),
-                    ],
-                    sprintf('Plant %s cree dans %s.', $result->getRfidTag() ?? (string) $result->getId(), $result->getRoom()->getName()),
-                );
-            } else {
-                if ($previousStage !== null && $previousStage !== $result->getStage()) {
+            if ($result instanceof Plant && $user instanceof User) {
+                if ($isCreate) {
                     $this->plantEventRepository->appendEvent(
                         $result,
-                        'stage_change',
+                        'germination',
                         $user,
                         [
-                            'from' => $previousStage->value,
                             'to' => $result->getStage()->value,
+                            'roomId' => (string) $result->getRoom()->getId(),
                         ],
-                        sprintf('Transition de %s vers %s.', $previousStage->value, $result->getStage()->value),
+                        sprintf('Plant %s cree dans %s.', $result->getRfidTag() ?? (string) $result->getId(), $result->getRoom()->getName()),
                     );
-                }
+                } else {
+                    if ($previousStage !== null && $previousStage !== $result->getStage()) {
+                        $this->plantEventRepository->appendEvent(
+                            $result,
+                            'stage_change',
+                            $user,
+                            [
+                                'from' => $previousStage->value,
+                                'to' => $result->getStage()->value,
+                            ],
+                            sprintf('Transition de %s vers %s.', $previousStage->value, $result->getStage()->value),
+                        );
+                    }
 
-                if ($previousRoomId !== null && $previousRoomId !== (string) $result->getRoom()->getId()) {
-                    $this->plantEventRepository->appendEvent(
-                        $result,
-                        'room_move',
-                        $user,
-                        [
-                            'fromRoomId' => $previousRoomId,
-                            'toRoomId' => (string) $result->getRoom()->getId(),
-                        ],
-                        sprintf('Deplacement vers la salle %s.', $result->getRoom()->getName()),
-                    );
+                    if ($previousRoomId !== null && $previousRoomId !== (string) $result->getRoom()->getId()) {
+                        $this->plantEventRepository->appendEvent(
+                            $result,
+                            'room_move',
+                            $user,
+                            [
+                                'fromRoomId' => $previousRoomId,
+                                'toRoomId' => (string) $result->getRoom()->getId(),
+                            ],
+                            sprintf('Deplacement vers la salle %s.', $result->getRoom()->getName()),
+                        );
+                    }
                 }
             }
+
+            $this->entityManager->commit();
+        } catch (\Throwable $e) {
+            $this->entityManager->rollback();
+            throw $e;
         }
 
         return $result;

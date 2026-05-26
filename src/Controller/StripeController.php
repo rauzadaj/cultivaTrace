@@ -225,8 +225,8 @@ class StripeController extends AbstractController
             throw $this->createAccessDeniedException('Authenticated user required.');
         }
 
-        if (!array_intersect($user->getRoles(), ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
-            throw $this->createAccessDeniedException('Insufficient role for billing writes.');
+        if (!array_intersect($user->getRoles(), ['ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
+            throw $this->createAccessDeniedException('Only organization administrators can manage billing.');
         }
 
         if (!$user->hasOrganization()) {

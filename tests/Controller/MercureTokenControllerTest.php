@@ -49,20 +49,22 @@ final class MercureTokenControllerTest extends ApiTestCase
             json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR)['token'] ?? ''
         );
 
+        $frontendUrl = rtrim($_SERVER['FRONTEND_URL'] ?? $_ENV['FRONTEND_URL'] ?? 'http://localhost:5173', '/');
+
         self::assertSame(
-            [sprintf('https://cultivatrace.com/tenants/%s/*', $organizationA->getId())],
+            [sprintf('%s/tenants/%s/*', $frontendUrl, $organizationA->getId())],
             $payloadA['mercure']['subscribe'] ?? null,
         );
         self::assertSame(
-            [sprintf('https://cultivatrace.com/tenants/%s/*', $organizationB->getId())],
+            [sprintf('%s/tenants/%s/*', $frontendUrl, $organizationB->getId())],
             $payloadB['mercure']['subscribe'] ?? null,
         );
         self::assertNotContains(
-            sprintf('https://cultivatrace.com/tenants/%s/*', $organizationB->getId()),
+            sprintf('%s/tenants/%s/*', $frontendUrl, $organizationB->getId()),
             $payloadA['mercure']['subscribe'] ?? [],
         );
         self::assertNotContains(
-            sprintf('https://cultivatrace.com/tenants/%s/*', $organizationA->getId()),
+            sprintf('%s/tenants/%s/*', $frontendUrl, $organizationA->getId()),
             $payloadB['mercure']['subscribe'] ?? [],
         );
     }
