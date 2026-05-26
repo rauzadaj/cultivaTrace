@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiFilter;
@@ -85,7 +87,7 @@ class Plant
     private PlantStage $stage = PlantStage::GERMINATION;
 
     #[ORM\Column(length: 50, enumType: PlantStatus::class)]
-    #[Groups(['plant:read', 'plant:write'])]
+    #[Groups(['plant:read'])]
     private PlantStatus $status = PlantStatus::ACTIVE;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]

@@ -59,15 +59,13 @@ final readonly class RegisterOrganizationController
         $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingUser instanceof User) {
             return new JsonResponse([
-                'error' => 'An account already exists for this email address.',
+                'error' => 'An account with this email address already exists.',
             ], Response::HTTP_CONFLICT);
         }
 
-        /** @var Organization|null $existingOrganization */
-        $existingOrganization = $this->entityManager->getRepository(Organization::class)->findOneBy([
-            'name' => $organizationName,
-        ]);
-        if ($existingOrganization instanceof Organization) {
+        /** @var \App\Repository\OrganizationRepository $orgRepo */
+        $orgRepo = $this->entityManager->getRepository(Organization::class);
+        if ($orgRepo->findByNameInsensitive($organizationName) !== null) {
             return new JsonResponse([
                 'error' => 'An organization with this name already exists.',
             ], Response::HTTP_CONFLICT);
@@ -91,10 +89,6 @@ final readonly class RegisterOrganizationController
         $connection->beginTransaction();
 
         try {
-            $organization->setStripeCustomerId(
-                $this->stripeService->createCustomer($organization, $email, $selectedPlan),
-            );
-
             $this->entityManager->persist($organization);
             $this->entityManager->persist($user);
             $this->entityManager->flush();
@@ -114,6 +108,17 @@ final readonly class RegisterOrganizationController
             $connection->rollBack();
 
             throw $exception;
+        }
+
+        // Stripe customer is created after the DB commit so a DB failure never orphans a
+        // Stripe customer.  A Stripe outage must not break registration — the missing customer
+        // is detected and created lazily on the first billing interaction.
+        try {
+            $stripeCustomerId = $this->stripeService->createCustomer($organization, $email, $selectedPlan);
+            $organization->setStripeCustomerId($stripeCustomerId);
+            $this->entityManager->flush();
+        } catch (\Throwable) {
+            // Non-fatal: user is registered and holds valid tokens; Stripe setup retried later.
         }
 
         return new JsonResponse([

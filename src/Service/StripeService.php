@@ -92,11 +92,14 @@ class StripeService
             $params['customer_email'] = $firstUser instanceof User ? $firstUser->getEmail() : null;
         }
 
+        // 1-hour window: deduplicates double-clicks and short retries while
+        // ensuring each new attempt after an hour gets a fresh session.
+        $window = (string) (int) (time() / 3600);
         $idempotencyKey = sprintf(
             'checkout-%s-%s-%s',
             (string) $organization->getId(),
             $plan->value,
-            (new \DateTimeImmutable())->format('Ymd')
+            $window
         );
 
         $session = Session::create($params, ['idempotencyKey' => $idempotencyKey]);

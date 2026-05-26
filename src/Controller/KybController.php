@@ -159,7 +159,26 @@ class KybController extends AbstractController
         ];
 
         if ($action === 'approve' && isset($data['expiresAt'])) {
-            $result['expiresAt'] = $data['expiresAt'];
+            try {
+                $expiresAt = new \DateTimeImmutable($data['expiresAt']);
+            } catch (\Throwable) {
+                return $this->json(['error' => 'Invalid expiresAt date format. Use YYYY-MM-DD.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            // Normalize both bounds to midnight for date-only comparison; $expiresAt is parsed
+            // from YYYY-MM-DD so it is already at 00:00:00, but DateTimeImmutable('+1 day') is
+            // "now + 24h" which rejects a valid tomorrow date for most of the day.
+            $minDate = new \DateTimeImmutable('tomorrow midnight');
+            $maxDate = (new \DateTimeImmutable('today midnight'))->modify('+5 years');
+
+            if ($expiresAt < $minDate || $expiresAt > $maxDate) {
+                return $this->json(
+                    ['error' => 'expiresAt must be between tomorrow and 5 years from now.'],
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $result['expiresAt'] = $expiresAt->format('Y-m-d');
         }
 
         $this->kybService->applyVerificationResult($license, $result);
@@ -177,7 +196,7 @@ class KybController extends AbstractController
         }
 
         if (!array_intersect($user->getRoles(), ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN'])) {
-            throw $this->createAccessDeniedException('Insufficient role for KYB writes.');
+            throw $this->createAccessDeniedException('Only organization members can submit KYB documents.');
         }
 
         if (!$user->hasOrganization()) {

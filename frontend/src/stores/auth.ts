@@ -88,7 +88,10 @@ export const useAuthStore = defineStore('auth', () => {
       const { data } = await authApi.me()
       user.value = data
     } catch {
-      user.value = buildUserFromToken(token.value)
+      // Do not fall back to unverified JWT payload for roles — logout instead
+      user.value = null
+      token.value = null
+      clearAuthTokens()
     }
   }
 

@@ -31,7 +31,7 @@ class PlantVoter extends Voter
         if ($user->getOrganization()?->isSuspended()) return false;
 
         return match ($attribute) {
-            self::VIEW    => true,
+            self::VIEW    => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             self::CREATE  => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             self::EDIT    => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             self::HARVEST => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
