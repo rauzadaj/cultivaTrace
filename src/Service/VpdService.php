@@ -5,28 +5,28 @@ declare(strict_types=1);
 namespace App\Service;
 
 /**
- * VpdService — calcul du Vapour Pressure Deficit en temps réel.
+ * VpdService — real-time Vapour Pressure Deficit calculation.
  *
- * Différenciateur commercial CannaSaaS : aucun concurrent ne l'intègre nativement.
+ * Commercial differentiator for CannaSaaS: no competitor integrates this natively.
  *
- * Formule :
+ * Formula:
  *   SVP(T) = 0.6108 × e^(17.27 × T / (T + 237.3))  [kPa]
- *   VPD = SVP(T) × (1 - HR / 100)                   [kPa]
+ *   VPD = SVP(T) × (1 - RH / 100)                   [kPa]
  *
- * Plages optimales par stade :
- *   Germination / Bouture : 0.4 – 0.8 kPa
- *   Végétation            : 0.8 – 1.2 kPa
- *   Floraison             : 1.0 – 1.5 kPa
+ * Optimal ranges by stage:
+ *   Germination / Clone : 0.4 – 0.8 kPa
+ *   Vegetation          : 0.8 – 1.2 kPa
+ *   Flowering           : 1.0 – 1.5 kPa
  *
- * Référence : "The VPD Chart" — Cultivators Handbook
+ * Reference: "The VPD Chart" — Cultivators Handbook
  */
 class VpdService
 {
     /**
-     * Calcule la pression de vapeur saturante à une température donnée.
+     * Computes the saturated vapour pressure at a given temperature.
      *
-     * @param float $temperatureCelsius Température en °C
-     * @return float SVP en kPa
+     * @param float $temperatureCelsius Temperature in °C
+     * @return float SVP in kPa
      */
     public function computeSvp(float $temperatureCelsius): float
     {
@@ -34,11 +34,11 @@ class VpdService
     }
 
     /**
-     * Calcule le VPD à partir de la température et de l'humidité relative.
+     * Computes the VPD from temperature and relative humidity.
      *
-     * @param float $temperatureCelsius Température ambiante en °C
-     * @param float $humidityPercent    Humidité relative en %
-     * @return float VPD en kPa (arrondi à 2 décimales)
+     * @param float $temperatureCelsius Ambient temperature in °C
+     * @param float $humidityPercent    Relative humidity in %
+     * @return float VPD in kPa (rounded to 2 decimal places)
      */
     public function compute(float $temperatureCelsius, float $humidityPercent): float
     {
@@ -48,10 +48,10 @@ class VpdService
     }
 
     /**
-     * Évalue le statut du VPD par rapport aux plages optimales.
+     * Evaluates VPD status against optimal ranges.
      *
-     * @param float  $vpd   Valeur VPD en kPa
-     * @param string $stage Stade de croissance : germination|vegetation|flowering
+     * @param float  $vpd   VPD value in kPa
+     * @param string $stage Growth stage: germination|vegetation|flowering
      * @return array{status: string, message: string, optimal_min: float, optimal_max: float}
      */
     public function evaluate(float $vpd, string $stage = 'vegetation'): array
@@ -66,18 +66,18 @@ class VpdService
         if ($vpd < $min) {
             $status  = 'too_low';
             $message = sprintf(
-                'VPD trop faible (%.2f kPa) — Risque d\'excès d\'humidité, fonte des semis, botrytis',
+                'VPD too low (%.2f kPa) — Risk of excess humidity, damping off, botrytis',
                 $vpd
             );
         } elseif ($vpd > $max) {
             $status  = 'too_high';
             $message = sprintf(
-                'VPD trop élevé (%.2f kPa) — Stress hydrique, fermeture des stomates, ralentissement de croissance',
+                'VPD too high (%.2f kPa) — Water stress, stomatal closure, growth slowdown',
                 $vpd
             );
         } else {
             $status  = 'optimal';
-            $message = sprintf('VPD optimal (%.2f kPa) — Transpiration et croissance optimales', $vpd);
+            $message = sprintf('Optimal VPD (%.2f kPa) — Optimal transpiration and growth', $vpd);
         }
 
         return [
@@ -91,7 +91,7 @@ class VpdService
     }
 
     /**
-     * Calcule et évalue le VPD en une seule appel.
+     * Computes and evaluates VPD in a single call.
      */
     public function computeAndEvaluate(
         float  $temperatureCelsius,

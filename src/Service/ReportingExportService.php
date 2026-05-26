@@ -267,7 +267,7 @@ final class ReportingExportService
         }
 
         if (count($rows) === 0) {
-            $lines[] = 'Aucune recolte sur cette periode.';
+            $lines[] = 'No harvest records for this period.';
         }
 
         return $lines;
@@ -303,7 +303,7 @@ final class ReportingExportService
         }
 
         if (count($rows) === 0) {
-            $lines[] = 'Aucun evenement sur cette periode.';
+            $lines[] = 'No events for this period.';
         }
 
         return $lines;

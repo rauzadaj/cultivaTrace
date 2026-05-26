@@ -1,14 +1,14 @@
 /**
  * apps/frontend/src/types/api.ts
  *
- * SOURCE UNIQUE DE VÉRITÉ pour tous les types TypeScript.
+ * SINGLE SOURCE OF TRUTH for all TypeScript types.
  *
- * ⚠️ NE PAS définir de types inline dans les composants ou stores.
- * ⚠️ NE PAS dupliquer un type déjà défini ici.
- * Si un type manque → l'ajouter ICI et signaler la modification.
+ * ⚠️ DO NOT define inline types in components or stores.
+ * ⚠️ DO NOT duplicate a type already defined here.
+ * If a type is missing → add it HERE and flag the change.
  *
- * Ces types correspondent exactement aux entités Doctrine du backend.
- * En cas de divergence → le backend fait foi.
+ * These types exactly match the backend Doctrine entities.
+ * In case of divergence → the backend takes precedence.
  */
 
 // ── Enums ────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export type RoomType =
   | 'clone'
   | 'mixed'
 
-// ── Entités principales ───────────────────────────────────────────────────
+// ── Main entities ────────────────────────────────────────────────────────
 
 export interface Organization {
   '@id'?: string
@@ -91,7 +91,7 @@ export interface Room {
   description?: string
   capacityMax: number
   farm: string | Pick<Farm, 'id' | 'name'>
-  // computed (non stocké en DB — calculé par le backend)
+  // computed (not stored in DB — calculated by the backend)
   activePlantCount?: number
   occupancyRate?: number
 }
@@ -117,7 +117,7 @@ export interface Plant {
   germinatedAt: string   // ISO 8601 date
   createdAt: string      // ISO 8601 datetime
   createdBy?: string | Pick<User, 'id' | 'email'>
-  ageInDays?: number     // computed
+  ageInDays?: number     // computed field
 }
 
 export interface PlantEvent {
@@ -144,19 +144,19 @@ export interface PlantEvent {
   payload?: PlantEventPayload
 }
 
-// Payloads typés selon eventType
+// Payloads typed per eventType
 export type PlantEventPayload =
   | { from: PlantStage; to: PlantStage }                         // stage_change
   | { fromRoomId: string; toRoomId: string }                     // room_move
   | { product: string; quantity: number; unit: string }          // input_record
   | { reason: string; plannedDate: string }                      // destruction_intent
   | { grossWeightG: number; nonCannabisRatio: number }           // destruction_confirmed
-  | Record<string, unknown>                                      // autres
+  | Record<string, unknown>                                      // other
 
 export interface HarvestRecord {
   '@id'?: string
   id: string
-  grossWeightG: string   // decimal en string (précision Doctrine)
+  grossWeightG: string   // decimal as string (Doctrine precision)
   netWeightG: string
   harvestedAt: string
   notes?: string
@@ -306,7 +306,7 @@ export interface User {
   organization?: Pick<Organization, 'id' | 'name' | 'plan' | 'licenseStatus'>
 }
 
-// ── Réponses API Platform (Hydra) ─────────────────────────────────────────
+// ── API Platform (Hydra) responses ───────────────────────────────────────
 
 export interface HydraCollection<T> {
   '@context': string
@@ -424,7 +424,7 @@ export interface JwtPayload {
   iat?: number
 }
 
-// ── Design System / UI ───────────────────────────────────────────────────
+// ── Design System / UI ──────────────────────────────────────────────────
 
 export type CBtnVariant =
   | 'primary'
@@ -475,9 +475,9 @@ export interface SensorMetricCard {
   detail: string
 }
 
-// ── Erreurs API structurées ───────────────────────────────────────────────
+// ── Structured API errors ────────────────────────────────────────────────
 
-/** Réponse RFC 7807 retournée par ApiExceptionSubscriber */
+/** RFC 7807 response returned by ApiExceptionSubscriber */
 export interface ProblemDetail {
   title: string
   detail: string
@@ -485,7 +485,7 @@ export interface ProblemDetail {
   timestamp: string
 }
 
-/** Présent dans le corps 402 quand une limite de plan est dépassée */
+/** Present in 402 body when a plan limit is exceeded */
 export interface PlanLimitError {
   limitType: string
   current: number
@@ -494,12 +494,12 @@ export interface PlanLimitError {
   upgradeUrl: string
 }
 
-/** Corps complet d'une réponse 402 */
+/** Full body of a 402 response */
 export interface PlanLimitProblemDetail extends ProblemDetail {
   planLimit: PlanLimitError
 }
 
-// ── Utilitaires ───────────────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────────────────────
 
 export type ApiError = {
   '@context': string
@@ -514,16 +514,16 @@ export type ApiError = {
 
 export const PLANT_STAGE_LABELS: Record<PlantStage, string> = {
   germination: 'Germination',
-  vegetation: 'Végétation',
-  flowering: 'Floraison',
-  harvest: 'Récolte',
-  archived: 'Archivé',
+  vegetation: 'Vegetation',
+  flowering: 'Flowering',
+  harvest: 'Harvest',
+  archived: 'Archived',
 }
 
 export const PLANT_STAGE_COLORS: Record<PlantStage, string> = {
-  germination: '#81C784', // vert clair
-  vegetation:  '#4CAF50', // vert
+  germination: '#81C784', // light green
+  vegetation:  '#4CAF50', // green
   flowering:   '#FF9800', // orange
-  harvest:     '#F44336', // rouge
-  archived:    '#9E9E9E', // gris
+  harvest:     '#F44336', // red
+  archived:    '#9E9E9E', // grey
 }

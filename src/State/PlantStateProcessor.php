@@ -82,10 +82,10 @@ final class PlantStateProcessor implements ProcessorInterface
                         throw new HttpException(
                             422,
                             sprintf(
-                                'Transition de stage invalide : "%s" → "%s". Seule la transition vers "%s" est autorisée.',
+                                'Invalid stage transition: "%s" → "%s". Only transition to "%s" is allowed.',
                                 $previousStage->value,
                                 $data->getStage()->value,
-                                $allowed?->value ?? 'aucune (stade terminal)',
+                                $allowed?->value ?? 'none (terminal stage)',
                             )
                         );
                     }
@@ -107,7 +107,7 @@ final class PlantStateProcessor implements ProcessorInterface
                             'to' => $result->getStage()->value,
                             'roomId' => (string) $result->getRoom()->getId(),
                         ],
-                        sprintf('Plant %s cree dans %s.', $result->getRfidTag() ?? (string) $result->getId(), $result->getRoom()->getName()),
+                        sprintf('Plant %s created in %s.', $result->getRfidTag() ?? (string) $result->getId(), $result->getRoom()->getName()),
                     );
                 } else {
                     if ($previousStage !== null && $previousStage !== $result->getStage()) {
@@ -119,7 +119,7 @@ final class PlantStateProcessor implements ProcessorInterface
                                 'from' => $previousStage->value,
                                 'to' => $result->getStage()->value,
                             ],
-                            sprintf('Transition de %s vers %s.', $previousStage->value, $result->getStage()->value),
+                            sprintf('Transition from %s to %s.', $previousStage->value, $result->getStage()->value),
                         );
                     }
 
@@ -132,7 +132,7 @@ final class PlantStateProcessor implements ProcessorInterface
                                 'fromRoomId' => $previousRoomId,
                                 'toRoomId' => (string) $result->getRoom()->getId(),
                             ],
-                            sprintf('Deplacement vers la salle %s.', $result->getRoom()->getName()),
+                            sprintf('Moved to room %s.', $result->getRoom()->getName()),
                         );
                     }
                 }

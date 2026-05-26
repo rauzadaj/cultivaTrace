@@ -7,15 +7,15 @@
           <span>CultivaTrace</span>
         </div>
         <p class="auth-hero__eyebrow">CultivaTrace</p>
-        <h1>Connecte l’operation terrain avant d’ouvrir le cockpit.</h1>
+        <h1>Connect field operations before opening the cockpit.</h1>
         <p class="auth-hero__copy">
-          Authentification JWT pour acceder au dashboard, au journal append-only et aux quick actions.
+          JWT authentication to access the dashboard, the append-only log, and quick actions.
         </p>
 
         <div class="auth-hero__chips">
-          <span>Workflow securise</span>
-          <span>Journal immutable</span>
-          <span>Analytics temps reel</span>
+          <span>Secure workflow</span>
+          <span>Immutable log</span>
+          <span>Real-time analytics</span>
         </div>
       </section>
 
@@ -23,7 +23,7 @@
         <div class="auth-card__header">
           <div>
             <p class="auth-card__eyebrow">Access gateway</p>
-            <h2>Connexion</h2>
+            <h2>Sign in</h2>
           </div>
         </div>
 
@@ -41,7 +41,7 @@
           />
           <q-input
             v-model="password"
-            label="Mot de passe"
+            label="Password"
             type="password"
             autocomplete="current-password"
             outlined
@@ -63,13 +63,13 @@
             class="full-width"
             :loading="loading"
           >
-            Se connecter
+            Sign in
           </q-btn>
         </form>
 
         <div class="auth-footer auth-footer--link">
-          <span>Nouvelle organisation ?</span>
-          <RouterLink to="/onboarding">Lancer l’onboarding</RouterLink>
+          <span>New organization?</span>
+          <RouterLink to="/onboarding">Start onboarding</RouterLink>
         </div>
       </q-card>
     </div>
@@ -93,7 +93,7 @@ onMounted(() => {
   if (consumeSessionExpiredFlag()) {
     $q.notify({
       type: 'warning',
-      message: 'Votre session a expiré. Veuillez vous reconnecter.',
+      message: 'Your session has expired. Please sign in again.',
       timeout: 6000,
     })
   }
@@ -112,8 +112,8 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     },
   },
   {
-    email: [validators.required('Email requis.'), validators.email('Email invalide.')],
-    password: [validators.required('Mot de passe requis.')],
+    email: [validators.required('Email required.'), validators.email('Invalid email.')],
+    password: [validators.required('Password required.')],
   },
 )
 
@@ -132,7 +132,7 @@ async function submit() {
     await authStore.login(normalizedEmail, password.value)
     await router.push(resolveRedirectTarget())
   } catch (caughtError) {
-    applyApiError(caughtError, 'Echec de l’authentification.')
+    applyApiError(caughtError, ‘Authentication failed.’)
   } finally {
     loading.value = false
   }
