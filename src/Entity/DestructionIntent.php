@@ -18,17 +18,17 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * DestructionIntent — intention de destruction d'un plant.
+ * DestructionIntent — intent to destroy a plant.
  *
- * Workflow réglementaire (CA/USA Illinois) :
- *   1. POST /api/plants/{id}/destroy → crée DestructionIntent (status: pending)
- *   2. Attente 7 jours légaux minimum
- *   3. POST /api/destructions/{id}/confirm → finalise avec pesée + ratio 50%
+ * Regulatory workflow (CA/USA Illinois):
+ *   1. POST /api/plants/{id}/destroy → creates DestructionIntent (status: pending)
+ *   2. Mandatory 7-day legal waiting period
+ *   3. POST /api/destructions/{id}/confirm → finalizes with weight + 50% ratio
  *
- * Règles non-contournables :
- *   - canBeConfirmed() retourne false avant J+7
- *   - Le ratio non-cannabis doit être >= 0.50
- *   - Les photos sont obligatoires à la confirmation
+ * Immutable rules:
+ *   - canBeConfirmed() returns false before D+7
+ *   - The non-cannabis ratio must be >= 0.50
+ *   - Photos are required at confirmation
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'destruction_intent')]
@@ -40,7 +40,7 @@ use Symfony\Component\Uid\Uuid;
         new Get(
             security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
         ),
-        // Transitions via DestructionController uniquement (POST /api/plants/{id}/destroy, POST /api/destructions/{id}/confirm)
+        // Transitions via DestructionController only (POST /api/plants/{id}/destroy, POST /api/destructions/{id}/confirm)
     ],
     normalizationContext: ['groups' => ['destruction:read']],
     order: ['declaredAt' => 'DESC'],
@@ -72,7 +72,7 @@ class DestructionIntent
     #[Groups(['destruction:read'])]
     private \DateTimeImmutable $declaredAt;
 
-    /** Date légale minimum = declaredAt + 7 jours */
+    /** Minimum legal date = declaredAt + 7 days */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Groups(['destruction:read'])]
     private \DateTimeImmutable $legalDateMin;
@@ -87,8 +87,8 @@ class DestructionIntent
     private ?string $totalWeightG = null;
 
     /**
-     * Ratio matières non-cannabis >= 0.50 obligatoire
-     * Ex: 0.55 = 55% de matières non-cannabiques mélangées
+     * Non-cannabis material ratio >= 0.50 required
+     * Ex: 0.55 = 55% non-cannabis materials mixed in
      */
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
     #[Groups(['destruction:read'])]

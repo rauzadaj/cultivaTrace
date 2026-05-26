@@ -8,26 +8,26 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
 
 /**
- * TenantFilter — filtre Doctrine global qui injecte automatiquement
- * WHERE tenant_id = :tenantId sur toutes les requêtes.
+ * TenantFilter — global Doctrine filter that automatically injects
+ * WHERE tenant_id = :tenantId on all queries.
  *
- * Activé dans TenantListener après authentification JWT.
- * NE PAS désactiver ce filtre sauf dans les commandes CLI de maintenance.
+ * Enabled in TenantListener after JWT authentication.
+ * DO NOT disable this filter except in maintenance CLI commands.
  *
- * Configuration requise dans config/packages/doctrine.yaml :
+ * Required configuration in config/packages/doctrine.yaml:
  *
  *   doctrine:
  *     orm:
  *       filters:
  *         tenant_filter:
  *           class: App\Doctrine\TenantFilter
- *           enabled: false  # activé dynamiquement par TenantListener
+ *           enabled: false  # enabled dynamically by TenantListener
  */
 class TenantFilter extends SQLFilter
 {
     public function addFilterConstraint(ClassMetadata $targetEntity, string $targetTableAlias): string
     {
-        // Appliquer uniquement aux entités qui ont un champ tenantId
+        // Apply only to entities that have a tenantId field
         if (!$targetEntity->hasField('tenantId')) {
             return '';
         }

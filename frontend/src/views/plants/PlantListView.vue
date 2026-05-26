@@ -3,10 +3,10 @@
     <header class="plant-list__header">
       <div>
         <p class="section-eyebrow">Plants</p>
-        <h1>Liste terrain</h1>
+        <h1>Field list</h1>
       </div>
       <div class="plant-list__actions">
-        <c-btn variant="primary" @click="createPlantOpen = true">Nouveau plant</c-btn>
+        <c-btn variant="primary" @click="createPlantOpen = true">New plant</c-btn>
         <q-btn-toggle
           v-if="!isMobile"
           v-model="desktopMode"
@@ -88,7 +88,7 @@
         <div v-else-if="!filteredPlants.length" class="empty-block">
           <q-icon name="mdi-sprout-outline" size="32px" />
           <strong>Aucun plant pour ce filtre</strong>
-          <span>Ajustez les filtres ou creez un nouveau plant.</span>
+          <span>Adjust the filters or create a new plant.</span>
           <c-btn variant="secondary" @click="activeStage = 'all'">Reinitialiser les filtres</c-btn>
         </div>
 
