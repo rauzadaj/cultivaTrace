@@ -83,10 +83,10 @@ class DashboardController extends AbstractController
              FROM App\Entity\Sensor s
              INNER JOIN s.room r
              INNER JOIN r.farm f
-             WHERE f.organization = :org
+             WHERE f.tenantId = :tenantId
                AND s.status = :status'
         )
-        ->setParameter('org', $org)
+        ->setParameter('tenantId', $org->getId(), 'uuid')
         ->setParameter('status', 'warning')
         ->getSingleScalarResult();
 
