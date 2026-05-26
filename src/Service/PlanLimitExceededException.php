@@ -7,8 +7,8 @@ namespace App\Service;
 use App\Enum\SubscriptionPlan;
 
 /**
- * Exception lancée quand une limite de plan est atteinte.
- * Interceptée par le controller pour retourner HTTP 402.
+ * Exception thrown when a plan limit is reached.
+ * Caught by the controller to return HTTP 402.
  */
 class PlanLimitExceededException extends \RuntimeException
 {

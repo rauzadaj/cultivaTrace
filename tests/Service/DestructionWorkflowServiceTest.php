@@ -88,7 +88,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testConfirmIntentWithZeroWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/totalWeightG.*strictement positif/');
+        $this->expectExceptionMessageMatches('/totalWeightG.*strictly positive/');
 
         $this->service->confirmIntent($this->confirmableIntent(), new User(), [
             'totalWeightG' => 0,
@@ -100,7 +100,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testConfirmIntentWithNegativeWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/totalWeightG.*strictement positif/');
+        $this->expectExceptionMessageMatches('/totalWeightG.*strictly positive/');
 
         $this->service->confirmIntent($this->confirmableIntent(), new User(), [
             'totalWeightG' => -5.0,

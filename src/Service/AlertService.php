@@ -13,10 +13,10 @@ use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
 /**
- * AlertService — détecte les dépassements de seuils IoT et envoie les alertes.
+ * AlertService — detects IoT threshold breaches and sends alerts.
  *
- * Déduplication : 1 alerte max par capteur par heure (via Redis/Cache).
- * Délai cible : email envoyé < 60s après dépassement de seuil.
+ * Deduplication: max 1 alert per sensor per hour (via Redis/Cache).
+ * Target latency: email sent < 60s after threshold breach.
  */
 class AlertService
 {
@@ -28,8 +28,8 @@ class AlertService
     ) {}
 
     /**
-     * Vérifie si une valeur dépasse les seuils d'un capteur
-     * et envoie une alerte si nécessaire.
+     * Checks whether a value exceeds a sensor's thresholds
+     * and sends an alert if needed.
      */
     public function checkAndAlert(Sensor $sensor, float $value): bool
     {
@@ -37,7 +37,7 @@ class AlertService
             return false;
         }
 
-        // Déduplication — 1 alerte max par capteur par cooldown (défaut 60 min)
+        // Deduplication — max 1 alert per sensor per cooldown period (default 60 min)
         $cooldown  = $sensor->getThresholds()['alertCooldownMinutes'] ?? 60;
         $cacheKey  = 'sensor_alert_' . $sensor->getId();
 
@@ -71,8 +71,8 @@ class AlertService
             ->setType('sensor_threshold')
             ->setSeverity($this->determineSeverity($thresholds, $value))
             ->setTitle(sprintf('%s · %s', $sensor->getRoom()->getName(), $sensor->getType()))
-            ->setMessage(sprintf('%.2f%s hors plage autorisee (%s - %s%s)', $value, $unit, (string) $min, (string) $max, $unit))
-            ->setContext(sprintf('Capteur %s', $sensor->getDeviceId()))
+            ->setMessage(sprintf('%.2f%s out of allowed range (%s - %s%s)', $value, $unit, (string) $min, (string) $max, $unit))
+            ->setContext(sprintf('Sensor %s', $sensor->getDeviceId()))
             ->setMetadata([
                 'value' => $value,
                 'unit' => $unit,
@@ -111,11 +111,11 @@ class AlertService
         $max        = $thresholds['max'] ?? '—';
 
         $direction = $value < ($thresholds['min'] ?? PHP_INT_MAX)
-            ? 'en dessous du minimum'
-            : 'au-dessus du maximum';
+            ? 'below minimum'
+            : 'above maximum';
 
         $subject = sprintf(
-            '🚨 Alerte capteur — %s %s (%s : %.2f%s)',
+            '🚨 Sensor alert — %s %s (%s: %.2f%s)',
             $sensor->getRoom()->getName(),
             $sensor->getType(),
             $direction,
@@ -124,14 +124,14 @@ class AlertService
         );
 
         $body = sprintf(
-            "Alerte CannaSaaS\n\n" .
-            "Capteur    : %s (%s)\n" .
-            "Salle      : %s\n" .
-            "Valeur     : %.2f %s\n" .
-            "Seuil min  : %s %s\n" .
-            "Seuil max  : %s %s\n" .
-            "Horodatage : %s\n\n" .
-            "Connectez-vous sur CannaSaaS pour consulter le dashboard.",
+            "CannaSaaS Alert\n\n" .
+            "Sensor     : %s (%s)\n" .
+            "Room       : %s\n" .
+            "Value      : %.2f %s\n" .
+            "Min threshold: %s %s\n" .
+            "Max threshold: %s %s\n" .
+            "Timestamp  : %s\n\n" .
+            "Sign in to CannaSaaS to view the dashboard.",
             $sensor->getDeviceId(),
             $sensor->getType(),
             $sensor->getRoom()->getName(),
@@ -141,10 +141,10 @@ class AlertService
             $unit,
             $max,
             $unit,
-            (new \DateTimeImmutable())->format('d/m/Y H:i:s')
+            (new \DateTimeImmutable())->format('Y-m-d H:i:s')
         );
 
-        // Récupérer l'email admin de l'organisation
+        // Retrieve the admin email for the organization
         $adminEmail = $this->getAdminEmail($sensor);
         if (!$adminEmail) return;
 
@@ -159,7 +159,7 @@ class AlertService
 
     private function getAdminEmail(Sensor $sensor): ?string
     {
-        // Récupérer le premier admin de l'organisation liée à la salle
+        // Retrieve the first admin of the organization linked to the room
         $room = $sensor->getRoom();
         $farm = $room->getFarm();
         $org  = $farm->getOrganization();

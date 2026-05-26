@@ -1,8 +1,8 @@
 /**
  * apps/frontend/src/stores/auth.ts
  *
- * Store d'authentification.
- * Gère le JWT, l'utilisateur connecté et l'organisation.
+ * Authentication store.
+ * Manages the JWT, the logged-in user, and the organization.
  */
 
 import { defineStore } from 'pinia'

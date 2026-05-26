@@ -21,11 +21,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
- * HarvestRecord — données de récolte d'un plant.
- * Relation 1-to-1 avec Plant.
+ * HarvestRecord — harvest data for a plant.
+ * 1-to-1 relationship with Plant.
  *
- * Créé uniquement via POST /api/plants/{id}/harvest (HarvestController)
- * dans une transaction atomique. Ne jamais créer directement via l'API.
+ * Created only via POST /api/plants/{id}/harvest (HarvestController)
+ * in an atomic transaction. Never create directly via the API.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'harvest_record')]
@@ -43,7 +43,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
             denormalizationContext: ['groups' => ['harvest:write']],
             processor: HarvestRecordPatchProcessor::class,
         ),
-        // POST uniquement via HarvestController — pas d'opération directe
+        // POST only via HarvestController — no direct operation
     ],
     normalizationContext: ['groups' => ['harvest:read']],
     order: ['harvestedAt' => 'DESC'],
@@ -67,13 +67,13 @@ class HarvestRecord
     #[Groups(['harvest:read'])]
     private Plant $plant;
 
-    /** Poids brut en grammes (avant trim) */
+    /** Gross weight in grams (before trim) */
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\Positive]
     #[Groups(['harvest:read', 'harvest:write'])]
     private string $grossWeightG;
 
-    /** Poids net en grammes (après trim, prêt à la vente/analyse) */
+    /** Net weight in grams (after trim, ready for sale/analysis) */
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\Positive]
     #[Groups(['harvest:read', 'harvest:write'])]
@@ -98,7 +98,7 @@ class HarvestRecord
         $this->harvestedAt = new \DateTimeImmutable();
     }
 
-    /** Ratio poids net / poids brut en % */
+    /** Net/gross weight ratio as a percentage */
     public function getYieldRatio(): float
     {
         if ((float) $this->grossWeightG === 0.0) return 0.0;
@@ -126,7 +126,7 @@ class HarvestRecord
         if (isset($this->grossWeightG, $this->netWeightG)
             && (float) $this->netWeightG > (float) $this->grossWeightG
         ) {
-            $context->buildViolation('Le poids net ne peut pas dépasser le poids brut.')
+            $context->buildViolation('Net weight cannot exceed gross weight.')
                 ->atPath('netWeightG')
                 ->addViolation();
         }

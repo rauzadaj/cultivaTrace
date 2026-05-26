@@ -25,11 +25,11 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Plant est l'entité centrale de CannaSaaS.
- * Chaque plant a un historique complet via PlantEvent (append-only).
+ * Plant is the central entity in CannaSaaS.
+ * Each plant has a complete history via PlantEvent (append-only).
  *
- * IMPORTANT : ne jamais modifier un PlantEvent existant.
- * Utiliser PlantEventRepository::appendEvent() pour toute action sur un plant.
+ * IMPORTANT: never modify an existing PlantEvent.
+ * Use PlantEventRepository::appendEvent() for any action on a plant.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'plant')]
@@ -42,8 +42,8 @@ use Symfony\Component\Uid\Uuid;
             processor: PlantStateProcessor::class,
             security: "is_granted('PLANT_EDIT', object) and is_granted('TENANT_ACCESS', object)",
             securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
-        ), // uniquement stage, room, rfidTag — pas les données de création
-        // pas de Delete — archivage uniquement via PATCH status=archived
+        ), // only stage, room, rfidTag — not creation data
+        // no Delete — archiving only via PATCH status=archived
     ],
     normalizationContext: ['groups' => ['plant:read']],
     denormalizationContext: ['groups' => ['plant:write']],

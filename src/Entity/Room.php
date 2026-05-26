@@ -17,7 +17,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Room représente une salle de culture rattachée à une ferme.
+ * Room represents a grow room attached to a farm.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'room')]

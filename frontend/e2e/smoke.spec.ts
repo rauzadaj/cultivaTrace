@@ -172,8 +172,8 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
   await expect(page).toHaveURL(/\/auth/)
 
   await page.getByLabel('Email').fill(DEMO_EMAIL)
-  await page.getByLabel('Mot de passe').fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Se connecter' }).click()
+  await page.getByLabel('Password').fill(DEMO_PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page).toHaveURL(/\/dashboard\/overview/)
   await expect(page.getByText('Shift overview')).toBeVisible()
