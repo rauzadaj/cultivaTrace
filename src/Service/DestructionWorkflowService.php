@@ -24,13 +24,13 @@ final readonly class DestructionWorkflowService
     {
         if (!$plant->isActive()) {
             throw new \InvalidArgumentException(sprintf(
-                'Plant non destructible (statut : %s)',
+                'Plant cannot be destroyed (current status: %s)',
                 $plant->getStatus()->value,
             ));
         }
 
         if (trim($reason) === '') {
-            throw new \InvalidArgumentException('La raison est obligatoire');
+            throw new \InvalidArgumentException('Reason is required');
         }
 
         $intent = new DestructionIntent($this->legalDelayDays());
@@ -61,8 +61,8 @@ final readonly class DestructionWorkflowService
     {
         if (!$intent->canBeConfirmed()) {
             throw new \InvalidArgumentException(sprintf(
-                'Destruction impossible avant le %s (%d jour(s) restant(s))',
-                $intent->getLegalDateMin()->format('d/m/Y'),
+                'Destruction not allowed before %s (%d day(s) remaining)',
+                $intent->getLegalDateMin()->format('Y-m-d'),
                 $intent->getDaysRemaining(),
             ));
         }
@@ -72,26 +72,26 @@ final readonly class DestructionWorkflowService
         $photoUrls = $payload['photoUrls'] ?? [];
 
         if ($totalWeight === null || $ratio === null) {
-            throw new \InvalidArgumentException('totalWeightG et nonCannabisRatio sont obligatoires');
+            throw new \InvalidArgumentException('totalWeightG and nonCannabisRatio are required');
         }
 
         if (!is_numeric($totalWeight) || (float) $totalWeight <= 0) {
-            throw new \InvalidArgumentException('totalWeightG doit être un nombre strictement positif');
+            throw new \InvalidArgumentException('totalWeightG must be a strictly positive number');
         }
 
         if (!is_numeric($ratio) || (float) $ratio < 0.0 || (float) $ratio > 1.0) {
-            throw new \InvalidArgumentException('nonCannabisRatio doit être un nombre entre 0 et 1');
+            throw new \InvalidArgumentException('nonCannabisRatio must be a number between 0 and 1');
         }
 
         if ((float) $ratio < 0.50) {
             throw new \InvalidArgumentException(sprintf(
-                'Le ratio matières non-cannabis doit être >= 50%% (reçu : %.1f%%)',
+                'Non-cannabis material ratio must be >= 50%% (received: %.1f%%)',
                 (float) $ratio * 100,
             ));
         }
 
         if (!is_array($photoUrls) || $photoUrls === []) {
-            throw new \InvalidArgumentException('Au moins une photo est obligatoire');
+            throw new \InvalidArgumentException('At least one photo is required');
         }
 
         $this->entityManager->beginTransaction();

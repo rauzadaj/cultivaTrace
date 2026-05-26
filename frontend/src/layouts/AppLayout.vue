@@ -12,16 +12,16 @@
 
     <template v-else>
     <div v-if="!offlineState.isOnline" class="offline-banner">
-      Hors ligne — {{ offlineState.pendingCount }} actions en attente de synchronisation
+      Offline — {{ offlineState.pendingCount }} actions pending sync
     </div>
 
     <q-banner v-if="showLicenseBanner" inline-actions class="license-banner">
       <div>
-        Licence {{ authStore.organization?.licenseStatus === 'pending' ? 'en attente de verification' : 'suspendue' }}.
-        Completez votre dossier KYB pour conserver l'acces complet.
+        License {{ authStore.organization?.licenseStatus === 'pending' ? 'pending verification' : 'suspended' }}.
+        Complete your KYB file to maintain full access.
       </div>
       <template #action>
-        <q-btn flat color="primary" label="Verifier ma licence" to="/kyb" />
+        <q-btn flat color="primary" label="Verify my license" to="/kyb" />
       </template>
     </q-banner>
 
@@ -47,7 +47,7 @@
         </div>
 
         <template v-if="isDesktop">
-          <c-input class="app-header__search" dense standout="bg-white text-dark" placeholder="Recherche globale">
+          <c-input class="app-header__search" dense standout="bg-white text-dark" placeholder="Global search">
             <template #prepend>
               <q-icon name="mdi-magnify" size="18px" />
             </template>
@@ -115,13 +115,13 @@
 
         <button v-if="!isMobile" class="sidebar-collapse-btn" :class="{ 'sidebar-collapse-btn--collapsed': !showDrawerLabels }" @click="toggleDesktopSidebar">
           <q-icon :name="desktopSidebarCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left'" size="16px" />
-          <span v-if="showDrawerLabels">Réduire</span>
+          <span v-if="showDrawerLabels">Collapse</span>
         </button>
 
         <div v-if="isMobile" class="app-drawer__footer">
           <div class="app-drawer__user">
             <strong>{{ userDisplayName }}</strong>
-            <span>{{ authStore.user?.email || 'operateur@cultivatrace.local' }}</span>
+            <span>{{ authStore.user?.email || 'operator@cultivatrace.local' }}</span>
           </div>
           <c-btn variant="ghost" class="full-width" @click="logout">Logout</c-btn>
         </div>
@@ -159,7 +159,7 @@
         <div class="notifications-panel__header">
           <div>
             <p class="notifications-panel__eyebrow">Notifications</p>
-            <h2>Alertes actives</h2>
+            <h2>Active alerts</h2>
           </div>
           <q-btn flat round icon="mdi-close" @click="notificationsOpen = false" />
         </div>
@@ -173,19 +173,19 @@
             <p>{{ alert.message }}</p>
             <small v-if="alert.context">{{ alert.context }}</small>
             <div v-if="alert.acknowledgeable" class="notifications-panel__actions">
-              <q-btn flat dense no-caps color="primary" label="Acquitter" @click="acknowledgeAlert(alert.id)" />
+              <q-btn flat dense no-caps color="primary" label="Acknowledge" @click="acknowledgeAlert(alert.id)" />
             </div>
           </article>
         </div>
 
         <div v-else-if="!alertsStore.loading" class="notifications-panel__empty">
           <q-icon name="mdi-check-circle-outline" size="28px" />
-          <strong>Aucune alerte en attente</strong>
+          <strong>No pending alerts</strong>
         </div>
 
         <div v-else class="notifications-panel__empty">
           <q-spinner color="primary" size="28px" />
-          <strong>Chargement des alertes…</strong>
+          <strong>Loading alerts…</strong>
         </div>
       </q-card>
     </q-dialog>
@@ -194,8 +194,8 @@
       <q-card class="action-dialog">
         <div class="action-dialog__header">
           <div>
-            <p class="notifications-panel__eyebrow">Action rapide</p>
-            <h2>Nouveau plant</h2>
+            <p class="notifications-panel__eyebrow">Quick action</p>
+            <h2>New plant</h2>
           </div>
           <q-btn flat round icon="mdi-close" @click="createPlantOpen = false" />
         </div>
@@ -209,7 +209,7 @@
             option-value="value"
             emit-value
             map-options
-            label="Salle"
+            label="Room"
             stack-label
           />
           <c-input
@@ -220,16 +220,16 @@
             option-value="value"
             emit-value
             map-options
-            label="Genetique"
+            label="Genetics"
             stack-label
           />
-          <c-input v-model="createPlantForm.rfidTag" label="RFID / Etiquette" />
-          <c-input v-model="createPlantForm.germinatedAt" label="Date de germination" type="date" />
+          <c-input v-model="createPlantForm.rfidTag" label="RFID / Tag" />
+          <c-input v-model="createPlantForm.germinatedAt" label="Germination date" type="date" />
         </div>
 
         <div class="action-dialog__footer">
-          <c-btn variant="ghost" @click="createPlantOpen = false">Annuler</c-btn>
-          <c-btn variant="primary" :loading="actionPending" @click="submitCreatePlant">Creer</c-btn>
+          <c-btn variant="ghost" @click="createPlantOpen = false">Cancel</c-btn>
+          <c-btn variant="primary" :loading="actionPending" @click="submitCreatePlant">Create</c-btn>
         </div>
       </q-card>
     </q-dialog>
@@ -238,14 +238,14 @@
       <q-card class="action-dialog">
         <div class="action-dialog__header">
           <div>
-            <p class="notifications-panel__eyebrow">Action rapide</p>
-            <h2>Changer le stade</h2>
+            <p class="notifications-panel__eyebrow">Quick action</p>
+            <h2>Change stage</h2>
           </div>
           <q-btn flat round icon="mdi-close" @click="stageDialogOpen = false" />
         </div>
 
         <div class="action-dialog__body action-dialog__body--chips">
-            <p v-if="!stageOptions.length" class="action-dialog__hint">Aucune transition disponible pour ce plant.</p>
+            <p v-if="!stageOptions.length" class="action-dialog__hint">No transitions available for this plant.</p>
             <q-chip
               v-for="option in stageOptions"
               :key="option.label"
@@ -260,7 +260,7 @@
         </div>
 
         <div v-if="stageOptions.length" class="action-dialog__footer">
-          <c-btn variant="ghost" @click="stageDialogOpen = false">Fermer</c-btn>
+          <c-btn variant="ghost" @click="stageDialogOpen = false">Close</c-btn>
         </div>
       </q-card>
     </q-dialog>
@@ -270,6 +270,7 @@
         <div class="action-dialog__header">
           <div>
             <p class="notifications-panel__eyebrow">Confirmation</p>
+
             <h2>{{ confirmDialog.title }}</h2>
           </div>
         </div>
@@ -279,8 +280,8 @@
         </div>
 
         <div class="action-dialog__footer">
-          <c-btn variant="ghost" @click="closeConfirmDialog">Annuler</c-btn>
-          <c-btn variant="danger" :loading="actionPending" @click="runConfirmedAction">Confirmer</c-btn>
+          <c-btn variant="ghost" @click="closeConfirmDialog">Cancel</c-btn>
+          <c-btn variant="danger" :loading="actionPending" @click="runConfirmedAction">Confirm</c-btn>
         </div>
       </q-card>
     </q-dialog>
@@ -355,8 +356,8 @@ const showLicenseBanner = computed(() => {
   const status = authStore.organization?.licenseStatus
   return status === 'pending' || status === 'suspended'
 })
-const userIdentity = computed(() => authStore.user?.email || 'Operateur')
-const userDisplayName = computed(() => userIdentity.value.split('@')[0] || 'Operateur')
+const userIdentity = computed(() => authStore.user?.email || 'Operator')
+const userDisplayName = computed(() => userIdentity.value.split('@')[0] || 'Operator')
 const currentPlant = computed<Plant | null>(() => {
   const routeId = String(route.params.id || '')
 
@@ -375,7 +376,7 @@ const notifications = computed<AlertItem[]>(() => {
       title: 'Synchronisation',
       message: plantsStore.error,
       severity: 'critical',
-      context: 'Verifiez le backend ou la connectivite.',
+      context: 'Check the backend or connectivity.',
       acknowledgeable: false,
     })
   }
@@ -398,9 +399,9 @@ const roomOptions = computed(() => plantsStore.roomIriList())
 const strainOptions = computed(() => plantsStore.strainIriList())
 const stageOptions = computed(() => {
   if (!currentPlant.value) return []
-  if (currentPlant.value.stage === 'germination') return [{ label: 'Passer en vegetation', transition: 'vegetation' as const }]
-  if (currentPlant.value.stage === 'vegetation') return [{ label: 'Passer en floraison', transition: 'flowering' as const }]
-  if (currentPlant.value.stage === 'flowering') return [{ label: 'Marquer recolte', transition: 'harvest' as const }]
+  if (currentPlant.value.stage === 'germination') return [{ label: 'Move to vegetation', transition: 'vegetation' as const }]
+  if (currentPlant.value.stage === 'vegetation') return [{ label: 'Move to flowering', transition: 'flowering' as const }]
+  if (currentPlant.value.stage === 'flowering') return [{ label: 'Mark as harvested', transition: 'harvest' as const }]
 
   return []
 })
@@ -409,19 +410,19 @@ const ORG_USER_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN
 const ORG_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN']
 
 const mobileNavigation: readonly RoleScopedNavigationItem[] = [
-  { label: 'Accueil', icon: 'mdi-home-outline', to: '/dashboard/overview', roles: ORG_USER_ROLES },
+  { label: 'Home', icon: 'mdi-home-outline', to: '/dashboard/overview', roles: ORG_USER_ROLES },
   { label: 'Plants', icon: 'mdi-sprout-outline', to: '/plants', roles: ORG_USER_ROLES },
-  { label: 'Salles', icon: 'mdi-door-open', to: '/rooms', roles: ORG_USER_ROLES },
-  { label: 'Capteurs', icon: 'mdi-thermometer-lines', to: '/sensors', roles: ORG_USER_ROLES },
+  { label: 'Rooms', icon: 'mdi-door-open', to: '/rooms', roles: ORG_USER_ROLES },
+  { label: 'Sensors', icon: 'mdi-thermometer-lines', to: '/sensors', roles: ORG_USER_ROLES },
   { label: 'Plus', icon: 'mdi-dots-horizontal', to: '/more', roles: ORG_USER_ROLES },
 ] as const
 
 const desktopNavigation: readonly RoleScopedNavigationItem[] = [
   ...mobileNavigation.slice(0, 4),
   { label: 'Reporting', icon: 'mdi-file-chart-outline', to: '/reporting', roles: ORG_ADMIN_ROLES },
-  { label: 'Conformite', icon: 'mdi-shield-check-outline', to: '/compliance', roles: ORG_ADMIN_ROLES },
-  { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing', roles: ORG_ADMIN_ROLES },
-  { label: 'Parametres', icon: 'mdi-cog-outline', to: '/settings', roles: ORG_ADMIN_ROLES },
+  { label: 'Compliance', icon: 'mdi-shield-check-outline', to: '/compliance', roles: ORG_ADMIN_ROLES },
+  { label: 'Billing', icon: 'mdi-credit-card-outline', to: '/billing', roles: ORG_ADMIN_ROLES },
+  { label: 'Settings', icon: 'mdi-cog-outline', to: '/settings', roles: ORG_ADMIN_ROLES },
   mobileNavigation[4],
 ] as const
 
@@ -457,15 +458,15 @@ const breadcrumb = computed(() => {
 })
 
 const mobileKicker = computed(() => {
-  if (route.name === 'plants-list') return 'Terrain'
-  if (route.name === 'plant-detail') return 'Suivi plant'
+  if (route.name === 'plants-list') return 'Field'
+  if (route.name === 'plant-detail') return 'Plant tracking'
   if (route.name === 'rooms-dashboard') return 'Monitoring'
-  if (route.name === 'sensors-dashboard') return 'Capteurs'
-  if (route.name === 'kyb') return 'Conformite'
+  if (route.name === 'sensors-dashboard') return 'Sensors'
+  if (route.name === 'kyb') return 'Compliance'
   if (route.name === 'compliance') return 'CTS'
   if (route.name === 'reporting') return 'Reporting'
-  if (route.name === 'billing' || route.name === 'billing-success') return 'Abonnement'
-  if (route.name === 'settings') return 'Compte'
+  if (route.name === 'billing' || route.name === 'billing-success') return 'Subscription'
+  if (route.name === 'settings') return 'Account'
 
   return 'Cultivation'
 })
@@ -548,9 +549,9 @@ function openNotifications() {
 async function acknowledgeAlert(id: string) {
   try {
     await alertsStore.acknowledgeAlert(id)
-    $q.notify({ type: 'positive', message: 'Alerte acquittee.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 1500 })
+    $q.notify({ type: 'positive', message: 'Alert acknowledged.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 1500 })
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Impossible d’acquitter cette alerte.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 3000 })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Failed to acknowledge alert.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 3000 })
   }
 }
 
@@ -592,7 +593,7 @@ async function submitCreatePlant() {
     await plantsStore.fetchPlants()
     createPlantOpen.value = false
     createPlantForm.rfidTag = ''
-    $q.notify({ type: 'positive', message: 'Plant cree.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 2000 })
+    $q.notify({ type: 'positive', message: 'Plant created.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 2000 })
     await router.push({ name: 'plant-detail', params: { id: plant.id } })
   } catch (error) {
     $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Creation failed.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 4000 })
@@ -623,8 +624,8 @@ async function submitStageChange(transition: PlantStage) {
 
   if (transition === 'harvest') {
     openConfirmDialog(
-      'Confirmer la recolte',
-      `Le plant ${plantsStore.plantName(currentPlant.value)} va passer en recolte.`,
+      'Confirm harvest',
+      `Plant ${plantsStore.plantName(currentPlant.value)} will move to harvest.`,
       executeTransition,
     )
     return
@@ -826,7 +827,7 @@ async function runConfirmedAction() {
   transition: opacity 0.15s;
 }
 
-/* Collapsed state — icon centré */
+/* Collapsed state — centered icon */
 .app-nav__item--collapsed {
   justify-content: center;
   padding: 0;

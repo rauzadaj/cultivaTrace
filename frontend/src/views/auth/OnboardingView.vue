@@ -3,10 +3,10 @@
     <div class="onboarding-layout">
       <section class="onboarding-hero">
         <p class="onboarding-hero__eyebrow">Tenant onboarding</p>
-        <h1>Crée ton organisation et verrouille la suite du flow côté serveur.</h1>
+        <h1>Create your organization and lock in the server-side flow.</h1>
         <p class="onboarding-hero__copy">
-          L’organisation, le premier admin et le customer Stripe sont créés en une seule requête. Le plan
-          sélectionné sert de point de départ commercial, puis l’activation passe par KYB et facturation.
+          The organization, first admin, and Stripe customer are created in a single request. The selected
+          plan serves as the commercial starting point, then activation goes through KYB and billing.
         </p>
       </section>
 
@@ -21,7 +21,7 @@
         <form class="onboarding-form" @submit.prevent="submit">
           <q-input
             v-model="organizationName"
-            label="Nom de l'organisation"
+            label="Organization name"
             autocomplete="organization"
             outlined
             :error="!!fieldErrors.organizationName"
@@ -31,7 +31,7 @@
           />
           <q-input
             v-model="email"
-            label="Email admin"
+            label="Admin email"
             type="email"
             autocomplete="email"
             outlined
@@ -42,7 +42,7 @@
           />
           <q-input
             v-model="password"
-            label="Mot de passe"
+            label="Password"
             type="password"
             autocomplete="new-password"
             outlined
@@ -58,7 +58,7 @@
             option-value="value"
             emit-value
             map-options
-            label="Pays"
+            label="Country"
             outlined
             :error="!!fieldErrors.country"
             :error-message="fieldErrors.country"
@@ -71,7 +71,7 @@
             option-value="value"
             emit-value
             map-options
-            label="Plan cible"
+            label="Target plan"
             outlined
             :error="!!fieldErrors.plan"
             :error-message="fieldErrors.plan"
@@ -83,7 +83,7 @@
           </q-banner>
 
           <q-banner rounded class="onboarding-note">
-            Le plan actif reste <strong>starter</strong> tant que KYB et la souscription Stripe ne sont pas finalisés.
+            The active plan remains <strong>starter</strong> until KYB and the Stripe subscription are finalized.
           </q-banner>
 
           <q-btn
@@ -94,13 +94,13 @@
             class="full-width"
             :loading="loading"
           >
-            Créer l’organisation
+            Create organization
           </q-btn>
         </form>
 
         <div class="onboarding-footer">
-          <span>Déjà un compte ?</span>
-          <RouterLink to="/auth">Retour à la connexion</RouterLink>
+          <span>Already have an account?</span>
+          <RouterLink to="/auth">Back to sign in</RouterLink>
         </div>
       </q-card>
     </div>
@@ -142,11 +142,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     },
   },
   {
-    organizationName: [validators.required('Nom d’organisation requis.')],
-    email: [validators.required('Email admin requis.'), validators.email('Email admin invalide.')],
-    password: [validators.required('Mot de passe requis.'), validators.minLength(8, 'Minimum 8 caractères.')],
-    country: [validators.required('Pays requis.')],
-    plan: [validators.required('Plan requis.')],
+    organizationName: [validators.required('Organization name required.')],
+    email: [validators.required('Admin email required.'), validators.email('Invalid admin email.')],
+    password: [validators.required('Password required.'), validators.minLength(8, 'Minimum 8 characters.')],
+    country: [validators.required('Country required.')],
+    plan: [validators.required('Plan required.')],
   },
 )
 
@@ -185,7 +185,7 @@ async function submit() {
 
     await router.push(nextPath)
   } catch (caughtError) {
-    applyApiError(caughtError, 'Impossible de créer l’organisation.')
+    applyApiError(caughtError, 'Failed to create organization.')
   } finally {
     loading.value = false
   }

@@ -25,8 +25,8 @@ describe('alerts store', () => {
           {
             id: 'a1',
             type: 'sensor_threshold',
-            title: 'Salle A',
-            message: 'Température haute',
+            title: 'Room A',
+            message: 'High temperature',
             severity: 'warning',
             createdAt: '2026-04-07T12:00:00+00:00',
             acknowledgedAt: null,
@@ -34,8 +34,8 @@ describe('alerts store', () => {
           {
             id: 'a2',
             type: 'sensor_threshold',
-            title: 'Salle B',
-            message: 'CO2 haut',
+            title: 'Room B',
+            message: 'High CO2',
             severity: 'critical',
             createdAt: '2026-04-07T11:00:00+00:00',
             acknowledgedAt: '2026-04-07T11:30:00+00:00',
@@ -60,8 +60,8 @@ describe('alerts store', () => {
       {
         id: 'a1',
         type: 'sensor_threshold',
-        title: 'Salle A',
-        message: 'Température haute',
+        title: 'Room A',
+        message: 'High temperature',
         severity: 'warning',
         createdAt: '2026-04-07T12:00:00+00:00',
         acknowledgedAt: null,
@@ -72,8 +72,8 @@ describe('alerts store', () => {
       data: {
         id: 'a1',
         type: 'sensor_threshold',
-        title: 'Salle A',
-        message: 'Température haute',
+        title: 'Room A',
+        message: 'High temperature',
         severity: 'warning',
         createdAt: '2026-04-07T12:00:00+00:00',
         acknowledgedAt: '2026-04-07T12:05:00+00:00',

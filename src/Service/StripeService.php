@@ -21,12 +21,12 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
- * StripeService — gestion des abonnements via Stripe.
+ * StripeService — subscription management via Stripe.
  *
- * Prérequis :
+ * Requirements:
  *   composer require stripe/stripe-php
  *
- * Variables d'env requises :
+ * Required env variables:
  *   STRIPE_SECRET_KEY=sk_test_...
  *   STRIPE_WEBHOOK_SECRET=whsec_...
  *   STRIPE_PRICE_STARTER=price_...
@@ -34,9 +34,9 @@ use Symfony\Component\Mime\Email;
  *   STRIPE_PRICE_BUSINESS=price_...
  *   FRONTEND_URL=http://localhost:5173
  *
- * Création des prix Stripe :
- *   Dashboard Stripe → Products → Create product
- *   Un produit par plan (Starter 79€/mois, Pro 249€/mois, Business 599€/mois)
+ * Creating Stripe prices:
+ *   Stripe Dashboard → Products → Create product
+ *   One product per plan (Starter €79/mo, Pro €249/mo, Business €599/mo)
  */
 class StripeService
 {
@@ -56,8 +56,8 @@ class StripeService
     }
 
     /**
-     * Crée une session Stripe Checkout.
-     * Retourne l'URL vers laquelle rediriger l'utilisateur.
+     * Creates a Stripe Checkout session.
+     * Returns the URL to redirect the user to.
      */
     public function createCheckoutSession(
         Organization $organization,
@@ -84,7 +84,7 @@ class StripeService
             ],
         ];
 
-        // Réutiliser le customer Stripe existant si disponible
+        // Reuse existing Stripe customer if available
         if ($organization->getStripeCustomerId()) {
             $params['customer'] = $organization->getStripeCustomerId();
         } else {
@@ -125,7 +125,7 @@ class StripeService
     }
 
     /**
-     * Crée une session Stripe Customer Portal.
+     * Creates a Stripe Customer Portal session.
      */
     public function createPortalSession(string $customerId, string $returnUrl): string
     {
@@ -201,10 +201,10 @@ class StripeService
     }
 
     /**
-     * Traite un webhook Stripe.
-     * Vérifie la signature avant de traiter l'événement.
+     * Handles a Stripe webhook.
+     * Verifies the signature before processing the event.
      *
-     * @throws \InvalidArgumentException si la signature est invalide
+     * @throws \InvalidArgumentException if the signature is invalid
      */
     public function handleWebhook(string $payload, string $signature): void
     {
@@ -214,7 +214,7 @@ class StripeService
             $this->stripeWebhookSecret
         );
 
-        $this->logger->info('[Stripe] Webhook reçu', ['event_type' => $event->type]);
+        $this->logger->info('[Stripe] Webhook received', ['event_type' => $event->type]);
 
         match ($event->type) {
             'checkout.session.completed'     => $this->onCheckoutCompleted($event),
@@ -232,13 +232,13 @@ class StripeService
         $plan    = $session->metadata->plan ?? null;
 
         if (!$orgId || !$plan) {
-            $this->logger->error('[Stripe] checkout.session.completed sans organization_id ou plan');
+            $this->logger->error('[Stripe] checkout.session.completed missing organization_id or plan');
             return;
         }
 
         $org = $this->em->getRepository(Organization::class)->find($orgId);
         if (!$org) {
-            $this->logger->error('[Stripe] Organisation non trouvée', ['org_id' => $orgId]);
+            $this->logger->error('[Stripe] Organization not found', ['org_id' => $orgId]);
             return;
         }
 
@@ -246,24 +246,24 @@ class StripeService
         $org->setStripeCustomerId($session->customer);
         $this->em->flush();
 
-        $this->logger->info('[Stripe] Organisation passée au plan', [
+        $this->logger->info('[Stripe] Organization upgraded to plan', [
             'org_id'   => $orgId,
             'plan'     => $plan,
             'customer' => $this->maskCustomerId((string) $session->customer),
         ]);
 
-        // Email de confirmation
+        // Confirmation email
         $firstUser = $org->getUsers()->first();
         $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
         if ($userEmail) {
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('✅ Abonnement CannaSaaS activé — Plan ' . ucfirst($plan))
+                ->subject('✅ CannaSaaS subscription activated — ' . ucfirst($plan) . ' plan')
                 ->text(sprintf(
-                    "Votre abonnement CannaSaaS plan %s est maintenant actif.\n\n" .
-                    "Vous pouvez gérer votre abonnement depuis votre espace facturation.\n\n" .
-                    "Merci de faire confiance à CannaSaaS !",
+                    "Your CannaSaaS %s plan subscription is now active.\n\n" .
+                    "You can manage your subscription from your billing dashboard.\n\n" .
+                    "Thank you for trusting CannaSaaS!",
                     ucfirst($plan)
                 ));
             $this->mailer->send($email);
@@ -279,7 +279,7 @@ class StripeService
             ->findOneBy(['stripeCustomerId' => $customerId]);
 
         if (!$org) {
-            $this->logger->warning('[Stripe] Organisation non trouvée pour customer', [
+            $this->logger->warning('[Stripe] Organization not found for customer', [
                 'customer' => $this->maskCustomerId((string) $customerId),
             ]);
             return;
@@ -289,7 +289,7 @@ class StripeService
         $org->setLicenseStatus(LicenseStatus::SUSPENDED);
         $this->em->flush();
 
-        $this->logger->info('[Stripe] Abonnement annulé', [
+        $this->logger->info('[Stripe] Subscription cancelled', [
             'org_id'   => (string) $org->getId(),
             'customer' => $this->maskCustomerId((string) $customerId),
         ]);
@@ -311,11 +311,11 @@ class StripeService
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('⚠️ Échec de paiement — Action requise')
+                ->subject('⚠️ Payment failed — Action required')
                 ->text(
-                    "Le renouvellement de votre abonnement CannaSaaS a échoué.\n\n" .
-                    "Veuillez mettre à jour votre moyen de paiement depuis votre espace facturation.\n" .
-                    "Sans action de votre part sous 7 jours, votre accès sera suspendu."
+                    "Your CannaSaaS subscription renewal has failed.\n\n" .
+                    "Please update your payment method from your billing dashboard.\n" .
+                    "Without action within 7 days, your access will be suspended."
                 );
             $this->mailer->send($email);
         }
@@ -330,7 +330,7 @@ class StripeService
             ->findOneBy(['stripeCustomerId' => $customerId]);
 
         if (!$org) {
-            $this->logger->info('[Stripe] Paiement réussi — organisation non trouvée', [
+            $this->logger->info('[Stripe] Payment succeeded — organization not found', [
                 'customer' => $this->maskCustomerId((string) $customerId),
             ]);
             return;
@@ -346,12 +346,12 @@ class StripeService
                 $this->em->flush();
             }
 
-            $this->logger->info('[Stripe] Paiement réussi — abonnement resynchronisé', [
+            $this->logger->info('[Stripe] Payment succeeded — subscription re-synced', [
                 'org_id'   => (string) $org->getId(),
                 'customer' => $this->maskCustomerId((string) $customerId),
             ]);
         } catch (\Throwable $e) {
-            $this->logger->error('[Stripe] Échec resync après paiement réussi', ['error' => $e->getMessage()]);
+            $this->logger->error('[Stripe] Resync failed after successful payment', ['error' => $e->getMessage()]);
         }
     }
 

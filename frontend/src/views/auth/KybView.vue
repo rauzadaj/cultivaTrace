@@ -4,10 +4,10 @@
 
       <!-- Header -->
       <div class="kyb-header q-mb-xl">
-        <div class="text-h5 text-weight-bold text-primary">Vérification de licence</div>
+        <div class="text-h5 text-weight-bold text-primary">License verification</div>
         <div class="text-body2 text-grey-6 q-mt-xs">
-          CannaSaaS est réservé aux opérateurs licenciés.
-          Soumettez votre licence pour activer votre accès complet.
+          CannaSaaS is reserved for licensed operators.
+          Submit your license to activate full access.
         </div>
       </div>
 
@@ -23,26 +23,26 @@
         </template>
         <div class="text-weight-medium">{{ statusMessage }}</div>
         <div v-if="kybStatus.licenseExpiresAt" class="text-caption q-mt-xs">
-          Expire le {{ formatDate(kybStatus.licenseExpiresAt) }}
+          Expires on {{ formatDate(kybStatus.licenseExpiresAt) }}
         </div>
       </q-banner>
 
       <q-banner v-if="statusError" rounded class="bg-negative text-white q-mb-lg">
         <div class="text-weight-medium">{{ statusError }}</div>
-        <q-btn flat color="white" no-caps label="Réessayer" class="q-mt-sm" @click="retryStatus" />
+        <q-btn flat color="white" no-caps label="Retry" class="q-mt-sm" @click="retryStatus" />
       </q-banner>
 
       <!-- Formulaire de soumission -->
       <q-card v-if="showForm" flat bordered class="kyb-form-card">
         <q-card-section>
           <div class="text-subtitle1 text-weight-medium q-mb-md">
-            Soumettre votre licence
+            Submit your license
           </div>
 
           <q-select
             v-model="form.licenseType"
             :options="licenseTypeOptions"
-            label="Type de licence *"
+            label="License type *"
             outlined
             emit-value
             map-options
@@ -54,7 +54,7 @@
 
           <q-input
             v-model="form.licenseNumber"
-            label="Numéro de licence *"
+            label="License number *"
             outlined
             class="q-mb-md"
             :hint="licenseNumberHint"
@@ -67,11 +67,11 @@
 
           <div class="q-mb-md">
             <div class="text-caption text-grey-6 q-mb-sm">
-              Document de licence (PDF ou image) — optionnel en développement
+              License document (PDF or image) — optional in development
             </div>
             <q-file
               v-model="form.file"
-              label="Choisir un fichier"
+              label="Choose a file"
               outlined
               accept=".pdf,.jpg,.jpeg,.png"
               max-file-size="5242880"
@@ -90,7 +90,7 @@
           </q-banner>
 
           <q-btn
-            label="Soumettre la licence"
+            label="Submit license"
             color="primary"
             unelevated
             :loading="loading"
@@ -105,14 +105,14 @@
             flat
             color="primary"
             no-caps
-            label="Réessayer l’envoi"
+            label="Retry submission"
             class="full-width q-mt-sm"
             @click="submitLicense"
           />
         </q-card-section>
       </q-card>
 
-      <!-- Résultat de la vérification -->
+      <!-- Verification result -->
       <q-card v-if="result" flat bordered class="q-mt-lg">
         <q-card-section>
           <div class="row items-center q-gutter-sm q-mb-md">
@@ -125,13 +125,13 @@
           </div>
 
           <div class="text-body2 text-grey-7">
-            Méthode de vérification : {{ result.verificationMethod }}
+            Verification method: {{ result.verificationMethod }}
           </div>
         </q-card-section>
 
         <q-card-actions v-if="result.status === 'active'">
           <q-btn
-            label="Accéder au dashboard"
+            label="Go to dashboard"
             color="primary"
             flat
             @click="goToDashboard"
@@ -180,15 +180,15 @@ const { fieldErrors, validateField, validateAll, clearFieldError, clearAllErrors
     },
   },
   {
-    licenseType: [validators.required('Type de licence requis.')],
-    licenseNumber: [validators.required('Numéro de licence requis.')],
+    licenseType: [validators.required('License type required.')],
+    licenseNumber: [validators.required('License number required.')],
     file: [
       (value) => {
         if (!(value instanceof File)) {
           return null
         }
 
-        return value.size <= 5 * 1024 * 1024 ? null : 'Fichier trop volumineux (5 Mo max).'
+        return value.size <= 5 * 1024 * 1024 ? null : 'File too large (5 MB max).'
       },
     ],
   },
@@ -199,20 +199,20 @@ const devSimulationEnabled = import.meta.env.VITE_KYB_ENABLE_DEV_SIMULATION === 
 const licenseTypeOptions = [
   { label: 'Health Canada (Canada)', value: 'health_canada' },
   { label: 'METRC (USA)', value: 'metrc_usa' },
-  { label: 'BfArM (Allemagne)', value: 'bfarm_de' },
+  { label: 'BfArM (Germany)', value: 'bfarm_de' },
   { label: 'ANSM (France)', value: 'ansm_fr' },
-  ...(devSimulationEnabled ? [{ label: 'CTLS fictive (dev)', value: 'ctls_dev' }] : []),
+  ...(devSimulationEnabled ? [{ label: 'Fake CTLS (dev)', value: 'ctls_dev' }] : []),
 ]
 
 const licenseNumberHint = computed(() => {
   const hints: Record<string, string> = {
     health_canada: 'Format : LP-XXXXXXXX (ex: LP-12345678)',
     ctls_dev:      'Format dev : TEST-CTLS-XXXX (ex: TEST-CTLS-DEMO-001)',
-    metrc_usa:     'Format : {ÉTAT}-LIC-XXXXX (ex: CO-LIC-12345)',
+    metrc_usa:     'Format: {STATE}-LIC-XXXXX (ex: CO-LIC-12345)',
     bfarm_de:      'Format : BfArM-DE-XXXXX',
     ansm_fr:       'Format : ANSM-FR-XXXXX',
   }
-  return hints[form.value.licenseType] ?? 'Entrez votre numéro de licence officiel'
+  return hints[form.value.licenseType] ?? 'Enter your official license number'
 })
 
 const showForm = computed(() =>
@@ -246,13 +246,13 @@ const statusIcon = computed(() => {
 
 const statusMessage = computed(() => {
   const map: Record<string, string> = {
-    active:    'Licence vérifiée — Accès complet activé',
-    pending:   'Vérification en cours — Accès limité',
-    rejected:  'Licence rejetée — Veuillez soumettre une nouvelle licence valide',
-    expired:   'Licence expirée — Renouvelez votre licence',
-    suspended: 'Compte suspendu — contactez l’équipe conformité.',
+    active:    'License verified — Full access activated',
+    pending:   'Verification in progress — Limited access',
+    rejected:  'License rejected — Please submit a new valid license',
+    expired:   'License expired — Renew your license',
+    suspended: 'Account suspended — contact the compliance team.',
   }
-  return map[kybStatus.value?.licenseStatus] ?? 'Statut inconnu'
+  return map[kybStatus.value?.licenseStatus] ?? 'Unknown status'
 })
 
 async function loadStatus(): Promise<void> {
@@ -262,7 +262,7 @@ async function loadStatus(): Promise<void> {
     kybStatus.value = data
   } catch (error) {
     const axiosError = error as { response?: { data?: { error?: string } } }
-    statusError.value = axiosError.response?.data?.error ?? 'Impossible de charger le statut KYB.'
+    statusError.value = axiosError.response?.data?.error ?? 'Unable to load KYB status.'
   }
 }
 
@@ -274,7 +274,7 @@ async function submitLicense(): Promise<void> {
     form.value.licenseNumber = form.value.licenseNumber.trim()
 
     if (!validateAll()) {
-      submitError.value = 'Corrigez les champs invalides avant de soumettre.'
+      submitError.value = 'Fix the invalid fields before submitting.'
       return
     }
 
@@ -292,16 +292,16 @@ async function submitLicense(): Promise<void> {
 
     if (data.status === 'active') {
       await authStore.fetchMe()
-      $q.notify({ type: 'positive', message: '✅ Licence validée ! Accès complet activé.' })
+      $q.notify({ type: 'positive', message: '✅ License validated! Full access activated.' })
     } else if (data.status === 'pending') {
-      $q.notify({ type: 'warning', message: '⏳ Soumission reçue — vérification en cours (24-48h).' })
+      $q.notify({ type: 'warning', message: '⏳ Submission received — verification in progress (24-48h).' })
       startPolling()
     } else if (data.status === 'rejected') {
-      $q.notify({ type: 'negative', message: 'Licence rejetée. Corrigez les informations avant une nouvelle tentative.' })
+      $q.notify({ type: 'negative', message: 'License rejected. Correct the information before retrying.' })
     }
   } catch (e) {
-    applyApiError(e, 'Erreur lors de la soumission.')
-    submitError.value = submitError.value || 'Erreur lors de la soumission.'
+    applyApiError(e, 'Error during submission.')
+    submitError.value = submitError.value || 'Error during submission.'
     $q.notify({ type: 'negative', message: submitError.value })
   } finally {
     loading.value = false
@@ -322,7 +322,7 @@ function startPolling(): void {
     if (kybStatus.value?.licenseStatus === 'active') {
       stopPolling()
       await authStore.fetchMe()
-      $q.notify({ type: 'positive', message: '✅ Licence activée ! Accès complet débloqué.' })
+      $q.notify({ type: 'positive', message: '✅ License activated! Full access unlocked.' })
     }
   }, 30_000)
 }
@@ -339,7 +339,7 @@ async function retryStatus(): Promise<void> {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR')
+  return new Date(dateStr).toLocaleDateString('en-US')
 }
 
 function goToDashboard(): void {

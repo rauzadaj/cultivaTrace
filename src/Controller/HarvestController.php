@@ -19,12 +19,12 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 /**
  * POST /api/plants/{id}/harvest
  *
- * Transaction atomique :
- *   1. Crée HarvestRecord
- *   2. Met à jour Plant (status + stage)
- *   3. Ajoute PlantEvent "harvest" dans l'audit trail
+ * Atomic transaction:
+ *   1. Creates HarvestRecord
+ *   2. Updates Plant (status + stage)
+ *   3. Adds PlantEvent "harvest" to the audit trail
  *
- * Si l'une des 3 opérations échoue → rollback complet.
+ * If any of the 3 operations fails → full rollback.
  */
 #[Route('/api/plants/{id}/harvest', methods: ['POST'])]
 class HarvestController extends AbstractController

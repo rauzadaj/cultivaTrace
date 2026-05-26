@@ -42,7 +42,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testMissingGrossWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/grossWeightG.*obligatoires/');
+        $this->expectExceptionMessageMatches('/grossWeightG.*required/');
 
         $this->service->harvest($this->activePlant(), new User(), ['netWeightG' => 50.0]);
     }
@@ -50,7 +50,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testMissingNetWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/netWeightG.*obligatoires/');
+        $this->expectExceptionMessageMatches('/netWeightG.*required/');
 
         $this->service->harvest($this->activePlant(), new User(), ['grossWeightG' => 100.0]);
     }
@@ -58,7 +58,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testZeroGrossWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/grossWeightG.*strictement positif/');
+        $this->expectExceptionMessageMatches('/grossWeightG.*strictly positive/');
 
         $this->service->harvest($this->activePlant(), new User(), ['grossWeightG' => 0, 'netWeightG' => 0]);
     }
@@ -66,7 +66,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testNegativeGrossWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/grossWeightG.*strictement positif/');
+        $this->expectExceptionMessageMatches('/grossWeightG.*strictly positive/');
 
         $this->service->harvest($this->activePlant(), new User(), ['grossWeightG' => -10.0, 'netWeightG' => 5.0]);
     }
@@ -74,7 +74,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testZeroNetWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/netWeightG.*strictement positif/');
+        $this->expectExceptionMessageMatches('/netWeightG.*strictly positive/');
 
         $this->service->harvest($this->activePlant(), new User(), ['grossWeightG' => 100.0, 'netWeightG' => 0]);
     }
@@ -82,7 +82,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testNetWeightExceedsGrossWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/poids net.*supérieur.*brut/');
+        $this->expectExceptionMessageMatches('/[Nn]et weight.*exceed.*gross/');
 
         $this->service->harvest($this->activePlant(), new User(), ['grossWeightG' => 80.0, 'netWeightG' => 100.0]);
     }
@@ -90,7 +90,7 @@ final class HarvestWorkflowServiceTest extends TestCase
     public function testNonNumericWeightThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/strictement positif/');
+        $this->expectExceptionMessageMatches('/strictly positive/');
 
         $this->service->harvest($this->activePlant(), new User(), ['grossWeightG' => 'abc', 'netWeightG' => 50.0]);
     }

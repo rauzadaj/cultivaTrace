@@ -2,18 +2,18 @@
   <div class="settings-view">
     <header>
       <p class="eyebrow">Tenant admin</p>
-      <h1>Administration organisation</h1>
+      <h1>Organization administration</h1>
     </header>
 
     <div class="settings-grid">
       <q-card class="settings-card">
         <q-card-section>
           <p class="eyebrow">Organisation</p>
-          <h2>Paramètres</h2>
+          <h2>Settings</h2>
 
           <form class="settings-form" @submit.prevent="saveSettings">
             <q-input v-model="form.name" label="Nom" outlined />
-            <q-input v-model="form.contactEmail" label="Email contact" type="email" outlined />
+            <q-input v-model="form.contactEmail" label="Contact email" type="email" outlined />
             <q-input
               v-model="configJson"
               label="Config JSON"
@@ -21,37 +21,37 @@
               autogrow
               outlined
             />
-            <q-btn color="primary" no-caps :loading="savingSettings" type="submit" label="Enregistrer" />
+            <q-btn color="primary" no-caps :loading="savingSettings" type="submit" label="Save" />
           </form>
         </q-card-section>
       </q-card>
 
       <q-card class="settings-card">
         <q-card-section>
-          <p class="eyebrow">Abonnement</p>
+          <p class="eyebrow">Subscription</p>
           <h2>{{ settings?.plan ?? auth.organization?.plan ?? 'starter' }}</h2>
           <div class="metric-list">
             <div>
-              <span>Licence</span>
+              <span>License</span>
               <strong>{{ settings?.licenseStatus ?? auth.organization?.licenseStatus ?? 'pending' }}</strong>
             </div>
             <div>
               <span>Contact</span>
-              <strong>{{ settings?.contactEmail || 'non renseigné' }}</strong>
+              <strong>{{ settings?.contactEmail || 'not set' }}</strong>
             </div>
             <div>
               <span>Stripe</span>
-              <strong>{{ settings?.stripeCustomerId ? 'lié' : 'non lié' }}</strong>
+              <strong>{{ settings?.stripeCustomerId ? 'linked' : 'not linked' }}</strong>
             </div>
           </div>
-          <q-btn color="primary" no-caps label="Ouvrir billing" to="/billing" />
+          <q-btn color="primary" no-caps label="Open billing" to="/billing" />
         </q-card-section>
       </q-card>
 
       <q-card class="settings-card">
         <q-card-section>
-          <p class="eyebrow">Membres</p>
-          <h2>{{ members.length }} membre(s)</h2>
+          <p class="eyebrow">Members</p>
+          <h2>{{ members.length }} member(s)</h2>
 
           <div class="settings-list">
             <div v-for="member in members" :key="member.id" class="settings-list__item">
@@ -70,10 +70,10 @@
       <q-card class="settings-card">
         <q-card-section>
           <p class="eyebrow">Invitations</p>
-          <h2>Inviter un membre</h2>
+          <h2>Invite a member</h2>
 
           <form class="settings-form" @submit.prevent="inviteMember">
-            <q-input v-model="inviteEmail" label="Email invité" type="email" outlined />
+            <q-input v-model="inviteEmail" label="Guest email" type="email" outlined />
             <q-select
               v-model="inviteRole"
               :options="inviteRoleOptions"
@@ -81,10 +81,10 @@
               option-value="value"
               emit-value
               map-options
-              label="Rôle"
+              label="Role"
               outlined
             />
-            <q-btn color="primary" no-caps :loading="inviting" type="submit" label="Envoyer l’invitation" />
+            <q-btn color="primary" no-caps :loading="inviting" type="submit" label="Send invitation" />
           </form>
 
           <div class="settings-list">
@@ -94,7 +94,7 @@
                 <p>{{ (invitation.roles ?? []).join(', ') }}</p>
               </div>
               <q-badge color="secondary" outline>
-                expire {{ formatDate(invitation.expiresAt) }}
+                expires {{ formatDate(invitation.expiresAt) }}
               </q-badge>
             </div>
           </div>
@@ -199,9 +199,9 @@ async function saveSettings() {
           },
         }
       : auth.user
-    success.value = 'Paramètres organisation mis à jour.'
+    success.value = 'Organization settings updated.'
   } catch (caughtError) {
-    error.value = caughtError instanceof Error ? caughtError.message : 'Impossible de sauvegarder.'
+    error.value = caughtError instanceof Error ? caughtError.message : 'Failed to save.'
   } finally {
     savingSettings.value = false
   }
@@ -214,7 +214,7 @@ async function inviteMember() {
 
   try {
     if (!inviteEmail.value.trim()) {
-      throw new Error('Email invité requis.')
+      throw new Error('Guest email required.')
     }
 
     await organizationAdminApi.invite({
@@ -223,17 +223,17 @@ async function inviteMember() {
     })
     inviteEmail.value = ''
     inviteRole.value = 'ROLE_ORG_USER'
-    success.value = 'Invitation envoyée.'
+    success.value = 'Invitation sent.'
     await loadInvitations()
   } catch (caughtError) {
-    error.value = caughtError instanceof Error ? caughtError.message : 'Impossible d’envoyer l’invitation.'
+    error.value = caughtError instanceof Error ? caughtError.message : 'Failed to send invitation.'
   } finally {
     inviting.value = false
   }
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('fr-FR')
+  return new Date(value).toLocaleDateString('en-US')
 }
 </script>
 

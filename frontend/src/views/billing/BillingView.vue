@@ -2,13 +2,13 @@
   <q-page class="billing-page">
     <div class="billing-container">
 
-      <div class="text-h5 text-weight-bold q-mb-xs">Facturation</div>
-      <div class="text-body2 text-grey-6 q-mb-xl">Gérez votre abonnement CannaSaaS</div>
+      <div class="text-h5 text-weight-bold q-mb-xs">Billing</div>
+      <div class="text-body2 text-grey-6 q-mb-xl">Manage your CannaSaaS subscription</div>
 
       <q-banner v-if="billingLoadError" rounded class="bg-negative text-white q-mb-lg">
         <template #avatar><q-icon name="warning" /></template>
         <div class="text-weight-medium">{{ billingLoadError }}</div>
-        <q-btn flat color="white" no-caps label="Réessayer" @click="loadBillingStatus" />
+        <q-btn flat color="white" no-caps label="Retry" @click="loadBillingStatus" />
       </q-banner>
 
       <!-- Plan actuel -->
@@ -16,12 +16,12 @@
         <q-card-section>
           <div class="row items-center justify-between">
             <div>
-              <div class="text-caption text-grey-6 text-uppercase">Plan actuel</div>
+              <div class="text-caption text-grey-6 text-uppercase">Current plan</div>
               <div class="text-h6 text-weight-bold text-primary q-mt-xs">
                 {{ planLabel }}
               </div>
               <div class="text-body2 text-grey-7 q-mt-xs">
-                C’est le plan actuellement appliqué à votre organisation.
+                This is the plan currently applied to your organization.
               </div>
             </div>
             <q-chip
@@ -55,7 +55,7 @@
 
         <q-card-actions v-if="hasStripeSubscription">
           <q-btn
-            label="Gérer mon abonnement"
+            label="Manage my subscription"
             color="primary"
             outline
             :loading="loadingPortal"
@@ -65,7 +65,7 @@
       </q-card>
 
       <!-- Plans disponibles -->
-      <div class="text-subtitle1 text-weight-medium q-mb-md">Changer de plan</div>
+      <div class="text-subtitle1 text-weight-medium q-mb-md">Change plan</div>
 
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4" v-for="plan in plans" :key="plan.id">
@@ -84,13 +84,13 @@
               <q-badge
                 v-if="plan.id === currentPlan"
                 color="positive"
-                label="Plan actif"
+                label="Active plan"
                 class="plan-badge plan-badge--current"
               />
               <q-badge
                 v-if="plan.id === recommendedPlan && plan.id !== currentPlan"
                 color="primary"
-                label="Recommandé"
+                label="Recommended"
                 class="plan-badge"
               />
             </div>
@@ -108,7 +108,7 @@
               </div>
               <div class="text-h4 text-weight-bold text-primary q-my-sm">
                 {{ plan.price }}
-                <span class="text-caption text-grey-6 text-weight-regular">/mois</span>
+                <span class="text-caption text-grey-6 text-weight-regular">/mo</span>
               </div>
 
               <q-separator class="q-my-md" />
@@ -122,7 +122,7 @@
             <q-card-actions class="q-px-md q-pb-md">
               <q-btn
                 v-if="plan.id !== currentPlan"
-                :label="plan.id === 'enterprise' ? 'Nous contacter' : actionLabel(plan.id)"
+                :label="plan.id === 'enterprise' ? 'Contact us' : actionLabel(plan.id)"
                 color="primary"
                 :outline="plan.id !== recommendedPlan"
                 :unelevated="plan.id === recommendedPlan"
@@ -133,7 +133,7 @@
               />
               <q-btn
                 v-else
-                label="Plan actuel"
+                label="Current plan"
                 color="grey-4"
                 text-color="grey-7"
                 unelevated
@@ -189,17 +189,17 @@ const licenseStatusColor = computed(() => {
 
 const licenseStatusLabel = computed(() => {
   const map: Record<string, string> = {
-    active: 'Licence active', pending: 'En attente',
-    rejected: 'Rejetée', expired: 'Expirée', suspended: 'Suspendue',
+    active: 'Active license', pending: 'Pending',
+    rejected: 'Rejected', expired: 'Expired', suspended: 'Suspended',
   }
-  return map[auth.organization?.licenseStatus ?? ''] ?? 'Inconnu'
+  return map[auth.organization?.licenseStatus ?? ''] ?? 'Unknown'
 })
 
 const displayLimits = computed(() => {
   if (!limits.value) return []
   return [
     { key: 'plants', label: 'Plants', current: limits.value.plants.current, max: limits.value.plants.max },
-    { key: 'rooms',  label: 'Salles', current: limits.value.rooms.current,  max: limits.value.rooms.max  },
+    { key: 'rooms',  label: 'Rooms',  current: limits.value.rooms.current,  max: limits.value.rooms.max  },
     { key: 'users',  label: 'Users',  current: limits.value.users.current,  max: limits.value.users.max  },
   ]
 })
@@ -207,19 +207,19 @@ const displayLimits = computed(() => {
 const plans = [
   {
     id: 'starter', name: 'Starter', price: '79 €',
-    features: ['200 plants', '2 salles', '3 utilisateurs', 'Rapports PDF', 'Audit trail'],
+    features: ['200 plants', '2 rooms', '3 users', 'PDF reports', 'Audit trail'],
   },
   {
     id: 'pro', name: 'Pro', price: '249 €',
-    features: ['1 500 plants', '10 salles', '15 utilisateurs', 'IoT capteurs', 'VPD temps réel', 'METRC (USA)'],
+    features: ['1,500 plants', '10 rooms', '15 users', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
   },
   {
     id: 'business', name: 'Business', price: '599 €',
-    features: ['Plants illimités', 'Salles illimitées', 'Users illimités', 'Multi-sites', 'API access', 'Support prioritaire'],
+    features: ['Unlimited plants', 'Unlimited rooms', 'Unlimited users', 'Multi-site', 'API access', 'Priority support'],
   },
   {
-    id: 'enterprise', name: 'Enterprise', price: 'Sur devis',
-    features: ['Tout Business inclus', 'SLA dédié', 'CSM dédié', 'Intégrations custom', 'Formation équipe'],
+    id: 'enterprise', name: 'Enterprise', price: 'Custom',
+    features: ['Everything in Business', 'Dedicated SLA', 'Dedicated CSM', 'Custom integrations', 'Team training'],
   },
 ]
 
@@ -231,7 +231,7 @@ async function loadBillingStatus(): Promise<void> {
     limits.value = data.limits
     resolvedPlan.value = data.plan
   } catch {
-    billingLoadError.value = 'Impossible de charger le statut de facturation.'
+    billingLoadError.value = 'Unable to load billing status.'
   }
 }
 
@@ -241,7 +241,7 @@ async function startCheckout(planId: string): Promise<void> {
     const { data } = await billingApi.checkout(planId)
     window.location.href = data.checkoutUrl
   } catch (e: any) {
-    const message = e?.response?.data?.error ?? e?.response?.data?.detail ?? 'Erreur lors de la création du checkout'
+    const message = e?.response?.data?.error ?? e?.response?.data?.detail ?? 'Error creating checkout session'
     $q.notify({ type: 'negative', message })
   } finally {
     loadingCheckout.value = null
@@ -254,7 +254,7 @@ async function openPortal(): Promise<void> {
     const { data } = await billingApi.portal()
     window.open(data.portalUrl, '_blank')
   } catch {
-    $q.notify({ type: 'negative', message: 'Impossible d\'accéder au portail de facturation' })
+    $q.notify({ type: 'negative', message: 'Unable to access the billing portal' })
   } finally {
     loadingPortal.value = false
   }
@@ -270,10 +270,10 @@ function actionLabel(planId: string): string {
   const nextIndex = order.indexOf(planId)
 
   if (currentIndex !== -1 && nextIndex !== -1 && nextIndex < currentIndex) {
-    return `Revenir à ${planId === 'starter' ? 'Starter' : planId}`
+    return `Switch back to ${planId === 'starter' ? 'Starter' : planId}`
   }
 
-  return `Passer à ${planId === 'starter' ? 'Starter' : planId === 'pro' ? 'Pro' : planId === 'business' ? 'Business' : 'Enterprise'}`
+  return `Switch to ${planId === 'starter' ? 'Starter' : planId === 'pro' ? 'Pro' : planId === 'business' ? 'Business' : 'Enterprise'}`
 }
 
 onMounted(loadBillingStatus)
