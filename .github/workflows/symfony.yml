@@ -21,13 +21,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: cultivatrace_test
+          POSTGRES_DB: cultivatrace
           POSTGRES_USER: cultiva
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U cultiva -d cultivatrace_test"
+          --health-cmd="pg_isready -U cultiva -d cultivatrace"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -36,7 +36,7 @@ jobs:
         ports:
           - 3000:3000
     env:
-      DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
       GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: change-me-in-local-and-prod
@@ -71,10 +71,15 @@ jobs:
         until (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1; do
           sleep 1
         done
+    - name: Create test database
+      run: |
+        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=cultivatrace", "cultiva", ""); $pdo->exec("CREATE DATABASE cultivatrace_test");'
     - name: Wait for Gotenberg
       run: |
         until curl -fsS http://127.0.0.1:3000/version >/dev/null; do
           sleep 1
         done
+    - name: Run database migrations
+      run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
     - name: Execute tests (Unit and Feature tests) via PHPUnit
       run: vendor/bin/phpunit
