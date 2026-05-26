@@ -142,11 +142,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     },
   },
   {
-    organizationName: [validators.required(‘Organization name required.’)],
-    email: [validators.required(‘Admin email required.’), validators.email(‘Invalid admin email.’)],
-    password: [validators.required(‘Password required.’), validators.minLength(8, ‘Minimum 8 characters.’)],
-    country: [validators.required(‘Country required.’)],
-    plan: [validators.required(‘Plan required.’)],
+    organizationName: [validators.required('Organization name required.')],
+    email: [validators.required('Admin email required.'), validators.email('Invalid admin email.')],
+    password: [validators.required('Password required.'), validators.minLength(8, 'Minimum 8 characters.')],
+    country: [validators.required('Country required.')],
+    plan: [validators.required('Plan required.')],
   },
 )
 
@@ -185,7 +185,7 @@ async function submit() {
 
     await router.push(nextPath)
   } catch (caughtError) {
-    applyApiError(caughtError, ‘Failed to create organization.’)
+    applyApiError(caughtError, 'Failed to create organization.')
   } finally {
     loading.value = false
   }
