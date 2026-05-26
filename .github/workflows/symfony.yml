@@ -40,6 +40,7 @@ jobs:
       GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: change-me-in-local-and-prod
+      AUDIT_CHAIN_SECRET: ci_test_audit_chain_secret_not_for_production
     steps:
     - uses: shivammathur/setup-php@v2
       with:
@@ -70,13 +71,15 @@ jobs:
         until (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1; do
           sleep 1
         done
+    - name: Create test database
+      run: |
+        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=cultivatrace", "cultiva", ""); $pdo->exec("CREATE DATABASE cultivatrace_test");'
     - name: Wait for Gotenberg
       run: |
         until curl -fsS http://127.0.0.1:3000/version >/dev/null; do
           sleep 1
         done
-    - name: Create test database
-      run: |
-        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=postgres", "cultiva", ""); $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = '\''cultivatrace_test'\''"); if ($stmt->fetchColumn() === false) { $pdo->exec("CREATE DATABASE cultivatrace_test"); }'
+    - name: Run database migrations
+      run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
     - name: Execute tests (Unit and Feature tests) via PHPUnit
       run: vendor/bin/phpunit
