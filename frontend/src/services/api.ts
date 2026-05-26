@@ -1,11 +1,11 @@
 /**
  * apps/frontend/src/services/api.ts
  *
- * Service HTTP centralisé.
- * TOUS les appels API passent par ici — jamais d'Axios direct dans les composants.
+ * Centralized HTTP service.
+ * ALL API calls go through here — never use Axios directly in components.
  *
- * Le JWT est injecté automatiquement via l'intercepteur.
- * Un 401 tente d'abord une rotation silencieuse du refresh token.
+ * The JWT is injected automatically via the interceptor.
+ * A 401 first attempts a silent refresh token rotation.
  */
 
 import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
@@ -79,7 +79,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
-// Injecteur JWT — ajoute le token sur chaque requête
+// JWT injector — adds the token to every request
 http.interceptors.request.use((config) => {
   const token = getAccessToken()
   if (token) {
@@ -431,6 +431,6 @@ export const complianceApi = {
     }),
 }
 
-// ── Export par défaut ─────────────────────────────────────────────────────
+// ── Default export ────────────────────────────────────────────────────────
 
 export default http

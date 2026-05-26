@@ -8,12 +8,12 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 
 /**
- * SensorReadingRepository — requêtes DBAL natif sur TimescaleDB.
+ * SensorReadingRepository — native DBAL queries on TimescaleDB.
  *
- * La table sensor_reading est une TimescaleDB hypertable.
- * On n'utilise PAS Doctrine ORM ici pour les performances.
+ * The sensor_reading table is a TimescaleDB hypertable.
+ * Doctrine ORM is NOT used here for performance reasons.
  *
- * Schema de la table (créée via migration manuelle) :
+ * Table schema (created via manual migration):
  *   CREATE TABLE sensor_reading (
  *     sensor_id   UUID        NOT NULL,
  *     tenant_id   UUID        NOT NULL,
@@ -23,8 +23,8 @@ use Doctrine\DBAL\Platforms\SQLitePlatform;
  *   SELECT create_hypertable('sensor_reading', 'recorded_at');
  *   CREATE INDEX ON sensor_reading (sensor_id, recorded_at DESC);
  *
- * Si TimescaleDB n'est pas disponible, la table fonctionne
- * comme une table PostgreSQL classique (moins performante sur 90j+).
+ * If TimescaleDB is unavailable, the table works as a standard
+ * PostgreSQL table (less performant beyond 90 days).
  */
 class SensorReadingRepository
 {
@@ -33,7 +33,7 @@ class SensorReadingRepository
     ) {}
 
     /**
-     * Insère une nouvelle lecture capteur.
+     * Inserts a new sensor reading.
      */
     public function insert(string $sensorId, string $tenantId, float $value): void
     {
@@ -61,7 +61,7 @@ class SensorReadingRepository
     }
 
     /**
-     * Dernière lecture d'un capteur.
+     * Latest reading for a sensor.
      */
     public function findLatest(string $sensorId, string $tenantId): ?array
     {
@@ -77,8 +77,8 @@ class SensorReadingRepository
     }
 
     /**
-     * Historique agrégé selon la période.
-     * Utilise time_bucket de TimescaleDB si disponible.
+     * Aggregated history for the given period.
+     * Uses TimescaleDB time_bucket if available.
      *
      * @return array<array{bucket: string, avg_value: float, min_value: float, max_value: float}>
      */
@@ -117,7 +117,7 @@ class SensorReadingRepository
             );
         }
 
-        // Essayer TimescaleDB time_bucket, fallback sur date_trunc
+        // Try TimescaleDB time_bucket, fall back to date_trunc
         try {
             return $this->connection->fetchAllAssociative(
                 "SELECT
@@ -139,7 +139,7 @@ class SensorReadingRepository
                 ]
             );
         } catch (\Exception) {
-            // Fallback PostgreSQL classique si TimescaleDB absent
+            // Standard PostgreSQL fallback when TimescaleDB is unavailable
             return $this->connection->fetchAllAssociative(
                 "SELECT
                     date_trunc('hour', recorded_at) AS bucket,
@@ -162,8 +162,8 @@ class SensorReadingRepository
     }
 
     /**
-     * Toutes les lectures d'une room sur les dernières X minutes.
-     * Utilisé par le dashboard temps réel.
+     * All readings for a room over the last X minutes.
+     * Used by the real-time dashboard.
      *
      * @return array<array{sensor_id: string, value: float, recorded_at: string}>
      */
