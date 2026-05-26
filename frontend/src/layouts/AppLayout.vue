@@ -549,9 +549,9 @@ function openNotifications() {
 async function acknowledgeAlert(id: string) {
   try {
     await alertsStore.acknowledgeAlert(id)
-    $q.notify({ type: ‘positive’, message: ‘Alert acknowledged.’, position: isMobile.value ? ‘bottom’ : ‘top-right’, timeout: 1500 })
+    $q.notify({ type: 'positive', message: 'Alert acknowledged.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 1500 })
   } catch (error) {
-    $q.notify({ type: ‘negative’, message: error instanceof Error ? error.message : ‘Failed to acknowledge alert.’, position: isMobile.value ? ‘bottom’ : ‘top-right’, timeout: 3000 })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Failed to acknowledge alert.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 3000 })
   }
 }
 

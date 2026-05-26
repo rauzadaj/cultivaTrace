@@ -112,7 +112,7 @@ async function loadHistory() {
     const { data } = await reportingApi.list()
     exports.value = collectionMembers(data)
   } catch (error) {
-    $q.notify({ type: ‘negative’, message: error instanceof Error ? error.message : ‘Unable to load history.’ })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Unable to load history.' })
   } finally {
     loading.value = false
   }

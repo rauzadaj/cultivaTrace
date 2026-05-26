@@ -66,7 +66,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testDeclareIntentWithEmptyReasonThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/raison.*obligatoire/');
+        $this->expectExceptionMessageMatches('/[Rr]eason.*required/');
 
         $this->service->declareIntent($this->activePlant(), new User(), '   ');
     }
@@ -124,7 +124,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testConfirmIntentWithRatioAboveOneThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/entre 0 et 1/');
+        $this->expectExceptionMessageMatches('/between 0 and 1/');
 
         $this->service->confirmIntent($this->confirmableIntent(), new User(), [
             'totalWeightG' => 100.0,
@@ -136,7 +136,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testConfirmIntentWithNonNumericRatioThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/entre 0 et 1/');
+        $this->expectExceptionMessageMatches('/between 0 and 1/');
 
         $this->service->confirmIntent($this->confirmableIntent(), new User(), [
             'totalWeightG' => 100.0,
@@ -148,7 +148,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testConfirmIntentWithoutPhotosThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/photo.*obligatoire/');
+        $this->expectExceptionMessageMatches('/photo.*required/');
 
         $this->service->confirmIntent($this->confirmableIntent(), new User(), [
             'totalWeightG' => 100.0,
@@ -160,7 +160,7 @@ final class DestructionWorkflowServiceTest extends TestCase
     public function testConfirmIntentBeforeLegalDateThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/Destruction impossible/');
+        $this->expectExceptionMessageMatches('/Destruction not allowed/');
 
         $intent = new DestructionIntent();
         $intent->setPlant($this->activePlant());

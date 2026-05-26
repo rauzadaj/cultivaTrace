@@ -148,7 +148,7 @@ async function submit() {
     form.unit = form.unit.trim()
 
     if (!validateAll()) {
-      setFormError(‘Fix invalid fields before saving thresholds.’)
+      setFormError('Fix invalid fields before saving thresholds.')
       return
     }
 
