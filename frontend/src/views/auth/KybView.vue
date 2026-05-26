@@ -246,13 +246,13 @@ const statusIcon = computed(() => {
 
 const statusMessage = computed(() => {
   const map: Record<string, string> = {
-    active:    ‘License verified — Full access activated’,
-    pending:   ‘Verification in progress — Limited access’,
-    rejected:  ‘License rejected — Please submit a new valid license’,
-    expired:   ‘License expired — Renew your license’,
-    suspended: ‘Account suspended — contact the compliance team.’,
+    active:    'License verified — Full access activated',
+    pending:   'Verification in progress — Limited access',
+    rejected:  'License rejected — Please submit a new valid license',
+    expired:   'License expired — Renew your license',
+    suspended: 'Account suspended — contact the compliance team.',
   }
-  return map[kybStatus.value?.licenseStatus] ?? ‘Unknown status’
+  return map[kybStatus.value?.licenseStatus] ?? 'Unknown status'
 })
 
 async function loadStatus(): Promise<void> {
