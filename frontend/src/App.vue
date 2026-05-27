@@ -65,7 +65,7 @@ body {
   box-sizing: border-box;
 }
 
-/* Headings — serrés, comme Apple */
+/* Headings — tight, like Apple */
 h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.025em;
 }
@@ -89,7 +89,7 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.85;
 }
 
-/* Quasar overrides — cohérence complète */
+/* Quasar overrides — full consistency */
 
 .q-field--outlined .q-field__control {
   background: #FFFFFF;

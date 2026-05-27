@@ -14,10 +14,10 @@ enum PlantStage: string
     {
         return match($this) {
             self::GERMINATION => 'Germination',
-            self::VEGETATION  => 'Végétation',
-            self::FLOWERING   => 'Floraison',
-            self::HARVEST     => 'Récolte',
-            self::ARCHIVED    => 'Archivé',
+            self::VEGETATION  => 'Vegetation',
+            self::FLOWERING   => 'Flowering',
+            self::HARVEST     => 'Harvest',
+            self::ARCHIVED    => 'Archived',
         };
     }
 
