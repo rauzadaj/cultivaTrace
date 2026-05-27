@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <q-page class="kyb-page">
     <div class="kyb-container">
 
