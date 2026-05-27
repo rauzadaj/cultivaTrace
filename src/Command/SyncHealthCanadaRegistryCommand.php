@@ -39,17 +39,18 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
     /**
      * Keyword patterns used to identify each column by its header text.
-     * First match wins; matching is case-insensitive substring.
+     * First match wins; case-insensitive substring on the full header text.
+     * licenseNumber is optional — if absent the company name is used as key.
      *
      * @var array<string, list<string>>
      */
     private const COLUMN_KEYWORDS = [
-        'licenseNumber' => ['license number', 'licence number', 'no. de licen'],
-        'companyName'   => ['license holder', 'licence holder', 'company', 'holder', 'name'],
-        'licenseType'   => ['license class', 'licence class', 'class', 'type of licen'],
+        'licenseNumber' => ['license number', 'licence number', 'no. de licen', 'licence no'],
+        'companyName'   => ['licence holder', 'license holder', 'company', 'holder', 'name'],
+        'licenseType'   => ['licence(s)', 'license(s)', 'license class', 'licence class', 'class', 'type of licen', 'authorized activities'],
         'status'        => ['status'],
         'province'      => ['province', 'territory'],
-        'issuedAt'      => ['issue date', 'date issued', 'issued', 'granted'],
+        'issuedAt'      => ['date of initial', 'issue date', 'date issued', 'issued', 'granted'],
         'expiresAt'     => ['expiry date', 'date expir', 'expir', 'renewal'],
     ];
 
@@ -159,10 +160,12 @@ final class SyncHealthCanadaRegistryCommand extends Command
         $io->text(sprintf('Downloading from: %s', $url));
 
         $response = $this->httpClient->request('GET', $url, [
-            'timeout' => 30,
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (compatible; CultivaTrace/1.0)',
-                'Accept'     => 'text/html,application/xhtml+xml,text/csv,*/*',
+            'timeout'      => 30,
+            'http_version' => '1.1',
+            'headers'      => [
+                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+                'Accept'          => 'text/html,application/xhtml+xml,*/*;q=0.9',
+                'Accept-Language' => 'en-CA,en;q=0.9',
             ],
         ]);
 
@@ -180,8 +183,9 @@ final class SyncHealthCanadaRegistryCommand extends Command
     }
 
     /**
-     * Parses an HTML page and returns the first table that looks like a
-     * licensed-producers list.
+     * Parses an HTML page and returns the licensed-producers table.
+     * Prefers tables with the canada.ca WET class (wb-tables), then falls back
+     * to any table whose headers match our column keywords.
      *
      * @return array{0: array<string,int>, 1: list<list<string>>}
      */
@@ -194,41 +198,42 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
         $xpath = new \DOMXPath($dom);
 
-        /** @var \DOMNodeList<\DOMElement> $tables */
-        $tables = $xpath->query('//table');
+        // Prefer the WET datatable used on canada.ca, then try all tables
+        /** @var \DOMNodeList<\DOMElement>|false $tables */
+        $tables = $xpath->query("//table[contains(@class,'wb-tables')] | //table");
+
+        if ($tables === false) {
+            return [[], []];
+        }
 
         foreach ($tables as $table) {
-            // Collect header cells from <thead> or the first <tr>
-            $headerNodes = $xpath->query('.//thead//th | .//thead//td', $table);
+            // Collect only the first header row (skip colspan sub-rows)
+            $headerNodes = $xpath->query('.//thead/tr[1]/th | .//thead/tr[1]/td', $table);
             if ($headerNodes === false || $headerNodes->length === 0) {
                 $headerNodes = $xpath->query('.//tr[1]/th | .//tr[1]/td', $table);
             }
-
             if ($headerNodes === false || $headerNodes->length === 0) {
                 continue;
             }
 
             $headers = [];
             foreach ($headerNodes as $cell) {
-                $headers[] = strtolower(trim((string) $cell->textContent));
+                $headers[] = strtolower(trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? ''));
             }
 
             $colMap = $this->mapColumns($headers);
 
-            // Need at least licenseNumber + companyName to be useful
-            if (!isset($colMap['licenseNumber'], $colMap['companyName'])) {
+            // Need at least companyName to be useful (licenseNumber may be absent)
+            if (!isset($colMap['companyName'])) {
                 continue;
             }
 
             // Extract data rows
             $rows      = [];
             $dataNodes = $xpath->query('.//tbody/tr', $table);
-
-            // Fallback: all rows except the first if no tbody
             if ($dataNodes === false || $dataNodes->length === 0) {
                 $dataNodes = $xpath->query('.//tr[position()>1]', $table);
             }
-
             if ($dataNodes === false) {
                 continue;
             }
@@ -239,7 +244,7 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
                 $row = [];
                 foreach ($cells as $cell) {
-                    $row[] = trim((string) $cell->textContent);
+                    $row[] = trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? '');
                 }
 
                 if (count($row) >= 2) {
@@ -324,11 +329,21 @@ final class SyncHealthCanadaRegistryCommand extends Command
         $counts = ['inserted' => 0, 'updated' => 0, 'skipped' => 0];
 
         foreach ($rows as $index => $row) {
-            $licenseNumber = strtoupper(trim($row[$colMap['licenseNumber']] ?? ''));
+            $companyRaw = trim($row[$colMap['companyName']] ?? '');
 
-            if ($licenseNumber === '') {
+            if ($companyRaw === '') {
                 $counts['skipped']++;
                 continue;
+            }
+
+            // Use explicit license number when available, otherwise derive a stable
+            // key from company name + province (Health Canada dropped individual numbers)
+            if (isset($colMap['licenseNumber']) && ($row[$colMap['licenseNumber']] ?? '') !== '') {
+                $licenseNumber = strtoupper(trim($row[$colMap['licenseNumber']]));
+            } else {
+                $province = strtoupper(trim($row[$colMap['province'] ?? -1] ?? ''));
+                $licenseNumber = 'HC-' . strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', $companyRaw) ?? '') . ($province !== '' ? '-' . $province : '');
+                $licenseNumber = substr($licenseNumber, 0, 64);
             }
 
             $producer = $repo->findOneBy(['licenseNumber' => $licenseNumber]);
@@ -341,10 +356,12 @@ final class SyncHealthCanadaRegistryCommand extends Command
                 $producer->touch();
             }
 
+            $rawStatus = isset($colMap['status']) ? ($row[$colMap['status']] ?? '') : 'active';
+
             $producer
-                ->setCompanyName($row[$colMap['companyName']] ?? '')
+                ->setCompanyName($companyRaw)
                 ->setLicenseType($row[$colMap['licenseType'] ?? -1] ?? '')
-                ->setStatus($this->normalizeStatus($row[$colMap['status'] ?? -1] ?? ''))
+                ->setStatus($this->normalizeStatus($rawStatus))
                 ->setProvince($row[$colMap['province'] ?? -1] ?? '')
                 ->setIssuedAt($this->parseDate($row[$colMap['issuedAt'] ?? -1] ?? ''))
                 ->setExpiresAt($this->parseDate($row[$colMap['expiresAt'] ?? -1] ?? ''));
