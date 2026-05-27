@@ -189,6 +189,12 @@ export const usePlantsStore = defineStore('plants', () => {
     }
   }
 
+  async function createStrain(name: string): Promise<Strain> {
+    const { data } = await strainsApi.create({ name, genetics: 'hybrid', cannabisType: 'marijuana' } as Partial<Strain>)
+    strains.value.push(data)
+    return data
+  }
+
   async function createPlant(payload: {
     room: string
     strain?: string | null
@@ -308,6 +314,7 @@ export const usePlantsStore = defineStore('plants', () => {
     fetchPlant,
     fetchEvents,
     fetchRecentEvents,
+    createStrain,
     createPlant,
     changeStage,
     roomLabel,
