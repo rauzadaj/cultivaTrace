@@ -16,16 +16,16 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Organization est le tenant racine.
- * Chaque utilisateur appartient à une Organization.
- * Le tenantId de toutes les entités métier = Organization::$id
+ * Organization is the root tenant.
+ * Every user belongs to an Organization.
+ * The tenantId of all business entities = Organization::$id
  *
- * NE PAS exposer cette entité via API publique directement.
- * L'accès se fait via /me ou /organizations/{id} (ADMIN uniquement).
+ * DO NOT expose this entity via a public API directly.
+ * Access is via /me or /organizations/{id} (ADMIN only).
  */
 #[ORM\Entity(repositoryClass: \App\Repository\OrganizationRepository::class)]
 #[ORM\Table(name: 'organization')]
-#[ApiResource(operations: [])] // pas d'opération CRUD publique directe
+#[ApiResource(operations: [])] // no direct public CRUD operation
 class Organization
 {
     #[ORM\Id]

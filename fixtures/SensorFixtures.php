@@ -9,10 +9,10 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * SensorFixtures — crée des capteurs simulés et des lectures historiques.
+ * SensorFixtures — creates simulated sensors and historical readings.
  *
- * Dépend de AppFixtures (rooms doivent exister).
- * Génère 90 jours de données historiques simulées.
+ * Depends on AppFixtures (rooms must exist).
+ * Generates 90 days of simulated historical data.
  */
 class SensorFixtures extends Fixture implements DependentFixtureInterface
 {
@@ -25,7 +25,7 @@ class SensorFixtures extends Fixture implements DependentFixtureInterface
         $rooms = $manager->getRepository(\App\Entity\Room::class)->findAll();
 
         if (empty($rooms)) {
-            echo "Aucune room trouvée — lance AppFixtures d'abord.\n";
+            echo "No room found — run AppFixtures first.\n";
             return;
         }
 
@@ -50,20 +50,20 @@ class SensorFixtures extends Fixture implements DependentFixtureInterface
                 $manager->persist($sensor);
                 $manager->flush();
 
-                // Générer 90 jours de données historiques (1 mesure/heure)
+                // Generate 90 days of historical data (1 reading/hour)
                 $this->generateHistoricalData($sensor, $config['type']);
             }
         }
 
-        echo "Sensors fixtures chargées avec 90j de données historiques.\n";
+        echo "Sensor fixtures loaded with 90d of historical data.\n";
     }
 
     private function generateHistoricalData(Sensor $sensor, string $type): void
     {
-        $hoursToGenerate = 90 * 24; // 90 jours
+        $hoursToGenerate = 90 * 24; // 90 days
         $now             = new \DateTimeImmutable();
 
-        // Valeurs de base réalistes par type
+        // Realistic base values per type
         [$base, $variance] = match ($type) {
             'temperature' => [23.0, 3.0],
             'humidity'    => [55.0, 10.0],
@@ -73,15 +73,15 @@ class SensorFixtures extends Fixture implements DependentFixtureInterface
             default       => [50.0, 5.0],
         };
 
-        // Insérer en batch toutes les 24h pour éviter les timeouts
+        // Insert in batches every 24h to avoid timeouts
         for ($h = $hoursToGenerate; $h >= 0; $h--) {
             $time  = $now->modify("-{$h} hours");
-            // Variation sinusoïdale pour simuler les cycles jour/nuit
+            // Sinusoidal variation to simulate day/night cycles
             $cycle = sin($h / 12 * M_PI) * ($variance * 0.3);
             $noise = (mt_rand(-100, 100) / 100) * $variance * 0.7;
             $value = round($base + $cycle + $noise, 2);
 
-            // Clamp aux valeurs réalistes
+            // Clamp to realistic values
             $value = match ($type) {
                 'temperature' => max(15.0, min(35.0, $value)),
                 'humidity'    => max(20.0, min(90.0, $value)),

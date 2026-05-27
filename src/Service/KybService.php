@@ -16,16 +16,16 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * KybService — vérification de licence (Know Your Business).
+ * KybService — license verification (Know Your Business).
  *
- * Stratégie de vérification automatique :
- *   1. Canada (Health Canada CTS) → vérification via registre public
- *   2. USA (METRC) → vérification via API METRC (clé requise)
- *   3. Allemagne (BfArM) → vérification manuelle (API non publique)
- *   4. Fallback → validation manuelle par admin CannaSaaS
+ * Automatic verification strategy:
+ *   1. Canada (Health Canada CTS) → verification via public registry
+ *   2. USA (METRC) → verification via METRC API (key required)
+ *   3. Germany (BfArM) → manual review (no public API)
+ *   4. Fallback → manual validation by CannaSaaS admin
  *
- * En dev : toutes les vérifications retournent "verified" après 5s
- * (simulation de l'appel API).
+ * In dev: all verifications return "verified" after 5s
+ * (simulating the API call).
  */
 class KybService
 {
@@ -45,8 +45,8 @@ class KybService
     ) {}
 
     /**
-     * Lance la vérification automatique d'une licence.
-     * Appelé après l'upload du document.
+     * Launches automatic license verification.
+     * Called after document upload.
      *
      * @return array{verified: bool, method: string, reason: string|null}
      */
@@ -59,10 +59,10 @@ class KybService
         return match ($license->getLicenseType()) {
             'health_canada' => $this->verifyHealthCanada($license),
             'metrc_usa'     => $this->verifyMetrc($license),
-            'bfarm_de'      => $this->fallbackManual($license, 'BfArM ne dispose pas d\'API publique'),
-            'ansm_fr'       => $this->fallbackManual($license, 'ANSM nécessite une revue manuelle.'),
+            'bfarm_de'      => $this->fallbackManual($license, 'BfArM has no public API'),
+            'ansm_fr'       => $this->fallbackManual($license, 'ANSM requires manual review.'),
             'ctls_dev'      => $this->fallbackManual($license, 'Dev-only CTLS simulation is disabled in this environment.'),
-            default         => $this->fallbackManual($license, 'Type de licence non reconnu'),
+            default         => $this->fallbackManual($license, 'Unrecognized license type'),
         };
     }
 
@@ -72,11 +72,11 @@ class KybService
     }
 
     /**
-     * Simulation pour le dev — approuve automatiquement après vérification factice.
+     * Dev simulation — auto-approves after a fake verification.
      */
     private function simulateVerification(LicenseDocument $license): array
     {
-        $this->logger->info('[KYB DEV] Simulation de vérification', [
+        $this->logger->info('[KYB DEV] Verification simulation', [
             'license' => $this->maskLicense($license->getLicenseNumber()),
             'type'    => $license->getLicenseType(),
         ]);
@@ -86,7 +86,7 @@ class KybService
                 return [
                     'verified' => false,
                     'method'   => 'simulated',
-                    'reason'   => 'Le format de licence CTLS fictive doit commencer par TEST-CTLS-',
+                    'reason'   => 'Fake CTLS license format must start with TEST-CTLS-',
                 ];
             }
 
@@ -98,12 +98,12 @@ class KybService
             ];
         }
 
-        // En dev : toujours approuver (sauf si le numéro contient "INVALID")
+        // In dev: always approve (unless the number contains "INVALID")
         if (str_contains(strtoupper($license->getLicenseNumber()), 'INVALID')) {
             return [
                 'verified' => false,
                 'method'   => 'simulated',
-                'reason'   => 'Numéro de licence invalide (simulation dev)',
+                'reason'   => 'Invalid license number (dev simulation)',
             ];
         }
 
@@ -116,13 +116,13 @@ class KybService
     }
 
     /**
-     * Vérification Health Canada via le registre local synchronisé quotidiennement.
+     * Health Canada verification via the locally synced daily registry.
      *
-     * Le registre est peuplé par SyncHealthCanadaRegistryCommand (app:sync-health-canada-registry)
-     * qui télécharge le CSV officiel de Health Canada :
+     * The registry is populated by SyncHealthCanadaRegistryCommand (app:sync-health-canada-registry)
+     * which downloads the official Health Canada CSV:
      *   https://health-products.canada.ca/api/dataset/95c29d8f-3688-4a37-aca0-1a50af7b1c86
      *
-     * Si le registre est vide (première installation), fallback sur revue manuelle.
+     * If the registry is empty (first install), falls back to manual review.
      */
     private function verifyHealthCanada(LicenseDocument $license): array
     {
@@ -130,14 +130,14 @@ class KybService
 
         // Validate format before lookup — accept single or compound prefixes (e.g. LP-xxxx or HC-LP-xxxx)
         if (!preg_match('/^[A-Z]{1,3}(-[A-Z]{1,3})?-[A-Z0-9]{3,}$/i', $licenseNumber)) {
-            $this->logger->warning('[KYB] Format de licence Health Canada invalide', [
+            $this->logger->warning('[KYB] Invalid Health Canada license format', [
                 'license' => $this->maskLicense($licenseNumber),
             ]);
 
             return [
                 'verified' => false,
                 'method'   => 'format_rejected',
-                'reason'   => 'Format de numéro de licence invalide. Formats acceptés : LIC-XXXXX, LP-XXXXX, MC-XXXXX, MR-XXXXX.',
+                'reason'   => 'Invalid license number format. Accepted formats: LIC-XXXXX, LP-XXXXX, MC-XXXXX, MR-XXXXX.',
             ];
         }
 
@@ -148,24 +148,24 @@ class KybService
 
         if ($producer === null) {
             // Registry may be empty on first install — fallback to manual review
-            $this->logger->info('[KYB] Health Canada — licence non trouvée dans le registre local', [
+            $this->logger->info('[KYB] Health Canada — license not found in local registry', [
                 'license'    => $this->maskLicense($licenseNumber),
-                'suggestion' => 'Lancez app:sync-health-canada-registry pour peupler le registre.',
+                'suggestion' => 'Run app:sync-health-canada-registry to populate the registry.',
             ]);
 
-            return $this->fallbackManual($license, 'Licence non trouvée dans le registre local Health Canada. Revue manuelle requise.');
+            return $this->fallbackManual($license, 'License not found in local Health Canada registry. Manual review required.');
         }
 
         // Health Canada always requires manual review in production.
         // The registry lookup provides context for the reviewer but does not auto-approve.
         $statusLabel = $producer->getStatus();
         $registryNote = sprintf(
-            'Registre Health Canada : "%s" — statut "%s". Revue manuelle requise.',
+            'Health Canada registry: "%s" — status "%s". Manual review required.',
             $producer->getCompanyName(),
             $statusLabel,
         );
 
-        $this->logger->info('[KYB] Health Canada — licence trouvée, soumise en revue manuelle', [
+        $this->logger->info('[KYB] Health Canada — license found, submitted for manual review', [
             'license' => $this->maskLicense($licenseNumber),
             'company' => $producer->getCompanyName(),
             'status'  => $statusLabel,
@@ -175,7 +175,7 @@ class KybService
     }
 
     /**
-     * Vérification METRC — API officielle des États US.
+     * METRC verification — official US state API.
      */
     /** US states supported by METRC */
     private const METRC_ALLOWED_STATES = ['co', 'ca', 'or', 'wa', 'ma', 'mi', 'il', 'nv', 'me', 'ak', 'mo', 'md', 'mn', 'mt', 'nm', 'nj'];
@@ -183,19 +183,19 @@ class KybService
     private function verifyMetrc(LicenseDocument $license): array
     {
         if (empty($this->metrcApiKey)) {
-            return $this->fallbackManual($license, 'Clé API METRC non configurée');
+            return $this->fallbackManual($license, 'METRC API key not configured');
         }
 
         $licenseNumber = $license->getLicenseNumber();
 
         // Strict format validation — prevents subdomain injection and path traversal
         if (!preg_match('/^([A-Z]{2})-([A-Z0-9\-]+)$/i', $licenseNumber, $matches)) {
-            return $this->fallbackManual($license, 'Format METRC invalide (attendu: ST-XXXXXX)');
+            return $this->fallbackManual($license, 'Invalid METRC format (expected: ST-XXXXXX)');
         }
 
         $stateCode = strtolower($matches[1]);
         if (!in_array($stateCode, self::METRC_ALLOWED_STATES, true)) {
-            return $this->fallbackManual($license, 'État METRC non supporté');
+            return $this->fallbackManual($license, 'METRC state not supported');
         }
 
         try {
@@ -220,25 +220,25 @@ class KybService
                 ];
             }
 
-            return $this->fallbackManual($license, 'Licence non trouvée dans METRC');
+            return $this->fallbackManual($license, 'License not found in METRC');
 
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur METRC', [
+            $this->logger->error('[KYB] METRC error', [
                 'error'   => $e->getMessage(),
                 'license' => $this->maskLicense($licenseNumber),
                 'trace'   => $e->getTraceAsString(),
             ]);
             // Return generic message — do not expose internal error details to client
-            return $this->fallbackManual($license, 'Impossible de vérifier la licence via METRC. Revue manuelle requise.');
+            return $this->fallbackManual($license, 'Unable to verify license via METRC. Manual review required.');
         }
     }
 
     /**
-     * Fallback manuel — notifie l'admin CannaSaaS par email.
+     * Manual fallback — notifies the CannaSaaS admin by email.
      */
     private function fallbackManual(LicenseDocument $license, string $reason): array
     {
-        $this->logger->info('[KYB] Fallback manuel', [
+        $this->logger->info('[KYB] Manual fallback', [
             'license' => $this->maskLicense($license->getLicenseNumber()),
             'reason'  => $reason,
         ]);
@@ -254,8 +254,8 @@ class KybService
     }
 
     /**
-     * Applique le résultat de la vérification sur le LicenseDocument
-     * et met à jour le statut de l'Organization.
+     * Applies the verification result to the LicenseDocument
+     * and updates the Organization status.
      */
     public function applyVerificationResult(
         LicenseDocument $license,
@@ -311,31 +311,31 @@ class KybService
 
         try {
             $reviewInstruction = $this->adminReviewUrl !== ''
-                ? sprintf("Traitez cette demande : %s", $this->adminReviewUrl)
-                : 'Traitez cette demande via le backoffice KYB configuré pour cet environnement.';
+                ? sprintf("Process this request: %s", $this->adminReviewUrl)
+                : 'Process this request via the KYB backoffice configured for this environment.';
 
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($this->adminReviewEmail)
-                ->subject('[KYB] Vérification manuelle requise — ' . $license->getLicenseNumber())
+                ->subject('[KYB] Manual review required — ' . $license->getLicenseNumber())
                 ->text(sprintf(
-                    "Une vérification manuelle est requise.\n\n" .
-                    "Organisation : %s\n" .
-                    "Numéro de licence : %s\n" .
-                    "Type : %s\n" .
-                    "Raison : %s\n" .
-                    "Soumis le : %s\n\n" .
+                    "Manual review is required.\n\n" .
+                    "Organization: %s\n" .
+                    "License number: %s\n" .
+                    "Type: %s\n" .
+                    "Reason: %s\n" .
+                    "Submitted on: %s\n\n" .
                     "%s",
                     $license->getOrganization()->getName(),
                     $license->getLicenseNumber(),
                     $license->getLicenseType(),
                     $reason,
-                    $license->getSubmittedAt()->format('d/m/Y H:i'),
+                    $license->getSubmittedAt()->format('Y-m-d H:i'),
                     $reviewInstruction,
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur envoi email admin', ['error' => $e->getMessage()]);
+            $this->logger->error('[KYB] Admin email send error', ['error' => $e->getMessage()]);
         }
     }
 
@@ -357,18 +357,18 @@ class KybService
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('✅ Votre licence CannaSaaS a été validée')
+                ->subject('✅ Your CannaSaaS license has been validated')
                 ->text(sprintf(
-                    "Bonne nouvelle !\n\n" .
-                    "Votre licence %s a été vérifiée et validée.\n" .
-                    "Vous avez maintenant accès à toutes les fonctionnalités CannaSaaS.\n\n" .
-                    "Connectez-vous sur %s",
-                    rtrim($this->appUrl, '/'),
-                    $license->getLicenseNumber()
+                    "Great news!\n\n" .
+                    "Your license %s has been verified and validated.\n" .
+                    "You now have access to all CannaSaaS features.\n\n" .
+                    "Sign in at %s",
+                    $license->getLicenseNumber(),
+                    rtrim($this->appUrl, '/')
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur email activation', ['error' => $e->getMessage()]);
+            $this->logger->error('[KYB] Activation email error', ['error' => $e->getMessage()]);
         }
     }
 
@@ -390,20 +390,20 @@ class KybService
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('❌ Vérification de licence CannaSaaS — Action requise')
+                ->subject('❌ CannaSaaS license verification — Action required')
                 ->text(sprintf(
-                    "Votre demande de vérification de licence n'a pas pu être validée.\n\n" .
-                    "Licence soumise : %s\n" .
-                    "Raison : %s\n\n" .
-                    "Veuillez vérifier votre numéro de licence et soumettre à nouveau.\n" .
-                    "Si le problème persiste, contactez %s",
+                    "Your license verification request could not be validated.\n\n" .
+                    "Submitted license: %s\n" .
+                    "Reason: %s\n\n" .
+                    "Please check your license number and resubmit.\n" .
+                    "If the problem persists, contact %s",
                     $license->getLicenseNumber(),
-                    $license->getRejectionReason() ?? 'Licence non reconnue',
+                    $license->getRejectionReason() ?? 'License not recognized',
                     $this->supportEmail,
                 ));
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Erreur email rejet', ['error' => $e->getMessage()]);
+            $this->logger->error('[KYB] Rejection email error', ['error' => $e->getMessage()]);
         }
     }
 

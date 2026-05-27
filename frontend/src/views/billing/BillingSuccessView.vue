@@ -2,9 +2,9 @@
   <q-page class="billing-success-page">
     <div class="billing-success-card">
       <q-icon name="mdi-check-circle" color="positive" size="56px" />
-      <h1>Abonnement activé !</h1>
-      <p>Le paiement Stripe a été confirmé. Votre organisation a été mise à jour.</p>
-      <q-btn color="primary" unelevated label="Accéder au dashboard" @click="goToDashboard" />
+      <h1>Subscription activated!</h1>
+      <p>The Stripe payment has been confirmed. Your organization has been updated.</p>
+      <q-btn color="primary" unelevated label="Go to dashboard" @click="goToDashboard" />
     </div>
   </q-page>
 </template>
@@ -31,7 +31,7 @@ onMounted(async () => {
     await router.replace('/billing')
   } catch (error) {
     console.error('Unable to refresh auth state after Stripe checkout', error)
-    $q.notify({ type: 'negative', message: 'Impossible de synchroniser votre abonnement après paiement.' })
+    $q.notify({ type: 'negative', message: 'Unable to sync your subscription after payment.' })
   }
 })
 

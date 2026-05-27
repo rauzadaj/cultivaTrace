@@ -3,16 +3,16 @@
     <q-card class="thresholds-form">
       <q-card-section class="thresholds-form__header">
         <div>
-          <p class="thresholds-form__eyebrow">Capteurs</p>
-          <h2>Modifier seuils</h2>
+          <p class="thresholds-form__eyebrow">Sensors</p>
+          <h2>Edit thresholds</h2>
         </div>
-        <q-btn flat round icon="mdi-close" aria-label="Fermer" @click="close" />
+        <q-btn flat round icon="mdi-close" aria-label="Close" @click="close" />
       </q-card-section>
 
       <q-form class="thresholds-form__body" @submit.prevent="submit">
         <q-input
           v-model.number="form.min"
-          label="Seuil minimum *"
+          label="Minimum threshold *"
           type="number"
           outlined
           :error="!!fieldErrors.min"
@@ -21,7 +21,7 @@
         />
         <q-input
           v-model.number="form.max"
-          label="Seuil maximum *"
+          label="Maximum threshold *"
           type="number"
           outlined
           :error="!!fieldErrors.max"
@@ -30,7 +30,7 @@
         />
         <q-input
           v-model="form.unit"
-          label="Unité *"
+          label="Unit *"
           outlined
           :error="!!fieldErrors.unit"
           :error-message="fieldErrors.unit"
@@ -39,7 +39,7 @@
         />
         <q-input
           v-model.number="form.cooldownMinutes"
-          label="Cooldown alertes (min) *"
+          label="Alert cooldown (min) *"
           type="number"
           min="1"
           outlined
@@ -54,8 +54,8 @@
         </q-banner>
 
         <div class="thresholds-form__actions">
-          <q-btn flat label="Annuler" class="action-btn" @click="close" />
-          <q-btn color="primary" label="Enregistrer" class="action-btn" :loading="submitting" type="submit" />
+          <q-btn flat label="Cancel" class="action-btn" @click="close" />
+          <q-btn color="primary" label="Save" class="action-btn" :loading="submitting" type="submit" />
         </div>
       </q-form>
     </q-card>
@@ -95,11 +95,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     min: [
       (value, values) => {
         if (typeof value !== 'number') {
-          return 'Seuil minimum obligatoire.'
+          return 'Minimum threshold required.'
         }
 
         if (value > values.max) {
-          return 'Le seuil minimum doit être inférieur au seuil maximum.'
+          return 'Minimum threshold must be less than maximum threshold.'
         }
 
         return null
@@ -108,18 +108,18 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     max: [
       (value, values) => {
         if (typeof value !== 'number') {
-          return 'Seuil maximum obligatoire.'
+          return 'Maximum threshold required.'
         }
 
         if (value < values.min) {
-          return 'Le seuil maximum doit être supérieur au seuil minimum.'
+          return 'Maximum threshold must be greater than minimum threshold.'
         }
 
         return null
       },
     ],
-    unit: [validators.required('Unité obligatoire.')],
-    cooldownMinutes: [validators.positiveInteger('Cooldown obligatoire.')],
+    unit: [validators.required('Unit required.')],
+    cooldownMinutes: [validators.positiveInteger('Cooldown required.')],
   },
 )
 
@@ -148,7 +148,7 @@ async function submit() {
     form.unit = form.unit.trim()
 
     if (!validateAll()) {
-      setFormError('Corrigez les champs invalides avant d’enregistrer les seuils.')
+      setFormError('Fix invalid fields before saving thresholds.')
       return
     }
 
@@ -161,10 +161,10 @@ async function submit() {
     })
     emit('saved', data)
     close()
-    $q.notify({ type: 'positive', message: 'Seuils mis à jour.' })
+    $q.notify({ type: 'positive', message: 'Thresholds updated.' })
   } catch (error) {
-    applyApiError(error, 'Mise à jour impossible.')
-    $q.notify({ type: 'negative', message: formError.value || 'Mise à jour impossible.' })
+    applyApiError(error, 'Update failed.')
+    $q.notify({ type: 'negative', message: formError.value || 'Update failed.' })
   } finally {
     submitting.value = false
   }

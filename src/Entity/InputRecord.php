@@ -17,14 +17,14 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * InputRecord — log immuable d'un intrant appliqué sur un plant.
+ * InputRecord — immutable log of an input applied to a plant.
  *
- * POST uniquement — jamais de modification après création.
+ * POST only — never modified after creation.
  *
- * Pour les pesticides (inputType = pesticide) :
- *   - loqValue + loqUnit sont obligatoires si Health Canada CTS activé
- *   - testResult = fail déclenche la quarantaine automatique du plant
- *   - La règle des 7 jours Health Canada s'applique si testResult = fail
+ * For pesticides (inputType = pesticide):
+ *   - loqValue + loqUnit are required when Health Canada CTS is enabled
+ *   - testResult = fail triggers automatic plant quarantine
+ *   - The Health Canada 7-day rule applies when testResult = fail
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'input_record')]
@@ -87,44 +87,44 @@ class InputRecord
     #[ORM\JoinColumn(nullable: false)]
     private User $appliedBy;
 
-    // ── Champs LoQ (Health Canada — pesticides uniquement) ────────────────
+    // ── LoQ fields (Health Canada — pesticides only) ──────────────────────
 
     /**
-     * Valeur mesurée lors du test laboratoire (mg/kg)
-     * Obligatoire si inputType = pesticide ET client canadien
+     * Measured value from the laboratory test (mg/kg)
+     * Required when inputType = pesticide AND Canadian client
      */
     #[ORM\Column(type: 'float', nullable: true)]
     private ?float $loqValue = null;
 
     /**
-     * Unité de la LoQ : mg/kg (standard Health Canada)
+     * LoQ unit: mg/kg (Health Canada standard)
      */
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $loqUnit = null;
 
     /**
-     * Seuil de référence Health Canada pour cette substance (mg/kg)
-     * Chargé depuis la table pesticide_reference
+     * Health Canada reference threshold for this substance (mg/kg)
+     * Loaded from the pesticide_reference table
      */
     #[ORM\Column(type: 'float', nullable: true)]
     private ?float $loqThreshold = null;
 
     /**
      * pass | fail | pending | not_applicable
-     * Calculé automatiquement : fail si loqValue > loqThreshold
+     * Computed automatically: fail if loqValue > loqThreshold
      */
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $testResult = null;
 
     /**
-     * Nom du laboratoire ayant effectué l'analyse
+     * Name of the laboratory that performed the analysis
      */
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $labName = null;
 
     /**
-     * Défini automatiquement si testResult = fail
-     * Déclenche le timer 7 jours Health Canada
+     * Set automatically when testResult = fail
+     * Starts the Health Canada 7-day timer
      */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $quarantinedAt = null;
@@ -139,8 +139,8 @@ class InputRecord
     }
 
     /**
-     * Calcule et applique automatiquement le testResult.
-     * Appeler après avoir défini loqValue et loqThreshold.
+     * Computes and applies testResult automatically.
+     * Call after setting loqValue and loqThreshold.
      */
     public function computeTestResult(): void
     {
@@ -164,7 +164,7 @@ class InputRecord
     }
 
     /**
-     * Deadline Health Canada : 7 jours calendaires après testResult = fail
+     * Health Canada deadline: 7 calendar days after testResult = fail
      */
     public function getHealthCanadaReportDeadline(): ?\DateTimeImmutable
     {

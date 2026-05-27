@@ -15,7 +15,7 @@
           round
           dense
           icon="mdi-pencil-outline"
-          aria-label="Modifier seuils"
+          aria-label="Edit thresholds"
           class="sensor-card__edit-btn"
           @click="emit('edit-thresholds', sensor)"
         />
@@ -28,7 +28,7 @@
     </div>
     <div v-else class="sensor-card__empty">
       <strong class="sensor-card__value sensor-card__value--muted">--</strong>
-      <span class="sensor-card__unit">Aucune mesure</span>
+      <span class="sensor-card__unit">No reading</span>
     </div>
 
     <div v-if="sparklinePath" ref="chartRef" class="sensor-card__chart" @mouseleave="hoverIndex = null">
@@ -186,7 +186,7 @@ const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000
 const sensorTypeLabel = computed(() => {
   const labels: Record<Sensor['type'], string> = {
     temperature: 'Temperature',
-    humidity: 'Humidite',
+    humidity: 'Humidity',
     co2: 'CO2',
     ph: 'pH',
     ec: 'EC',
@@ -211,8 +211,8 @@ const sparkColor = computed(() => {
 })
 
 const statusLabel = computed(() => {
-  if (isOffline.value) return 'Hors ligne'
-  return { normal: 'Normal', warning: 'Attention', critical: 'Critique' }[cardStatus.value]
+  if (isOffline.value) return 'Offline'
+  return { normal: 'Normal', warning: 'Warning', critical: 'Critical' }[cardStatus.value]
 })
 
 const formattedValue = computed(() => {
@@ -225,8 +225,8 @@ const formattedValue = computed(() => {
 
 const lastUpdateLabel = computed(() => {
   const timestamp = props.liveReading?.recordedAt ?? props.sensor.lastSeen
-  if (!timestamp) return 'Derniere mise a jour indisponible'
-  return `Maj ${new Intl.DateTimeFormat('fr-FR', {
+  if (!timestamp) return 'Last update unavailable'
+  return `Updated ${new Intl.DateTimeFormat('en-US', {
     hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit',
   }).format(new Date(timestamp))}`
 })

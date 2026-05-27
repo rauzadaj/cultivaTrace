@@ -1,9 +1,9 @@
 /**
  * frontend/src/composables/useMercure.ts
  *
- * Composable pour recevoir les événements IoT en temps réel via Mercure SSE.
+ * Composable for receiving real-time IoT events via Mercure SSE.
  *
- * Usage dans un composant :
+ * Usage in a component:
  *
  *   const { subscribe, unsubscribe } = useMercure()
  *
@@ -182,7 +182,7 @@ export function useMercure() {
 
       es.addEventListener('error', () => {
         if (es.readyState === EventSource.CLOSED) {
-          console.warn(`[Mercure] Connexion fermée, reconnexion sur topic: ${topic}`)
+          console.warn(`[Mercure] Connection closed, reconnecting to topic: ${topic}`)
           eventSources.value.delete(topic)
           scheduleReconnect(topic, callback)
         }

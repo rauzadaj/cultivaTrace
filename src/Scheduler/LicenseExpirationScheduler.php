@@ -14,16 +14,16 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
 use Psr\Log\LoggerInterface;
 
 /**
- * LicenseExpirationScheduler — vérifie quotidiennement les licences qui expirent.
+ * LicenseExpirationScheduler — checks daily for expiring licenses.
  *
- * Alertes envoyées :
- *   J-30 : "Votre licence expire dans 30 jours"
- *   J-7  : "Votre licence expire dans 7 jours — Action urgente"
- *   J0   : Passage en status "suspended" automatique
+ * Alerts sent:
+ *   D-30 : "Your license expires in 30 days"
+ *   D-7  : "Your license expires in 7 days — Urgent action required"
+ *   D0   : Automatic status change to "suspended"
  *
- * Exécution : tous les jours à 8h00
+ * Schedule: every day at 08:00
  *
- * Prérequis : symfony/scheduler (inclus dans Symfony 6.3+)
+ * Requirement: symfony/scheduler (included in Symfony 6.3+)
  */
 #[AsCronTask('0 8 * * *', method: 'checkExpirations')]
 class LicenseExpirationScheduler
@@ -37,7 +37,7 @@ class LicenseExpirationScheduler
 
     public function checkExpirations(): void
     {
-        $this->logger->info('[LicenseScheduler] Vérification des expirations de licences');
+        $this->logger->info('[LicenseScheduler] Checking license expirations');
 
         $now   = new \DateTimeImmutable();
         $orgs  = $this->em->getRepository(Organization::class)->findAll();
@@ -52,7 +52,6 @@ class LicenseExpirationScheduler
             $isPast     = $expiresAt < $now;
 
             if ($isPast) {
-                // Suspension automatique
                 $org->setLicenseStatus(LicenseStatus::EXPIRED);
                 $this->sendAlert($org, 0, 'expired');
                 $count['suspended']++;
@@ -70,7 +69,7 @@ class LicenseExpirationScheduler
         $this->em->flush();
 
         $this->logger->info(sprintf(
-            '[LicenseScheduler] Terminé — J-30: %d, J-7: %d, Suspendus: %d',
+            '[LicenseScheduler] Done — D-30: %d, D-7: %d, Suspended: %d',
             $count['alerted_30'],
             $count['alerted_7'],
             $count['suspended']
@@ -85,23 +84,23 @@ class LicenseExpirationScheduler
 
         [$subject, $body] = match ($type) {
             'warning' => [
-                "⚠️ Votre licence CannaSaaS expire dans {$daysLeft} jours",
-                "Votre licence expire le {$org->getLicenseExpiresAt()->format('d/m/Y')}.\n\n" .
-                "Renouvelez votre licence pour maintenir votre accès à CannaSaaS.\n" .
-                "Connectez-vous sur votre espace : https://app.cannas.app/settings/license",
+                "⚠️ Your CannaSaaS license expires in {$daysLeft} days",
+                "Your license expires on {$org->getLicenseExpiresAt()->format('Y-m-d')}.\n\n" .
+                "Renew your license to maintain your access to CannaSaaS.\n" .
+                "Sign in to your account: https://app.cannas.app/settings/license",
             ],
             'urgent' => [
-                "🚨 URGENT — Votre licence CannaSaaS expire dans {$daysLeft} jour(s)",
-                "ATTENTION : Votre licence expire dans {$daysLeft} jour(s) ({$org->getLicenseExpiresAt()->format('d/m/Y')}).\n\n" .
-                "Sans renouvellement, votre accès sera automatiquement suspendu.\n" .
-                "Renouvelez maintenant : https://app.cannas.app/settings/license",
+                "🚨 URGENT — Your CannaSaaS license expires in {$daysLeft} day(s)",
+                "WARNING: Your license expires in {$daysLeft} day(s) ({$org->getLicenseExpiresAt()->format('Y-m-d')}).\n\n" .
+                "Without renewal, your access will be automatically suspended.\n" .
+                "Renew now: https://app.cannas.app/settings/license",
             ],
             'expired' => [
-                "❌ Votre licence CannaSaaS a expiré — Accès suspendu",
-                "Votre licence a expiré. Votre accès a été suspendu.\n\n" .
-                "Pour réactiver votre compte, soumettez une nouvelle licence valide :\n" .
+                "❌ Your CannaSaaS license has expired — Access suspended",
+                "Your license has expired. Your access has been suspended.\n\n" .
+                "To reactivate your account, submit a new valid license:\n" .
                 "https://app.cannas.app/kyb\n\n" .
-                "Besoin d'aide ? Contactez support@cannas.app",
+                "Need help? Contact support@cannas.app",
             ],
             default => ['', ''],
         };
@@ -116,7 +115,7 @@ class LicenseExpirationScheduler
                 ->text($body);
             $this->mailer->send($email);
         } catch (\Throwable $e) {
-            $this->logger->error('[LicenseScheduler] Erreur email: ' . $e->getMessage());
+            $this->logger->error('[LicenseScheduler] Email error: ' . $e->getMessage());
         }
     }
 }

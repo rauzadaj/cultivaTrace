@@ -3,10 +3,10 @@
     <q-card class="room-form">
       <q-card-section class="room-form__header">
         <div>
-          <p class="room-form__eyebrow">Salles</p>
-          <h2>Nouvelle salle</h2>
+          <p class="room-form__eyebrow">Rooms</p>
+          <h2>New room</h2>
         </div>
-        <q-btn flat round icon="mdi-close" aria-label="Fermer" @click="close" />
+        <q-btn flat round icon="mdi-close" aria-label="Close" @click="close" />
       </q-card-section>
 
       <q-form class="room-form__body" @submit.prevent="submit">
@@ -34,7 +34,7 @@
 
         <q-input
           v-model.number="form.capacityMax"
-          label="Capacité max *"
+          label="Max capacity *"
           type="number"
           min="1"
           outlined
@@ -46,10 +46,11 @@
 
         <q-input v-model="form.description" label="Description" outlined type="textarea" autogrow />
 
+
         <q-select
           v-model="form.farm"
           :options="farmOptions"
-          label="Ferme *"
+          label="Farm *"
           emit-value
           map-options
           outlined
@@ -64,8 +65,8 @@
         </q-banner>
 
         <div class="room-form__actions">
-          <q-btn flat label="Annuler" class="action-btn" @click="close" />
-          <q-btn color="primary" label="Créer" class="action-btn" :loading="submitting" type="submit" />
+          <q-btn flat label="Cancel" class="action-btn" @click="close" />
+          <q-btn color="primary" label="Create" class="action-btn" :loading="submitting" type="submit" />
         </div>
       </q-form>
     </q-card>
@@ -100,10 +101,10 @@ const form = reactive({
 const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
   form,
   {
-    name: [validators.required('Nom obligatoire.')],
-    type: [validators.required('Type obligatoire.')],
-    capacityMax: [validators.positiveInteger('Capacité obligatoire.')],
-    farm: [validators.required('Ferme obligatoire.')],
+    name: [validators.required('Name required.')],
+    type: [validators.required('Type required.')],
+    capacityMax: [validators.positiveInteger('Capacity required.')],
+    farm: [validators.required('Farm required.')],
   },
 )
 
@@ -136,7 +137,7 @@ async function fetchFarms() {
       form.farm = farmOptions.value[0].value
     }
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Chargement des fermes impossible.' })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Failed to load farms.' })
   } finally {
     farmsLoading.value = false
   }
@@ -161,7 +162,7 @@ async function submit() {
     form.name = form.name.trim()
 
     if (!validateAll()) {
-      setFormError('Corrigez les champs invalides avant de créer la salle.')
+      setFormError('Fix invalid fields before creating the room.')
       return
     }
 
@@ -175,10 +176,10 @@ async function submit() {
     emit('created')
     close()
     resetForm()
-    $q.notify({ type: 'positive', message: 'Salle créée.' })
+    $q.notify({ type: 'positive', message: 'Room created.' })
   } catch (error) {
-    applyApiError(error, 'Création de salle impossible.')
-    $q.notify({ type: 'negative', message: formError.value || 'Création de salle impossible.' })
+    applyApiError(error, 'Failed to create room.')
+    $q.notify({ type: 'negative', message: formError.value || 'Failed to create room.' })
   } finally {
     submitting.value = false
   }
