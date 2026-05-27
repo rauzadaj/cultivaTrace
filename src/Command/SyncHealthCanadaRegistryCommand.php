@@ -19,9 +19,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Downloads Health Canada's authorized licensed producers CSV and upserts
  * it into the health_canada_registry table for offline KYB verification.
  *
- * Source dataset:
- *   https://health-products.canada.ca/api/dataset/
- *   95c29d8f-3688-4a37-aca0-1a50af7b1c86
+ * If the default URL returns 404, override it:
+ *   --url=https://... or HC_CSV_URL env var
+ * Or supply a pre-downloaded file:
+ *   --file=/tmp/producers.csv
  *
  * Run daily via scheduler (see SyncHealthCanadaRegistryScheduler).
  * Can also be run manually: php bin/console app:sync-health-canada-registry
@@ -32,7 +33,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 )]
 final class SyncHealthCanadaRegistryCommand extends Command
 {
-    private const HC_CSV_URL = 'https://health-products.canada.ca/api/dataset/95c29d8f-3688-4a37-aca0-1a50af7b1c86?lang=en&type=csv';
+    private const HC_CSV_URL_DEFAULT = 'https://health-products.canada.ca/api/dataset/95c29d8f-3688-4a37-aca0-1a50af7b1c86?lang=en&type=csv';
 
     // Column indexes in the HC CSV (0-based). Verify against the live CSV if format changes.
     private const COL_LICENSE_NUMBER = 0;
@@ -47,13 +48,17 @@ final class SyncHealthCanadaRegistryCommand extends Command
         private readonly EntityManagerInterface $em,
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
+        private readonly string $hcCsvUrl = self::HC_CSV_URL_DEFAULT,
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Parse CSV but do not persist');
+        $this
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Parse CSV but do not persist')
+            ->addOption('url', null, InputOption::VALUE_REQUIRED, 'Override the Health Canada CSV URL (also reads HC_CSV_URL env var)')
+            ->addOption('file', null, InputOption::VALUE_REQUIRED, 'Load CSV from a local file instead of downloading');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -63,17 +68,35 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
         $io->title('Health Canada Registry Sync');
 
-        // ── Download CSV ───────────────────────────────────────────────────
-        $io->text('Downloading CSV from Health Canada...');
+        // ── Fetch CSV content ──────────────────────────────────────────────
+        $localFile = $input->getOption('file');
 
-        try {
-            $response = $this->httpClient->request('GET', self::HC_CSV_URL, ['timeout' => 30]);
-            $csvContent = $response->getContent();
-        } catch (\Throwable $e) {
-            $io->error('Failed to download CSV: ' . $e->getMessage());
-            $this->logger->error('[HC Sync] Download failed', ['error' => $e->getMessage()]);
+        if (is_string($localFile) && $localFile !== '') {
+            $io->text(sprintf('Reading CSV from local file: %s', $localFile));
 
-            return Command::FAILURE;
+            if (!file_exists($localFile) || !is_readable($localFile)) {
+                $io->error(sprintf('File not found or not readable: %s', $localFile));
+                return Command::FAILURE;
+            }
+
+            $csvContent = (string) file_get_contents($localFile);
+        } else {
+            $url = (string) ($input->getOption('url') ?? getenv('HC_CSV_URL') ?: $this->hcCsvUrl);
+            $io->text(sprintf('Downloading CSV from: %s', $url));
+
+            try {
+                $response   = $this->httpClient->request('GET', $url, ['timeout' => 30]);
+                $csvContent = $response->getContent();
+            } catch (\Throwable $e) {
+                $io->error([
+                    'Failed to download CSV: ' . $e->getMessage(),
+                    'Tip: If the URL changed, use --url=<new-url> or set the HC_CSV_URL env var.',
+                    'Tip: You can also download the CSV manually and use --file=/path/to/file.csv',
+                ]);
+                $this->logger->error('[HC Sync] Download failed', ['error' => $e->getMessage()]);
+
+                return Command::FAILURE;
+            }
         }
 
         // ── Parse CSV ──────────────────────────────────────────────────────
