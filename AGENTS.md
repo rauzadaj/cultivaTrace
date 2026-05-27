@@ -1,4 +1,4 @@
-﻿# CultivaTrace — Instructions Agents (Jalon 4)
+# CultivaTrace — Instructions Agents (Jalon 4)
 
 **Lis ce fichier en entier avant de coder quoi que ce soit.**
 
