@@ -12,11 +12,20 @@ use App\Domain\Cultivation\Model\JournalEntry;
 use App\Domain\Cultivation\ValueObject\NutrientConcentration;
 use App\Domain\Cultivation\ValueObject\PhLevel;
 use App\Domain\Operations\Model\OperationalService;
+use App\Entity\Farm;
 use App\Entity\Organization;
+use App\Entity\Plant;
+use App\Entity\Room;
+use App\Entity\Sensor;
+use App\Entity\Strain;
 use App\Entity\User;
 use App\Enum\LicenseStatus;
+use App\Enum\PlantStage;
+use App\Enum\PlantStatus;
+use App\Enum\RoomType;
 use App\Enum\SubscriptionPlan;
 use App\Enum\UserAccountStatus;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -36,6 +45,7 @@ final class SeedDemoDataCommand extends Command
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly KernelInterface $kernel,
+        private readonly Connection $connection,
     ) {
         parent::__construct();
     }
@@ -148,6 +158,58 @@ final class SeedDemoDataCommand extends Command
         );
 
         $this->entityManager->flush();
+
+        // ── IoT / cultivation layer ──────────────────────────────────────────
+        $io->section('IoT layer: Farm / Rooms / Sensors / Plants');
+        $farm    = $this->upsertFarm($organization);
+        $vegRoom = $this->upsertRoom($farm, 'Serre Végétation A', RoomType::Veg, 50);
+        $flwRoom = $this->upsertRoom($farm, 'Serre Floraison B', RoomType::Flower, 40);
+        $clnRoom = $this->upsertRoom($farm, 'Clone / Nursery', RoomType::Clone, 100);
+        $this->entityManager->flush();
+
+        $strainHybrid  = $this->upsertStrain($organization, 'Blue Dream', 'hybrid');
+        $strainIndica1 = $this->upsertStrain($organization, 'OG Kush', 'indica');
+        $strainIndica2 = $this->upsertStrain($organization, 'Northern Lights', 'indica');
+        $this->entityManager->flush();
+
+        // Plants
+        $this->upsertPlant($organization, $vegRoom, $strainHybrid, $demoUser, PlantStage::VEGETATION, '-45 days', 'RFID-VEG-001');
+        $this->upsertPlant($organization, $vegRoom, $strainHybrid, $demoUser, PlantStage::VEGETATION, '-40 days', 'RFID-VEG-002');
+        $this->upsertPlant($organization, $vegRoom, $strainIndica1, $demoUser, PlantStage::VEGETATION, '-38 days', 'RFID-VEG-003');
+        $this->upsertPlant($organization, $vegRoom, $strainIndica1, $demoUser, PlantStage::VEGETATION, '-35 days', 'RFID-VEG-004');
+        $this->upsertPlant($organization, $vegRoom, $strainHybrid, $demoUser, PlantStage::VEGETATION, '-30 days', 'RFID-VEG-005');
+
+        $this->upsertPlant($organization, $flwRoom, $strainIndica2, $demoUser, PlantStage::FLOWERING, '-65 days', 'RFID-FLW-001');
+        $this->upsertPlant($organization, $flwRoom, $strainIndica2, $demoUser, PlantStage::FLOWERING, '-62 days', 'RFID-FLW-002');
+        $this->upsertPlant($organization, $flwRoom, $strainHybrid, $demoUser, PlantStage::FLOWERING, '-60 days', 'RFID-FLW-003');
+        $this->upsertPlant($organization, $flwRoom, $strainIndica1, $demoUser, PlantStage::FLOWERING, '-58 days', 'RFID-FLW-004');
+        $this->upsertPlant($organization, $flwRoom, $strainIndica2, $demoUser, PlantStage::FLOWERING, '-55 days', 'RFID-FLW-005');
+        $this->upsertPlant($organization, $flwRoom, $strainHybrid, $demoUser, PlantStage::FLOWERING, '-50 days', 'RFID-FLW-006');
+
+        $this->upsertPlant($organization, $clnRoom, $strainHybrid, $demoUser, PlantStage::GERMINATION, '-8 days', 'RFID-CLN-001');
+        $this->upsertPlant($organization, $clnRoom, $strainIndica1, $demoUser, PlantStage::GERMINATION, '-7 days', 'RFID-CLN-002');
+        $this->upsertPlant($organization, $clnRoom, $strainIndica2, $demoUser, PlantStage::GERMINATION, '-6 days', 'RFID-CLN-003');
+        $this->upsertPlant($organization, $flwRoom, $strainIndica2, $demoUser, PlantStage::HARVEST, '-90 days', 'RFID-HRV-001', PlantStatus::HARVESTED);
+        $this->entityManager->flush();
+
+        // Sensors + historical readings
+        $sensors = [
+            ['room' => $vegRoom, 'type' => 'temperature', 'deviceId' => 'TEMP-VEG-A', 'base' => 24.0, 'amp' => 2.0, 'unit' => '°C'],
+            ['room' => $vegRoom, 'type' => 'humidity',    'deviceId' => 'HUM-VEG-A',  'base' => 60.0, 'amp' => 5.0, 'unit' => '%'],
+            ['room' => $flwRoom, 'type' => 'temperature', 'deviceId' => 'TEMP-FLW-B', 'base' => 22.0, 'amp' => 1.5, 'unit' => '°C'],
+            ['room' => $flwRoom, 'type' => 'humidity',    'deviceId' => 'HUM-FLW-B',  'base' => 50.0, 'amp' => 4.0, 'unit' => '%'],
+            ['room' => $clnRoom, 'type' => 'temperature', 'deviceId' => 'TEMP-CLN-C', 'base' => 26.0, 'amp' => 1.0, 'unit' => '°C'],
+            ['room' => $clnRoom, 'type' => 'humidity',    'deviceId' => 'HUM-CLN-C',  'base' => 68.0, 'amp' => 4.0, 'unit' => '%'],
+        ];
+
+        foreach ($sensors as $def) {
+            /** @var Room $room */
+            $room   = $def['room'];
+            $sensor = $this->upsertSensor($organization, $room, $def['type'], $def['deviceId']);
+            $this->entityManager->flush();
+            $this->seedSensorReadings($sensor, $organization, (float) $def['base'], (float) $def['amp']);
+            $io->text(sprintf('  ✓ %s (%s) — readings seeded', $def['deviceId'], $def['type']));
+        }
 
         $io->success(sprintf(
             'Demo environment ready. Use %s / demo123 to authenticate, then POST to /api/login.',
@@ -306,5 +368,148 @@ final class SeedDemoDataCommand extends Command
     private function inParisTimezone(string $dateTime): \DateTimeImmutable
     {
         return new \DateTimeImmutable($dateTime, new \DateTimeZone('Europe/Paris'));
+    }
+
+    private function upsertFarm(Organization $organization): Farm
+    {
+        /** @var Farm|null $farm */
+        $farm = $this->entityManager->getRepository(Farm::class)->findOneBy(['name' => 'CultivaTrace Demo Farm']);
+
+        if (!$farm instanceof Farm) {
+            $farm = (new Farm())
+                ->setName('CultivaTrace Demo Farm')
+                ->setOrganization($organization)
+                ->setTenantId($organization->getId());
+            $this->entityManager->persist($farm);
+        }
+
+        return $farm;
+    }
+
+    private function upsertRoom(Farm $farm, string $name, RoomType $type, int $capacity): Room
+    {
+        /** @var Room|null $room */
+        $room = $this->entityManager->getRepository(Room::class)->findOneBy(['name' => $name]);
+
+        if (!$room instanceof Room) {
+            $room = (new Room())
+                ->setFarm($farm)
+                ->setTenantId($farm->getTenantId())
+                ->setName($name)
+                ->setType($type)
+                ->setCapacityMax($capacity);
+            $this->entityManager->persist($room);
+        }
+
+        return $room;
+    }
+
+    private function upsertStrain(Organization $organization, string $name, string $genetics): Strain
+    {
+        /** @var Strain|null $strain */
+        $strain = $this->entityManager->getRepository(Strain::class)->findOneBy(['name' => $name, 'tenantId' => $organization->getId()]);
+
+        if (!$strain instanceof Strain) {
+            $strain = (new Strain())
+                ->setTenantId($organization->getId())
+                ->setName($name)
+                ->setGenetics($genetics)
+                ->setCannabisType('marijuana');
+            $this->entityManager->persist($strain);
+        }
+
+        return $strain;
+    }
+
+    private function upsertSensor(Organization $organization, Room $room, string $type, string $deviceId): Sensor
+    {
+        /** @var Sensor|null $sensor */
+        $sensor = $this->entityManager->getRepository(Sensor::class)->findOneBy(['deviceId' => $deviceId]);
+
+        if (!$sensor instanceof Sensor) {
+            $sensor = (new Sensor())
+                ->setTenantId($organization->getId())
+                ->setRoom($room)
+                ->setType($type)
+                ->setDeviceId($deviceId)
+                ->setProtocol('mqtt')
+                ->setStatus('active')
+                ->setLastSeen(new \DateTimeImmutable());
+            $this->entityManager->persist($sensor);
+        }
+
+        return $sensor;
+    }
+
+    private function upsertPlant(
+        Organization $organization,
+        Room $room,
+        Strain $strain,
+        User $createdBy,
+        PlantStage $stage,
+        string $germinatedAgo,
+        string $rfidTag,
+        PlantStatus $status = PlantStatus::ACTIVE,
+    ): void {
+        /** @var Plant|null $plant */
+        $plant = $this->entityManager->getRepository(Plant::class)->findOneBy(['rfidTag' => $rfidTag]);
+
+        if (!$plant instanceof Plant) {
+            $plant = (new Plant())
+                ->setTenantId($organization->getId())
+                ->setRoom($room)
+                ->setStrain($strain)
+                ->setCreatedBy($createdBy)
+                ->setGerminatedAt(new \DateTimeImmutable($germinatedAgo))
+                ->setStage($stage)
+                ->setStatus($status)
+                ->setRfidTag($rfidTag);
+            $this->entityManager->persist($plant);
+        }
+    }
+
+    private function seedSensorReadings(Sensor $sensor, Organization $organization, float $base, float $amplitude): void
+    {
+        $sensorId = (string) $sensor->getId();
+        $tenantId = (string) $organization->getId();
+
+        // Wipe existing demo readings for idempotency
+        $this->connection->executeStatement(
+            'DELETE FROM sensor_reading WHERE sensor_id = :sid AND tenant_id = :tid',
+            ['sid' => $sensorId, 'tid' => $tenantId]
+        );
+
+        // One reading every 3 hours for the last 30 days = 240 points
+        $rows   = [];
+        $params = [];
+        $now    = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        for ($i = 239; $i >= 0; $i--) {
+            $ts    = $now->modify(sprintf('-%d hours', $i * 3));
+            $noise = (mt_rand(-100, 100) / 100) * ($amplitude * 0.4);
+            $value = round($base + sin($i / 8.0) * $amplitude * 0.5 + $noise, 2);
+            $key   = "r{$i}";
+
+            $rows[]           = "(:sid{$key}, :tid{$key}, :val{$key}, :rat{$key})";
+            $params["sid{$key}"] = $sensorId;
+            $params["tid{$key}"] = $tenantId;
+            $params["val{$key}"] = $value;
+            $params["rat{$key}"] = $ts->format('Y-m-d H:i:sP');
+        }
+
+        // Batch insert in chunks of 50 to stay within parameter limits
+        foreach (array_chunk($rows, 50) as $chunkIndex => $chunk) {
+            $chunkParams = [];
+            foreach ($chunk as $row) {
+                preg_match_all('/:([\w]+)/', $row, $matches);
+                foreach ($matches[1] as $paramKey) {
+                    $chunkParams[$paramKey] = $params[$paramKey];
+                }
+            }
+            $this->connection->executeStatement(
+                'INSERT INTO sensor_reading (sensor_id, tenant_id, value, recorded_at) VALUES ' . implode(',', $chunk),
+                $chunkParams
+            );
+        }
     }
 }
