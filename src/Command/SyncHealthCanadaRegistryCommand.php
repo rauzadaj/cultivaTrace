@@ -82,11 +82,9 @@ final class SyncHealthCanadaRegistryCommand extends Command
             $csvContent = (string) file_get_contents($localFile);
         } else {
             $url = (string) ($input->getOption('url') ?? getenv('HC_CSV_URL') ?: $this->hcCsvUrl);
-            $io->text(sprintf('Downloading CSV from: %s', $url));
 
             try {
-                $response   = $this->httpClient->request('GET', $url, ['timeout' => 30]);
-                $csvContent = $response->getContent();
+                $csvContent = $this->fetchCsvContent($url, $io);
             } catch (\Throwable $e) {
                 $io->error([
                     'Failed to download CSV: ' . $e->getMessage(),
@@ -180,6 +178,63 @@ final class SyncHealthCanadaRegistryCommand extends Command
         $this->logger->info('[HC Sync] Completed', $counts);
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Downloads the content at $url. If the response is an HTML page, scans
+     * for the first .csv href and follows it automatically — so the user can
+     * pass the Health Canada listing page URL instead of the direct CSV URL.
+     */
+    private function fetchCsvContent(string $url, SymfonyStyle $io): string
+    {
+        $io->text(sprintf('Downloading from: %s', $url));
+        $response = $this->httpClient->request('GET', $url, [
+            'timeout' => 30,
+            'headers' => ['User-Agent' => 'CultivaTrace/1.0 (+https://cultivatrace.com)'],
+        ]);
+        $content = $response->getContent();
+
+        // If the response is HTML, look for a direct CSV link and follow it
+        $trimmed = ltrim($content);
+        if (stripos($trimmed, '<!doctype') === 0 || stripos($trimmed, '<html') === 0) {
+            $csvUrl = $this->extractCsvHref($content, $url);
+
+            if ($csvUrl === null) {
+                throw new \RuntimeException(
+                    sprintf('Received an HTML page from %s but found no .csv link in it. Open the page in a browser and copy the direct CSV download URL.', $url)
+                );
+            }
+
+            $io->text(sprintf('HTML page detected — following CSV link: %s', $csvUrl));
+            $response = $this->httpClient->request('GET', $csvUrl, [
+                'timeout' => 30,
+                'headers' => ['User-Agent' => 'CultivaTrace/1.0 (+https://cultivatrace.com)'],
+            ]);
+            $content = $response->getContent();
+        }
+
+        return $content;
+    }
+
+    private function extractCsvHref(string $html, string $baseUrl): ?string
+    {
+        if (!preg_match_all('/href=["\']([^"\']*\.csv[^"\']*)["\']/', $html, $matches)) {
+            return null;
+        }
+
+        foreach ($matches[1] as $href) {
+            // Resolve relative URLs
+            if (str_starts_with($href, 'http')) {
+                return $href;
+            }
+
+            $parsed = parse_url($baseUrl);
+            $base   = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
+
+            return str_starts_with($href, '/') ? $base . $href : $base . '/' . $href;
+        }
+
+        return null;
     }
 
     /** @return list<list<string>> */
