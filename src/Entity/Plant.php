@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -25,7 +25,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Plant is the central entity in CannaSaaS.
+ * Plant is the central entity in CultivaTrace.
  * Each plant has a complete history via PlantEvent (append-only).
  *
  * IMPORTANT: never modify an existing PlantEvent.

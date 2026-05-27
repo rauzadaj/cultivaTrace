@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <q-page class="kyb-page">
     <div class="kyb-container">
 
@@ -6,7 +6,7 @@
       <div class="kyb-header q-mb-xl">
         <div class="text-h5 text-weight-bold text-primary">License verification</div>
         <div class="text-body2 text-grey-6 q-mt-xs">
-          CannaSaaS is reserved for licensed operators.
+          CultivaTrace is reserved for licensed operators.
           Submit your license to activate full access.
         </div>
       </div>

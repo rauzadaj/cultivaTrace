@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Entity;
 
@@ -16,7 +16,7 @@ use Symfony\Component\Uid\Uuid;
  * Workflow:
  *   1. POST /api/kyb/upload → upload file + create LicenseDocument (status: pending)
  *   2. Auto-verification via METRC/CTS API (KybService::verify())
- *   3. If API unavailable → manual validation by CannaSaaS admin
+ *   3. If API unavailable → manual validation by CultivaTrace admin
  *   4. Transition to active or rejected
  *
  * Dev storage: local (var/licenses/)
