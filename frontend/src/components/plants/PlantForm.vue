@@ -10,7 +10,29 @@
       </q-card-section>
 
       <q-form class="plant-form__body" @submit.prevent="submit">
-        <q-select v-model="form.strain" :options="strainOptions" label="Genetique" emit-value map-options outlined clearable />
+        <q-select
+          v-model="form.strain"
+          :options="filteredStrainOptions"
+          label="Genetique"
+          emit-value
+          map-options
+          outlined
+          clearable
+          use-input
+          input-debounce="0"
+          :loading="creatingStrain"
+          @filter="filterStrains"
+        >
+          <template #no-option="{ inputValue }">
+            <q-item v-if="inputValue" clickable @click="quickCreateStrain(inputValue)">
+              <q-item-section avatar><q-icon name="mdi-plus-circle-outline" color="primary" /></q-item-section>
+              <q-item-section>Créer "{{ inputValue }}"</q-item-section>
+            </q-item>
+            <q-item v-else>
+              <q-item-section class="text-grey-6">Tapez pour rechercher ou créer</q-item-section>
+            </q-item>
+          </template>
+        </q-select>
         <q-select
           v-model="form.room"
           :options="roomOptions"
@@ -114,7 +136,33 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
 )
 
 const roomOptions = computed(() => plantsStore.roomIriList())
-const strainOptions = computed(() => plantsStore.strainIriList())
+const filteredStrainOptions = ref<{ label: string; value: string }[]>([])
+const creatingStrain = ref(false)
+
+function filterStrains(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    const all = plantsStore.strainIriList()
+    if (!val) {
+      filteredStrainOptions.value = all
+    } else {
+      const needle = val.toLowerCase()
+      filteredStrainOptions.value = all.filter(o => o.label.toLowerCase().includes(needle))
+    }
+  })
+}
+
+async function quickCreateStrain(name: string) {
+  creatingStrain.value = true
+  try {
+    const strain = await plantsStore.createStrain(name.trim())
+    filteredStrainOptions.value = plantsStore.strainIriList()
+    form.strain = strain['@id'] ?? `/api/strains/${strain.id}`
+  } catch {
+    $q.notify({ type: 'negative', message: 'Impossible de créer la génétique.' })
+  } finally {
+    creatingStrain.value = false
+  }
+}
 
 watch(() => props.modelValue, async (open) => {
   if (!open) return
@@ -123,6 +171,7 @@ watch(() => props.modelValue, async (open) => {
   if (!plantsStore.rooms.length || !plantsStore.strains.length) {
     await plantsStore.fetchSupportData()
   }
+  filteredStrainOptions.value = plantsStore.strainIriList()
   if (!form.room && roomOptions.value.length) {
     form.room = roomOptions.value[0].value
   }
