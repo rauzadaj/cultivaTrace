@@ -11,12 +11,12 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use App\Entity\User;
 
 /**
- * TenantListener — s'exécute sur chaque requête HTTP authentifiée.
+ * TenantListener — runs on every authenticated HTTP request.
  *
- * Il extrait le tenantId depuis l'utilisateur connecté (via JWT)
- * et l'injecte dans le TenantFilter Doctrine.
+ * Extracts the tenantId from the logged-in user (via JWT)
+ * and injects it into the Doctrine TenantFilter.
  *
- * Enregistrer comme service dans config/services.yaml :
+ * Register as a service in config/services.yaml:
  *
  *   App\EventListener\TenantListener:
  *     tags:

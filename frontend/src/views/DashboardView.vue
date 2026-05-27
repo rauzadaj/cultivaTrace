@@ -3,14 +3,14 @@
     <header class="dashboard-view__header">
       <div>
         <p class="dashboard-view__eyebrow">Overview</p>
-        <h1>Bonjour {{ firstName }}</h1>
+        <h1>Hello {{ firstName }}</h1>
         <p class="dashboard-view__date">{{ todayLabel }}</p>
       </div>
 
       <q-btn
         color="primary"
         icon="mdi-home-plus-outline"
-        label="Nouvelle ferme"
+        label="New farm"
         class="dashboard-view__farm-btn"
         no-caps
         @click="farmDialogOpen = true"
@@ -34,8 +34,8 @@
           <c-card>
             <div class="section-head">
               <div>
-                <p class="section-head__eyebrow">Alertes actives</p>
-                <h2>Actions terrain prioritaires</h2>
+                <p class="section-head__eyebrow">Active alerts</p>
+                <h2>Priority field actions</h2>
               </div>
             </div>
 
@@ -49,16 +49,16 @@
 
             <div v-else class="empty-state empty-state--positive">
               <q-icon name="mdi-check-circle-outline" size="28px" />
-              <strong>Aucune alerte active</strong>
-              <span>Les salles et les plants suivis sont dans une zone stable.</span>
+              <strong>No active alerts</strong>
+              <span>All monitored rooms and plants are in a stable zone.</span>
             </div>
           </c-card>
 
           <section>
             <div class="section-head">
               <div>
-                <p class="section-head__eyebrow">Plants a surveiller</p>
-                <h2>Priorites du shift</h2>
+                <p class="section-head__eyebrow">Plants to watch</p>
+                <h2>Shift priorities</h2>
               </div>
             </div>
 
@@ -97,8 +97,8 @@
           <c-card>
             <div class="section-head">
               <div>
-                <p class="section-head__eyebrow">Plants par stade</p>
-                <h2>Distribution active</h2>
+                <p class="section-head__eyebrow">Plants by stage</p>
+                <h2>Active distribution</h2>
               </div>
             </div>
             <div class="stage-chart">
@@ -117,8 +117,8 @@
           <c-card>
             <div class="section-head">
               <div>
-                <p class="section-head__eyebrow">Alertes</p>
-                <h2>Capteurs et terrain</h2>
+                <p class="section-head__eyebrow">Alerts</p>
+                <h2>Sensors and field</h2>
               </div>
             </div>
             <div v-if="alerts.length" class="alert-stack">
@@ -129,7 +129,7 @@
             </div>
             <div v-else class="empty-state empty-state--positive">
               <q-icon name="mdi-check-circle-outline" size="28px" />
-              <strong>Aucune alerte active</strong>
+              <strong>No active alerts</strong>
             </div>
           </c-card>
         </section>
@@ -137,14 +137,14 @@
         <c-card class="q-mt-md">
           <div class="section-head">
             <div>
-              <p class="section-head__eyebrow">Dernieres actions</p>
-              <h2>Journal recent</h2>
+              <p class="section-head__eyebrow">Recent actions</p>
+              <h2>Activity log</h2>
             </div>
           </div>
           <div class="action-table">
             <header class="action-table__head">
               <span>Type</span>
-              <span>Contexte</span>
+              <span>Context</span>
               <span>Date</span>
             </header>
             <article v-for="entry in recentEvents" :key="entry.id" class="action-table__row">
@@ -188,11 +188,11 @@ const loadError = ref<string | null>(null)
 const overview = ref<DashboardOverviewResponse | null>(null)
 const isMobile = computed(() => xs.value)
 const firstName = computed(() => {
-  const identity = authStore.user?.email || 'operateur'
+  const identity = authStore.user?.email || 'operator'
 
-  return identity.split(/[\s@._-]+/)[0] ?? 'operateur'
+  return identity.split(/[\s@._-]+/)[0] ?? 'operator'
 })
-const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
+const todayLabel = computed(() => new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' }))
 
 const alerts = computed<DashboardAlert[]>(() => {
   const items: DashboardAlert[] = []
@@ -200,10 +200,10 @@ const alerts = computed<DashboardAlert[]>(() => {
   if (loadError.value) {
     items.push({
       id: 'dashboard-error',
-      title: 'Erreur de synchronisation',
+      title: 'Sync error',
       message: loadError.value,
       severity: 'critical',
-      context: 'Verifiez la connectivite et le backend',
+      context: 'Check connectivity and backend',
     })
   }
 
@@ -215,9 +215,9 @@ const alerts = computed<DashboardAlert[]>(() => {
 })
 
 const statChips = computed<DashboardStatChip[]>(() => [
-  { id: 'active', label: 'Plants actifs', value: String(overview.value?.plants.total ?? 0), tone: 'positive' },
-  { id: 'rooms', label: 'Salles', value: String(overview.value?.rooms.total ?? 0), tone: 'default' },
-  { id: 'alerts', label: 'Alertes', value: String(alerts.value.length), tone: alerts.value.length ? 'warning' : 'default' },
+  { id: 'active', label: 'Active plants', value: String(overview.value?.plants.total ?? 0), tone: 'positive' },
+  { id: 'rooms', label: 'Rooms', value: String(overview.value?.rooms.total ?? 0), tone: 'default' },
+  { id: 'alerts', label: 'Alerts', value: String(alerts.value.length), tone: alerts.value.length ? 'warning' : 'default' },
 ])
 
 const spotlightPlants = computed<DashboardSpotlightPlant[]>(() => overview.value?.overview.spotlightPlants ?? [])
@@ -244,18 +244,18 @@ const stageBars = computed(() => {
 
 function eventContext(entry: PlantEvent) {
   if (entry.eventType === 'stage_change' && entry.payload && 'to' in entry.payload) {
-    return `Passage au stade ${String(entry.payload.to)}`
+    return `Stage change to ${String(entry.payload.to)}`
   }
 
   if (entry.eventType === 'germination') {
-    return 'Mise en culture du plant'
+    return 'Plant started'
   }
 
-  return 'Evenement terrain'
+  return 'Field event'
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('fr-FR', {
+  return new Date(value).toLocaleString('en-US', {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
@@ -271,7 +271,7 @@ async function fetchOverview(): Promise<void> {
     const { data } = await dashboardApi.overview()
     overview.value = data
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : 'Impossible de charger le dashboard.'
+    loadError.value = error instanceof Error ? error.message : 'Failed to load dashboard.'
     throw error
   } finally {
     loading.value = false

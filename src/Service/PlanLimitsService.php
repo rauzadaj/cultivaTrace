@@ -11,13 +11,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
- * PlanLimitsService — vérifie les limites du plan avant chaque création.
+ * PlanLimitsService — checks plan limits before each creation.
  *
- * Appelé depuis les State Processors API Platform ou les Controllers.
- * Les limites sont définies dans l'enum SubscriptionPlan.
+ * Called from API Platform State Processors or Controllers.
+ * Limits are defined in the SubscriptionPlan enum.
  *
- * Retourne une exception PlanLimitExceededException si la limite est atteinte.
- * Le controller ou le processor retourne alors HTTP 402 avec un message d'upgrade.
+ * Throws PlanLimitExceededException if the limit is reached.
+ * The controller or processor then returns HTTP 402 with an upgrade message.
  */
 class PlanLimitsService
 {
@@ -26,7 +26,7 @@ class PlanLimitsService
     ) {}
 
     /**
-     * Vérifie si l'organisation peut créer un nouveau plant.
+     * Checks whether the organization can create a new plant.
      *
      * @throws PlanLimitExceededException
      */
@@ -38,7 +38,7 @@ class PlanLimitsService
         if ($current >= $max) {
             throw new PlanLimitExceededException(
                 sprintf(
-                    'Limite de plants atteinte (%d/%d). Passez au plan supérieur pour ajouter plus de plants.',
+                    'Plant limit reached (%d/%d). Upgrade your plan to add more plants.',
                     $current,
                     $max
                 ),
@@ -51,7 +51,7 @@ class PlanLimitsService
     }
 
     /**
-     * Vérifie si l'organisation peut créer une nouvelle salle.
+     * Checks whether the organization can create a new room.
      *
      * @throws PlanLimitExceededException
      */
@@ -63,7 +63,7 @@ class PlanLimitsService
         if ($current >= $max) {
             throw new PlanLimitExceededException(
                 sprintf(
-                    'Limite de salles atteinte (%d/%d). Passez au plan supérieur.',
+                    'Room limit reached (%d/%d). Upgrade your plan.',
                     $current,
                     $max
                 ),
@@ -76,7 +76,7 @@ class PlanLimitsService
     }
 
     /**
-     * Vérifie si l'organisation peut ajouter un utilisateur.
+     * Checks whether the organization can add a new user.
      *
      * @throws PlanLimitExceededException
      */
@@ -88,7 +88,7 @@ class PlanLimitsService
         if ($current >= $max) {
             throw new PlanLimitExceededException(
                 sprintf(
-                    'Limite d\'utilisateurs atteinte (%d/%d). Passez au plan supérieur.',
+                    'User limit reached (%d/%d). Upgrade your plan.',
                     $current,
                     $max
                 ),
@@ -101,7 +101,7 @@ class PlanLimitsService
     }
 
     /**
-     * Vérifie si l'organisation a accès à l'IoT (plan Pro+).
+     * Checks whether the organization has IoT access (Pro+ plan required).
      *
      * @throws PlanLimitExceededException
      */
@@ -109,7 +109,7 @@ class PlanLimitsService
     {
         if (!$org->getPlan()->hasIoT()) {
             throw new PlanLimitExceededException(
-                'L\'accès aux capteurs IoT nécessite le plan Pro ou supérieur.',
+                'IoT sensor access requires the Pro plan or higher.',
                 'iot',
                 0,
                 0,
@@ -119,7 +119,7 @@ class PlanLimitsService
     }
 
     /**
-     * Retourne les limites actuelles de l'organisation.
+     * Returns the current limits for the organization.
      */
     public function getLimits(Organization $org): array
     {

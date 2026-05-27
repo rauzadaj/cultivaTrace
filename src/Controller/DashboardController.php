@@ -17,8 +17,8 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 /**
  * GET /api/dashboard
  *
- * Endpoint agrégé pour le dashboard principal.
- * Retourne tous les KPIs en un seul appel API.
+ * Aggregated endpoint for the main dashboard.
+ * Returns all KPIs in a single API call.
  */
 #[Route('/api/dashboard', methods: ['GET'])]
 class DashboardController extends AbstractController
@@ -41,7 +41,7 @@ class DashboardController extends AbstractController
             throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');
         }
 
-        // Plants actifs par stade
+        // Active plants by stage
         $plantsByStage = $this->em->createQuery(
             'SELECT p.stage, COUNT(p.id) as count
              FROM App\Entity\Plant p
@@ -52,7 +52,7 @@ class DashboardController extends AbstractController
         ->setParameter('status', 'active')
         ->getResult();
 
-        // Prochaines récoltes estimées (plants en floraison)
+        // Estimated upcoming harvests (flowering plants)
         $upcomingHarvests = $this->em->createQuery(
             'SELECT COUNT(p.id) as count
              FROM App\Entity\Plant p
@@ -65,7 +65,7 @@ class DashboardController extends AbstractController
         ->setParameter('stage', 'flowering')
         ->getSingleScalarResult();
 
-        // Dernières récoltes (30j)
+        // Recent harvests (last 30 days)
         $recentHarvests = $this->em->createQuery(
             'SELECT COUNT(h.id) as count, SUM(h.netWeightG) as totalGrams
              FROM App\Entity\HarvestRecord h
@@ -77,7 +77,7 @@ class DashboardController extends AbstractController
         ->setParameter('since', new \DateTimeImmutable('-30 days'))
         ->getSingleResult();
 
-        // Capteurs en alerte
+        // Sensors in alert
         $sensorsInAlert = $this->em->createQuery(
             'SELECT COUNT(s.id) as count
              FROM App\Entity\Sensor s

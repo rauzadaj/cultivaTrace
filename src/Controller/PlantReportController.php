@@ -19,14 +19,14 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * GET /api/plants/{id}/report
  *
- * Génère le rapport PDF seed-to-harvest via GotenbergBundle.
+ * Generates the seed-to-harvest PDF report via GotenbergBundle.
  *
- * Prérequis :
+ * Requirements:
  *   composer require sensiolabs/gotenberg-bundle
- *   docker-compose : service gotenberg (voir SETUP.md)
+ *   docker-compose: gotenberg service (see SETUP.md)
  *
- * SYNC-03 : ce rapport doit être validé par un contact BfArM
- * ou Health Canada avant le lancement beta.
+ * SYNC-03: this report must be validated by a BfArM
+ * or Health Canada contact before the beta launch.
  */
 #[Route('/api/plants/{id}/report', methods: ['GET'])]
 class PlantReportController extends AbstractController

@@ -11,16 +11,16 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * LicenseDocument — document de licence uploadé par l'opérateur lors du KYB.
+ * LicenseDocument — license document uploaded by the operator during KYB.
  *
- * Workflow :
- *   1. POST /api/kyb/upload → upload fichier + création LicenseDocument (status: pending)
- *   2. Vérification auto via API METRC/CTS (KybService::verify())
- *   3. Si API indisponible → validation manuelle admin CannaSaaS
- *   4. Passage en active ou rejected
+ * Workflow:
+ *   1. POST /api/kyb/upload → upload file + create LicenseDocument (status: pending)
+ *   2. Auto-verification via METRC/CTS API (KybService::verify())
+ *   3. If API unavailable → manual validation by CannaSaaS admin
+ *   4. Transition to active or rejected
  *
- * Stockage dev : local (var/licenses/)
- * Stockage prod : S3 (à configurer en jalon 5)
+ * Dev storage: local (var/licenses/)
+ * Prod storage: S3 (to be configured in milestone 5)
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'license_document')]
@@ -48,21 +48,21 @@ class LicenseDocument
     private Organization $organization;
 
     /**
-     * Numéro de licence officiel saisi par l'opérateur
+     * Official license number entered by the operator
      * Ex: METRC-CO-12345, HC-LIC-CA-67890, BfArM-DE-001
      */
     #[ORM\Column(length: 255)]
     private string $licenseNumber;
 
     /**
-     * Type de licence selon le marché :
+     * License type by market:
      * metrc_usa | health_canada | bfarm_de | ansm_fr | ctls_dev (dev/test only)
      */
     #[ORM\Column(length: 50)]
     private string $licenseType;
 
     /**
-     * Chemin du fichier uploadé (local en dev, S3 key en prod)
+     * Path of the uploaded file (local in dev, S3 key in prod)
      */
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $filePath = null;
@@ -83,7 +83,7 @@ class LicenseDocument
     private ?\DateTimeImmutable $verifiedAt = null;
 
     /**
-     * Méthode de vérification : auto_metrc | auto_cts | manual
+     * Verification method: auto_metrc | auto_cts | manual
      */
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $verificationMethod = null;

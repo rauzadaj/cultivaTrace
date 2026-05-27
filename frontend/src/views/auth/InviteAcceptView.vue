@@ -3,13 +3,13 @@
     <q-card flat class="invite-card">
       <div class="invite-card__header">
         <p class="eyebrow">Organization invite</p>
-        <h1>Activer l’invitation</h1>
+        <h1>Activate invitation</h1>
       </div>
 
       <form class="invite-form" @submit.prevent="submit">
         <q-input
           v-model="password"
-          label="Nouveau mot de passe"
+          label="New password"
           type="password"
           autocomplete="new-password"
           outlined
@@ -33,7 +33,7 @@
           unelevated
           :loading="loading"
         >
-          Activer l’accès
+          Activate access
         </q-btn>
       </form>
     </q-card>
@@ -59,7 +59,7 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     },
   },
   {
-    password: [validators.required('Mot de passe requis.'), validators.minLength(8, 'Minimum 8 caractères.')],
+    password: [validators.required('Password required.'), validators.minLength(8, 'Minimum 8 characters.')],
   },
 )
 
@@ -72,7 +72,7 @@ async function submit() {
     const token = String(route.query.token ?? '').trim()
 
     if (!token) {
-      setFormError('Invitation invalide ou expirée.')
+      setFormError('Invalid or expired invitation.')
       return
     }
 
@@ -81,12 +81,12 @@ async function submit() {
     }
 
     const { data } = await authApi.acceptInvitation(token, password.value)
-    successMessage.value = `Invitation activée pour ${data.email}. Connectez-vous pour continuer.`
+    successMessage.value = `Invitation activated for ${data.email}. Sign in to continue.`
     window.setTimeout(() => {
       void router.push('/auth')
     }, 1200)
   } catch (caughtError) {
-    applyApiError(caughtError, 'Impossible d’activer l’invitation.')
+    applyApiError(caughtError, 'Failed to activate invitation.')
   } finally {
     loading.value = false
   }

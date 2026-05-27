@@ -3,10 +3,10 @@
     <q-card class="farm-form">
       <q-card-section class="farm-form__header">
         <div>
-          <p class="farm-form__eyebrow">Fermes</p>
-          <h2>Nouvelle ferme</h2>
+          <p class="farm-form__eyebrow">Farms</p>
+          <h2>New farm</h2>
         </div>
-        <q-btn flat round icon="mdi-close" aria-label="Fermer" @click="close" />
+        <q-btn flat round icon="mdi-close" aria-label="Close" @click="close" />
       </q-card-section>
 
       <q-form class="farm-form__body" @submit.prevent="submit">
@@ -15,9 +15,9 @@
           label="Nom *"
           outlined
           lazy-rules
-          :rules="[(v: string) => !!v?.trim() || 'Le nom est obligatoire']"
+          :rules="[(v: string) => !!v?.trim() || 'Name is required']"
         />
-        <q-input v-model="form.address" label="Adresse" outlined />
+        <q-input v-model="form.address" label="Address" outlined />
         <q-input
           v-model.number="form.surfaceM2"
           label="Surface (m²)"
@@ -27,8 +27,8 @@
         />
 
         <div class="farm-form__actions">
-          <q-btn flat label="Annuler" class="action-btn" @click="close" />
-          <q-btn color="primary" label="Créer" class="action-btn" :loading="submitting" type="submit" />
+          <q-btn flat label="Cancel" class="action-btn" @click="close" />
+          <q-btn color="primary" label="Create" class="action-btn" :loading="submitting" type="submit" />
         </div>
       </q-form>
     </q-card>
@@ -78,9 +78,9 @@ async function submit() {
     emit('created')
     close()
     resetForm()
-    $q.notify({ type: 'positive', message: 'Ferme créée.' })
+    $q.notify({ type: 'positive', message: 'Farm created.' })
   } catch (error) {
-    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Création impossible.' })
+    $q.notify({ type: 'negative', message: error instanceof Error ? error.message : 'Creation failed.' })
   } finally {
     submitting.value = false
   }
