@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -7,7 +7,7 @@ namespace App\Service;
 /**
  * VpdService — real-time Vapour Pressure Deficit calculation.
  *
- * Commercial differentiator for CannaSaaS: no competitor integrates this natively.
+ * Commercial differentiator for CultivaTrace: no competitor integrates this natively.
  *
  * Formula:
  *   SVP(T) = 0.6108 × e^(17.27 × T / (T + 237.3))  [kPa]

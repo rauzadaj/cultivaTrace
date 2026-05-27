@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -135,7 +135,7 @@ class KybController extends AbstractController
     /**
      * POST /api/kyb/admin/validate/{id}
      *
-     * CannaSaaS admin backoffice — manually approve or reject a license.
+     * CultivaTrace admin backoffice — manually approve or reject a license.
      * Access restricted to ROLE_SUPER_ADMIN only.
      */
     #[Route('/api/kyb/admin/validate/{id}', methods: ['POST'])]

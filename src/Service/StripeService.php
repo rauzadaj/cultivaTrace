@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -259,11 +259,11 @@ class StripeService
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('✅ CannaSaaS subscription activated — ' . ucfirst($plan) . ' plan')
+                ->subject('✅ CultivaTrace subscription activated — ' . ucfirst($plan) . ' plan')
                 ->text(sprintf(
-                    "Your CannaSaaS %s plan subscription is now active.\n\n" .
+                    "Your CultivaTrace %s plan subscription is now active.\n\n" .
                     "You can manage your subscription from your billing dashboard.\n\n" .
-                    "Thank you for trusting CannaSaaS!",
+                    "Thank you for trusting CultivaTrace!",
                     ucfirst($plan)
                 ));
             $this->mailer->send($email);
@@ -313,7 +313,7 @@ class StripeService
                 ->to($userEmail)
                 ->subject('⚠️ Payment failed — Action required')
                 ->text(
-                    "Your CannaSaaS subscription renewal has failed.\n\n" .
+                    "Your CultivaTrace subscription renewal has failed.\n\n" .
                     "Please update your payment method from your billing dashboard.\n" .
                     "Without action within 7 days, your access will be suspended."
                 );

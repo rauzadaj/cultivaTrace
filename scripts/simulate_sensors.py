@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 scripts/simulate_sensors.py
 
-Simule des capteurs IoT en envoyant des lectures vers l'API CannaSaaS.
+Simule des capteurs IoT en envoyant des lectures vers l'API CultivaTrace.
 Utilisé en développement à la place de vrais capteurs physiques.
 
 Usage :
@@ -121,7 +121,7 @@ def send_reading(sensor_id: str, value: float, token: str) -> bool:
 # ── Boucle principale ─────────────────────────────────────────────────────────
 
 def main():
-    print(f'🌿 CannaSaaS — Simulateur de capteurs IoT')
+    print(f'🌿 CultivaTrace — Simulateur de capteurs IoT')
     print(f'   API : {API_URL}')
     print(f'   Intervalle : {SEND_INTERVAL}s\n')
 

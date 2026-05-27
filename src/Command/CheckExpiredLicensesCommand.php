@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -98,13 +98,13 @@ final class CheckExpiredLicensesCommand extends Command
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($firstUser->getEmail())
-                ->subject('⚠️ Your CannaSaaS license has expired')
+                ->subject('⚠️ Your CultivaTrace license has expired')
                 ->text(sprintf(
                     "Hello,\n\n" .
                     "The license for your organization \"%s\" expired on %s.\n\n" .
-                    "Your access to CannaSaaS is suspended until you renew your license.\n\n" .
+                    "Your access to CultivaTrace is suspended until you renew your license.\n\n" .
                     "Contact us at jonathan@rauzada.me to renew your license.\n\n" .
-                    "The CannaSaaS Team",
+                    "The CultivaTrace Team",
                     $org->getName(),
                     $org->getLicenseExpiresAt()?->format('Y-m-d') ?? 'N/A',
                 ));

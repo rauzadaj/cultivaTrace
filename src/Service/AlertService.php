@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -124,14 +124,14 @@ class AlertService
         );
 
         $body = sprintf(
-            "CannaSaaS Alert\n\n" .
+            "CultivaTrace Alert\n\n" .
             "Sensor     : %s (%s)\n" .
             "Room       : %s\n" .
             "Value      : %.2f %s\n" .
             "Min threshold: %s %s\n" .
             "Max threshold: %s %s\n" .
             "Timestamp  : %s\n\n" .
-            "Sign in to CannaSaaS to view the dashboard.",
+            "Sign in to CultivaTrace to view the dashboard.",
             $sensor->getDeviceId(),
             $sensor->getType(),
             $sensor->getRoom()->getName(),
