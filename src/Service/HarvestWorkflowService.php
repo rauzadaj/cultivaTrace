@@ -26,7 +26,7 @@ final readonly class HarvestWorkflowService
     {
         if (!$plant->isActive()) {
             throw new \InvalidArgumentException(sprintf(
-                'Plant non archivable (statut actuel : %s)',
+                'Plant cannot be archived (current status: %s)',
                 $plant->getStatus()->value,
             ));
         }
@@ -34,7 +34,7 @@ final readonly class HarvestWorkflowService
         // Enforce forward-only stage rule: harvest is only allowed from FLOWERING
         if ($plant->getStage() !== PlantStage::FLOWERING) {
             throw new \InvalidArgumentException(sprintf(
-                'La récolte n\'est possible que depuis le stade "%s" (stade actuel : "%s").',
+                'Harvest is only possible from stage "%s" (current stage: "%s").',
                 PlantStage::FLOWERING->value,
                 $plant->getStage()->value,
             ));
@@ -46,19 +46,19 @@ final readonly class HarvestWorkflowService
         $notes = isset($payload['notes']) ? (string) $payload['notes'] : null;
 
         if ($grossWeight === null || $netWeight === null) {
-            throw new \InvalidArgumentException('grossWeightG et netWeightG sont obligatoires');
+            throw new \InvalidArgumentException('grossWeightG and netWeightG are required');
         }
 
         if (!is_numeric($grossWeight) || (float) $grossWeight <= 0) {
-            throw new \InvalidArgumentException('grossWeightG doit être un nombre strictement positif');
+            throw new \InvalidArgumentException('grossWeightG must be a strictly positive number');
         }
 
         if (!is_numeric($netWeight) || (float) $netWeight <= 0) {
-            throw new \InvalidArgumentException('netWeightG doit être un nombre strictement positif');
+            throw new \InvalidArgumentException('netWeightG must be a strictly positive number');
         }
 
         if ((float) $netWeight > (float) $grossWeight) {
-            throw new \InvalidArgumentException('Le poids net ne peut pas être supérieur au poids brut');
+            throw new \InvalidArgumentException('Net weight cannot exceed gross weight');
         }
 
         $this->entityManager->beginTransaction();
@@ -69,7 +69,7 @@ final readonly class HarvestWorkflowService
 
             // Re-check status inside the lock in case a concurrent request harvested first
             if (!$plant->isActive()) {
-                throw new \InvalidArgumentException('Ce plant a déjà été récolté ou détruit.');
+                throw new \InvalidArgumentException('This plant has already been harvested or destroyed.');
             }
 
             $harvest = new HarvestRecord();

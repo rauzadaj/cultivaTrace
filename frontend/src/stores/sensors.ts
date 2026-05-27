@@ -1,8 +1,8 @@
 /**
  * frontend/src/stores/sensors.ts
  *
- * Store Pinia pour les capteurs IoT et les lectures temps réel.
- * Combine les données REST (historique) avec les updates Mercure SSE (temps réel).
+ * Pinia store for IoT sensors and real-time readings.
+ * Combines REST data (history) with Mercure SSE updates (real-time).
  */
 
 import { defineStore } from 'pinia'
@@ -39,7 +39,7 @@ export const useSensorsStore = defineStore('sensors', () => {
   const loading       = ref(false)
   const error         = ref<string | null>(null)
 
-  // Capteurs par salle
+  // Sensors by room
   const sensorsByRoom = computed(() => {
     const map = new Map<string, Sensor[]>()
     sensors.value.forEach((sensor) => {
@@ -54,7 +54,7 @@ export const useSensorsStore = defineStore('sensors', () => {
     return map
   })
 
-  // Nombre d'alertes actives (capteurs hors seuil)
+  // Number of active alerts (sensors out of range)
   const alertCount = computed(() =>
     [...liveReadings.value.values()].filter((reading: SensorLiveReading) => reading.status !== 'normal').length
   )
@@ -68,7 +68,7 @@ export const useSensorsStore = defineStore('sensors', () => {
       sensors.value = collectionMembers(data)
       await hydrateLatestReadings()
     } catch (e) {
-      error.value = 'Impossible de charger les capteurs'
+      error.value = 'Unable to load sensors'
       sensors.value = []
       liveReadings.value = new Map()
     } finally {
@@ -82,8 +82,8 @@ export const useSensorsStore = defineStore('sensors', () => {
   }
 
   /**
-   * Met à jour la lecture temps réel d'un capteur.
-   * Appelé par useMercure quand un update SSE arrive.
+   * Updates the real-time reading for a sensor.
+   * Called by useMercure when an SSE update arrives.
    */
   function updateLiveReading(sensorId: string, update: {
     value:      number

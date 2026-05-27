@@ -38,7 +38,7 @@ class CTSReportController extends AbstractController
 
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
             return $this->json(
-                ['error' => 'Format invalide. Utilisez YYYY-MM'],
+                ['error' => 'Invalid format. Use YYYY-MM'],
                 Response::HTTP_BAD_REQUEST
             );
         }
@@ -123,7 +123,7 @@ class CTSReportController extends AbstractController
                 $harvest?->getNetWeightG() ?? '',
                 '', // destroyed_at — populated via DestructionIntent
                 '',
-                'no', // quarantined — à enrichir avec InputRecord::isQuarantined()
+                'no', // quarantined — to be enriched with InputRecord::isQuarantined()
                 '',
             ];
         }

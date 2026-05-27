@@ -4,16 +4,16 @@
       <q-card-section class="plant-form__header">
         <div>
           <p class="plant-form__eyebrow">Plants</p>
-          <h2>Nouveau plant</h2>
+          <h2>New plant</h2>
         </div>
-        <q-btn flat round icon="mdi-close" aria-label="Fermer" @click="close" />
+        <q-btn flat round icon="mdi-close" aria-label="Close" @click="close" />
       </q-card-section>
 
       <q-form class="plant-form__body" @submit.prevent="submit">
         <q-select
           v-model="form.strain"
           :options="filteredStrainOptions"
-          label="Genetique"
+          label="Genetics"
           emit-value
           map-options
           outlined
@@ -26,17 +26,17 @@
           <template #no-option="{ inputValue }">
             <q-item v-if="inputValue" clickable @click="quickCreateStrain(inputValue)">
               <q-item-section avatar><q-icon name="mdi-plus-circle-outline" color="primary" /></q-item-section>
-              <q-item-section>Créer "{{ inputValue }}"</q-item-section>
+              <q-item-section>Create "{{ inputValue }}"</q-item-section>
             </q-item>
             <q-item v-else>
-              <q-item-section class="text-grey-6">Tapez pour rechercher ou créer</q-item-section>
+              <q-item-section class="text-grey-6">Type to search or create</q-item-section>
             </q-item>
           </template>
         </q-select>
         <q-select
           v-model="form.room"
           :options="roomOptions"
-          label="Salle *"
+          label="Room *"
           emit-value
           map-options
           outlined
@@ -47,14 +47,14 @@
         <q-input
           v-model="form.germinatedAt"
           type="date"
-          label="Date de germination *"
+          label="Germination date *"
           outlined
           :error="!!fieldErrors.germinatedAt"
           :error-message="fieldErrors.germinatedAt"
           @blur="validateField('germinatedAt')"
           @update:model-value="clearFieldError('germinatedAt')"
         />
-        <q-input v-model="form.rfidTag" label="Numero RFID" outlined />
+        <q-input v-model="form.rfidTag" label="RFID number" outlined />
 
         <!-- 402 plan-limit banner -->
         <q-banner v-if="planLimitError" rounded class="plant-form__plan-limit">
@@ -62,16 +62,16 @@
             <q-icon name="mdi-alert-circle-outline" color="warning" />
           </template>
           <div class="plant-form__plan-limit-body">
-            <strong>Limite de plan atteinte</strong>
+            <strong>Plan limit reached</strong>
             <p>
-              Vous avez {{ planLimitError.current }} plants sur {{ planLimitError.max ?? '∞' }} autorisés
+              You have {{ planLimitError.current }} plants out of {{ planLimitError.max ?? '∞' }} allowed
               (plan {{ planLimitError.upgradeTo }}).
             </p>
             <q-btn
               flat
               dense
               color="primary"
-              label="Mettre à niveau"
+              label="Upgrade"
               icon="mdi-arrow-up-circle-outline"
               :to="planLimitError.upgradeUrl"
               @click="close"
@@ -93,8 +93,8 @@
         </q-banner>
 
         <div class="plant-form__actions">
-          <q-btn flat label="Annuler" class="action-btn" @click="close" />
-          <q-btn color="primary" label="Creer" class="action-btn" :loading="submitting" type="submit" :disable="!!planLimitError || !!forbiddenError" />
+          <q-btn flat label="Cancel" class="action-btn" @click="close" />
+          <q-btn color="primary" label="Create" class="action-btn" :loading="submitting" type="submit" :disable="!!planLimitError || !!forbiddenError" />
         </div>
       </q-form>
     </q-card>
@@ -130,8 +130,8 @@ const form = reactive({
 const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, setFormError, applyApiError } = useFormValidation(
   form,
   {
-    room: [validators.required('Salle obligatoire.')],
-    germinatedAt: [validators.required('Date de germination obligatoire.'), validators.isoDate('Date de germination invalide.')],
+    room: [validators.required('Room required.')],
+    germinatedAt: [validators.required('Germination date required.'), validators.isoDate('Invalid germination date.')],
   },
 )
 
@@ -191,7 +191,7 @@ async function submit() {
     clearAllErrors()
 
     if (!validateAll()) {
-      setFormError('Corrigez les champs obligatoires avant de créer le plant.')
+      setFormError('Fix required fields before creating the plant.')
       return
     }
 
@@ -204,7 +204,7 @@ async function submit() {
     emit('created', plant)
     close()
     form.rfidTag = ''
-    $q.notify({ type: 'positive', message: 'Plant cree.' })
+    $q.notify({ type: 'positive', message: 'Plant created.' })
   } catch (error) {
     const axiosError = error as AxiosLike
     const status = axiosError?.response?.status
@@ -213,10 +213,10 @@ async function submit() {
     if (status === 402 && data?.planLimit) {
       planLimitError.value = data.planLimit as PlanLimitError
     } else if (status === 403) {
-      forbiddenError.value = (data?.detail as string | undefined) ?? 'Votre licence ou rôle ne permet pas cette action.'
+      forbiddenError.value = (data?.detail as string | undefined) ?? 'Your license or role does not allow this action.'
     } else {
-      applyApiError(error, 'Creation impossible.')
-      $q.notify({ type: 'negative', message: formError.value || 'Creation impossible.' })
+      applyApiError(error, 'Creation failed.')
+      $q.notify({ type: 'negative', message: formError.value || 'Creation failed.' })
     }
   } finally {
     submitting.value = false

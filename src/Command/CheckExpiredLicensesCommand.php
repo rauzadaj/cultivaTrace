@@ -98,15 +98,15 @@ final class CheckExpiredLicensesCommand extends Command
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($firstUser->getEmail())
-                ->subject('⚠️ Votre licence CannaSaaS a expiré')
+                ->subject('⚠️ Your CannaSaaS license has expired')
                 ->text(sprintf(
-                    "Bonjour,\n\n" .
-                    "La licence de votre organisation \"%s\" a expiré le %s.\n\n" .
-                    "Votre accès à CannaSaaS est suspendu jusqu'au renouvellement de votre licence.\n\n" .
-                    "Contactez-nous à jonathan@rauzada.me pour renouveler votre licence.\n\n" .
-                    "L'équipe CannaSaaS",
+                    "Hello,\n\n" .
+                    "The license for your organization \"%s\" expired on %s.\n\n" .
+                    "Your access to CannaSaaS is suspended until you renew your license.\n\n" .
+                    "Contact us at jonathan@rauzada.me to renew your license.\n\n" .
+                    "The CannaSaaS Team",
                     $org->getName(),
-                    $org->getLicenseExpiresAt()?->format('d/m/Y') ?? 'N/A',
+                    $org->getLicenseExpiresAt()?->format('Y-m-d') ?? 'N/A',
                 ));
             $this->mailer->send($email);
         } catch (\Throwable) {

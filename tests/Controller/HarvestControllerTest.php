@@ -81,7 +81,7 @@ final class HarvestControllerTest extends ApiTestCase
         ]);
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertStringContainsString('poids net', $this->client->getResponse()->getContent() ?: '');
+        self::assertStringContainsString('Net weight', $this->client->getResponse()->getContent() ?: '');
     }
 
     public function testHarvestReturnsForbiddenWhenTenantLicenseIsPending(): void
@@ -154,7 +154,7 @@ final class HarvestControllerTest extends ApiTestCase
         ]);
 
         $this->assertStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertStringContainsString('Destruction impossible avant le', $this->client->getResponse()->getContent() ?: '');
+        self::assertStringContainsString('Destruction not allowed before', $this->client->getResponse()->getContent() ?: '');
     }
 
     public function testConfirmDestroyReturnsForbiddenWhenTenantLicenseIsPending(): void
