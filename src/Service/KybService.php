@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -22,7 +22,7 @@ use Psr\Log\LoggerInterface;
  *   1. Canada (Health Canada CTS) → verification via public registry
  *   2. USA (METRC) → verification via METRC API (key required)
  *   3. Germany (BfArM) → manual review (no public API)
- *   4. Fallback → manual validation by CannaSaaS admin
+ *   4. Fallback → manual validation by CultivaTrace admin
  *
  * In dev: all verifications return "verified" after 5s
  * (simulating the API call).
@@ -234,7 +234,7 @@ class KybService
     }
 
     /**
-     * Manual fallback — notifies the CannaSaaS admin by email.
+     * Manual fallback — notifies the CultivaTrace admin by email.
      */
     private function fallbackManual(LicenseDocument $license, string $reason): array
     {
@@ -357,11 +357,11 @@ class KybService
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('✅ Your CannaSaaS license has been validated')
+                ->subject('✅ Your CultivaTrace license has been validated')
                 ->text(sprintf(
                     "Great news!\n\n" .
                     "Your license %s has been verified and validated.\n" .
-                    "You now have access to all CannaSaaS features.\n\n" .
+                    "You now have access to all CultivaTrace features.\n\n" .
                     "Sign in at %s",
                     $license->getLicenseNumber(),
                     rtrim($this->appUrl, '/')
@@ -390,7 +390,7 @@ class KybService
             $email = (new Email())
                 ->from($this->alertFromEmail)
                 ->to($userEmail)
-                ->subject('❌ CannaSaaS license verification — Action required')
+                ->subject('❌ CultivaTrace license verification — Action required')
                 ->text(sprintf(
                     "Your license verification request could not be validated.\n\n" .
                     "Submitted license: %s\n" .

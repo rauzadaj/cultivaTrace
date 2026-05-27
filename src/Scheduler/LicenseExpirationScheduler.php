@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
@@ -84,19 +84,19 @@ class LicenseExpirationScheduler
 
         [$subject, $body] = match ($type) {
             'warning' => [
-                "⚠️ Your CannaSaaS license expires in {$daysLeft} days",
+                "⚠️ Your CultivaTrace license expires in {$daysLeft} days",
                 "Your license expires on {$org->getLicenseExpiresAt()->format('Y-m-d')}.\n\n" .
-                "Renew your license to maintain your access to CannaSaaS.\n" .
+                "Renew your license to maintain your access to CultivaTrace.\n" .
                 "Sign in to your account: https://app.cannas.app/settings/license",
             ],
             'urgent' => [
-                "🚨 URGENT — Your CannaSaaS license expires in {$daysLeft} day(s)",
+                "🚨 URGENT — Your CultivaTrace license expires in {$daysLeft} day(s)",
                 "WARNING: Your license expires in {$daysLeft} day(s) ({$org->getLicenseExpiresAt()->format('Y-m-d')}).\n\n" .
                 "Without renewal, your access will be automatically suspended.\n" .
                 "Renew now: https://app.cannas.app/settings/license",
             ],
             'expired' => [
-                "❌ Your CannaSaaS license has expired — Access suspended",
+                "❌ Your CultivaTrace license has expired — Access suspended",
                 "Your license has expired. Your access has been suspended.\n\n" .
                 "To reactivate your account, submit a new valid license:\n" .
                 "https://app.cannas.app/kyb\n\n" .

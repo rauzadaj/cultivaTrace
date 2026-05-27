@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <q-page class="billing-page">
     <div class="billing-container">
 
       <div class="text-h5 text-weight-bold q-mb-xs">Billing</div>
-      <div class="text-body2 text-grey-6 q-mb-xl">Manage your CannaSaaS subscription</div>
+      <div class="text-body2 text-grey-6 q-mb-xl">Manage your CultivaTrace subscription</div>
 
       <q-banner v-if="billingLoadError" rounded class="bg-negative text-white q-mb-lg">
         <template #avatar><q-icon name="warning" /></template>
@@ -261,7 +261,7 @@ async function openPortal(): Promise<void> {
 }
 
 function contactSales(): void {
-  window.location.href = 'mailto:jonathan@rauzada.me?subject=Enterprise CannaSaaS'
+  window.location.href = 'mailto:jonathan@rauzada.me?subject=Enterprise CultivaTrace'
 }
 
 function actionLabel(planId: string): string {
