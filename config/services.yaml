@@ -49,9 +49,6 @@ services:
         tags:
             - { name: doctrine.event_subscriber }
 
-    App\EventSubscriber\AppendOnlyPlantEventSubscriber:
-        tags:
-            - { name: doctrine.event_subscriber }
 
     App\Service\StripeService:
         arguments:
