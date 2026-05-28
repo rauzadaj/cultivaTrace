@@ -5,21 +5,15 @@ declare(strict_types=1);
 namespace App\EventSubscriber;
 
 use App\Entity\PlantEvent;
-use Doctrine\Common\EventSubscriber;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\PreRemoveEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
 
-final class AppendOnlyPlantEventSubscriber implements EventSubscriber
+#[AsDoctrineListener(event: Events::preUpdate)]
+#[AsDoctrineListener(event: Events::preRemove)]
+final class AppendOnlyPlantEventSubscriber
 {
-    public function getSubscribedEvents(): array
-    {
-        return [
-            Events::preUpdate,
-            Events::preRemove,
-        ];
-    }
-
     public function preUpdate(PreUpdateEventArgs $event): void
     {
         if ($event->getObject() instanceof PlantEvent) {
