@@ -11,6 +11,7 @@ use App\Domain\Operations\Model\OperationalService;
 use App\Entity\Organization;
 use App\Entity\User;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
@@ -34,6 +35,7 @@ final class SeedDemoDataCommandTest extends TestCase
             $entityManager,
             $this->createMock(UserPasswordHasherInterface::class),
             $kernel,
+            $this->createMock(Connection::class),
         ));
 
         self::assertSame(Command::FAILURE, $commandTester->execute([]));
