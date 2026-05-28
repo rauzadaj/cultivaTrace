@@ -218,7 +218,12 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
             $headers = [];
             foreach ($headerNodes as $cell) {
-                $headers[] = strtolower(trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? ''));
+                $text    = strtolower(trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? ''));
+                $colspan = max(1, (int) ($cell->getAttribute('colspan') ?: 1));
+                $headers[] = $text;
+                for ($i = 1; $i < $colspan; $i++) {
+                    $headers[] = '';
+                }
             }
 
             $colMap = $this->mapColumns($headers);
@@ -309,7 +314,7 @@ final class SyncHealthCanadaRegistryCommand extends Command
         $headers   = array_map(static fn($h) => strtolower(trim((string) $h)), $rawHeader);
         $colMap    = $this->mapColumns($headers);
 
-        if (!isset($colMap['licenseNumber'], $colMap['companyName'])) {
+        if (!isset($colMap['companyName'])) {
             return [[], []];
         }
 
@@ -356,7 +361,18 @@ final class SyncHealthCanadaRegistryCommand extends Command
                 $producer->touch();
             }
 
-            $rawStatus = isset($colMap['status']) ? ($row[$colMap['status']] ?? '') : 'active';
+            if (isset($colMap['status'])) {
+                $rawStatus = $row[$colMap['status']] ?? '';
+            } else {
+                $licenseTypeText = strtolower($row[$colMap['licenseType'] ?? -1] ?? '');
+                $rawStatus = match (true) {
+                    str_contains($licenseTypeText, 'revok')  => 'revoked',
+                    str_contains($licenseTypeText, 'suspend') => 'suspended',
+                    str_contains($licenseTypeText, 'cancel')  => 'cancelled',
+                    str_contains($licenseTypeText, 'expir')   => 'expired',
+                    default                                    => 'active',
+                };
+            }
 
             $producer
                 ->setCompanyName($companyRaw)
