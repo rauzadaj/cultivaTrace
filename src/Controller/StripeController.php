@@ -193,7 +193,7 @@ class StripeController extends AbstractController
     #[Route('/api/billing/status', methods: ['GET'])]
     public function billingStatus(#[CurrentUser] ?User $user): JsonResponse
     {
-        if (!$user instanceof User) {
+        if (!$user instanceof User || !$user->hasOrganization()) {
             return $this->json(['error' => 'Authentication required.'], Response::HTTP_UNAUTHORIZED);
         }
 
