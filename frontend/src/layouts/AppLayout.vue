@@ -609,11 +609,13 @@ async function submitStageChange(transition: PlantStage) {
     return
   }
 
+  const plantId = currentPlant.value.id
+
   const executeTransition = async () => {
     actionPending.value = true
 
     try {
-      await plantsStore.changeStage(currentPlant.value.id, transition)
+      await plantsStore.changeStage(plantId, transition)
       closeConfirmDialog()
       stageDialogOpen.value = false
       $q.notify({ type: 'positive', message: 'Stage updated.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 2000 })
