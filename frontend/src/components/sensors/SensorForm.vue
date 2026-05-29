@@ -133,15 +133,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     room: [validators.required('Room required.')],
     thresholdMin: [
       (value, values) => {
-        if (value === null || value === undefined || value === '') {
+        if (value === null || value === undefined) {
           return null
         }
 
-        if (typeof value !== 'number') {
-          return 'Invalid minimum threshold.'
-        }
-
-        if (values.thresholdMax !== null && typeof values.thresholdMax === 'number' && value > values.thresholdMax) {
+        if (values.thresholdMax !== null && value > values.thresholdMax) {
           return 'Minimum threshold must be less than maximum threshold.'
         }
 
@@ -150,15 +146,11 @@ const { fieldErrors, formError, validateField, validateAll, clearFieldError, cle
     ],
     thresholdMax: [
       (value, values) => {
-        if (value === null || value === undefined || value === '') {
+        if (value === null || value === undefined) {
           return null
         }
 
-        if (typeof value !== 'number') {
-          return 'Invalid maximum threshold.'
-        }
-
-        if (values.thresholdMin !== null && typeof values.thresholdMin === 'number' && value < values.thresholdMin) {
+        if (values.thresholdMin !== null && value < values.thresholdMin) {
           return 'Maximum threshold must be greater than minimum threshold.'
         }
 
