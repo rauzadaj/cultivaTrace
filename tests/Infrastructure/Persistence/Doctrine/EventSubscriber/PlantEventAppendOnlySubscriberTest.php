@@ -41,11 +41,7 @@ final class PlantEventAppendOnlySubscriberTest extends ApiTestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('PlantEvent is append-only and cannot be modified or deleted.');
 
-        $reflection = new \ReflectionObject($event);
-        $notesProperty = $reflection->getProperty('notes');
-        $notesProperty->setAccessible(true);
-        $notesProperty->setValue($event, 'tamper attempt');
-
+        $event->setNotes('tamper attempt');
         $this->entityManager->flush();
     }
 
