@@ -25,6 +25,6 @@ app.use(Quasar, {
   },
 })
 
-authStore.init().then(() => {
+authStore.init().finally(() => {
   app.mount('#app')
 })
