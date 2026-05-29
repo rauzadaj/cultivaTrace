@@ -44,6 +44,14 @@ Recommended action:
 
 ### P1 - Application startup depends on an external catalog source
 
+> **✅ Resolved.** The production entrypoint (`docker-entrypoint.sh`) and the
+> dev bootstrap (`docker/app/entrypoint.sh`) only wait for the database, run
+> Doctrine migrations and (dev/test only) the idempotent demo seed — neither
+> touches the seed catalog. Catalog synchronization is an explicit, standalone
+> command (`app:sync-seed-catalog`) invoked by no startup path, and a readiness
+> endpoint (`GET /api/health`, returning `status`/`ready`/`db`) plus Docker
+> healthchecks gate traffic on schema/DB readiness, not on catalog availability.
+
 Local bootstrap still relies on vendor catalog synchronization during environment preparation.
 
 Impact:
@@ -74,6 +82,16 @@ Target architecture:
 
 ### P2 - Frontend refresh strategy is not scalable
 
+> **Largely addressed.** The dashboard now loads from a single aggregated
+> endpoint (`GET /api/dashboard`, `DashboardController`) instead of fetching and
+> joining raw collections client-side, and there is no timed full-refresh
+> polling on it (real-time room data uses Mercure SSE, not polling). Collections
+> expose search/order filters and accept pagination params, and API Platform now
+> enforces a hard `pagination_maximum_items_per_page: 100` cap so no client can
+> request an unbounded result set. Remaining nice-to-haves: parameterising the
+> dashboard's hard-coded spotlight/recent-event limits and trimming the
+> post-mutation full refetch — tracked but low impact.
+
 The dashboard still refreshes broad data sets on a timer rather than using targeted loading strategies.
 
 Impact:
@@ -98,6 +116,17 @@ Recommended action:
 - Add Playwright smoke coverage for the main product journey.
 
 ### P2 - Authentication and onboarding remain demo-oriented
+
+> **Largely addressed.** Login is rate-limited (`api_auth_login`, 10/15min) and
+> backed by per-account lockout (`LoginAttemptService`); registration is
+> rate-limited (`api_register`, 5/15min) with a strong password policy
+> (`PasswordPolicy`: ≥12 chars, upper/digit/special) and mandatory email
+> verification enforced by `UserChecker`. Demo data is confined to dev/test
+> (`SeedDemoDataCommand` env guard) and the frontend login carries no prefilled
+> demo credentials. The one missing control — rate limiting on the invitation
+> acceptance endpoint (token enumeration / password brute-force) — is now closed
+> via the `api_register_invitation` limiter (5/15min) on
+> `AcceptOrganizationInvitationController`, with a regression test.
 
 The project still carries demo-centric authentication behaviors and lacks production-grade anti-abuse controls.
 
