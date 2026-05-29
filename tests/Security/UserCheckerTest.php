@@ -46,8 +46,10 @@ final class UserCheckerTest extends TestCase
 
         $checker = new UserChecker();
 
-        $checker->checkPreAuth($user);
+        // An active user with an organization must pass pre-auth without raising
+        // any AccountStatusException.
+        $this->expectNotToPerformAssertions();
 
-        self::assertTrue(true);
+        $checker->checkPreAuth($user);
     }
 }
