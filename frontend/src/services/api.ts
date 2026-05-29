@@ -20,6 +20,7 @@ import type {
   ReportExport,
   KybStatusResponse,
   KybSubmitResponse,
+  GeneticCatalogMapping,
 } from '@/types/api'
 import { clearAuthTokens, getAccessToken, getRefreshToken, redirectToAuth, setAuthTokens, signalSessionExpired } from './authSession'
 
@@ -429,6 +430,27 @@ export const complianceApi = {
     http.get<{ valid: boolean; brokenAt: string | null; checked: number }>('/audit/verify', {
       params: { plantId },
     }),
+}
+
+export const catalogMappingApi = {
+  // The GeneticCatalogMapping resource exposes no server-side status filter, so
+  // callers fetch the full (small) collection and filter client-side.
+  list: () =>
+    http.get<HydraCollection<GeneticCatalogMapping>>('/genetic_catalog_mappings'),
+
+  approve: (id: string, notes?: string) =>
+    http.patch<GeneticCatalogMapping>(
+      `/genetic_catalog_mappings/${id}`,
+      notes ? { status: 'linked', notes } : { status: 'linked' },
+      { headers: { 'Content-Type': 'application/merge-patch+json' } },
+    ),
+
+  reject: (id: string, notes?: string) =>
+    http.patch<GeneticCatalogMapping>(
+      `/genetic_catalog_mappings/${id}`,
+      notes ? { status: 'rejected', notes } : { status: 'rejected' },
+      { headers: { 'Content-Type': 'application/merge-patch+json' } },
+    ),
 }
 
 // ── Default export ────────────────────────────────────────────────────────
