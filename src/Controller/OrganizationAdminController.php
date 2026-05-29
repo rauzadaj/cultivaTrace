@@ -149,7 +149,7 @@ final class OrganizationAdminController extends AbstractController
             return $this->json(['error' => 'A valid email address is required.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if (!in_array($role, ['ROLE_ORG_ADMIN', 'ROLE_ORG_USER'], true)) {
+        if (!in_array($role, ['ROLE_ORG_ADMIN', 'ROLE_ORG_USER', 'ROLE_VIEWER'], true)) {
             return $this->json(['error' => 'Invitation role is invalid.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
