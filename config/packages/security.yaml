@@ -1,5 +1,9 @@
 security:
     role_hierarchy:
+        # ROLE_VIEWER is the read-only floor (accountant / inspector / investor).
+        # Operational roles inherit it, so viewers can read what users read while
+        # every mutating operation still requires ROLE_ORG_USER or above.
+        ROLE_ORG_USER: [ROLE_VIEWER]
         ROLE_ORG_ADMIN: [ROLE_ORG_USER]
         ROLE_SUPER_ADMIN: [ROLE_ORG_ADMIN]
 

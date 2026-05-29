@@ -32,6 +32,36 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 - `Organization` : tenant racine, plan d'abonnement, statut de licence KYB
 - `ReportExport` : exports PDF/CSV générés via Gotenberg
 
+## Rôles & permissions (RBAC)
+
+L'autorisation combine trois couches : **rôle** (hiérarchie ci-dessous), **isolation tenant**
+(`TENANT_ACCESS` + `tenant_filter` Doctrine), et **garde de licence** (les mutations sont
+bloquées tant que la licence KYB de l'organisation n'est pas active).
+
+Hiérarchie (chaque rôle hérite du précédent) :
+`ROLE_VIEWER` → `ROLE_ORG_USER` → `ROLE_ORG_ADMIN` → `ROLE_SUPER_ADMIN`.
+`ROLE_API` est un rôle disjoint réservé à l'ingestion IoT (lecture capteurs + écriture de lectures).
+
+| Domaine | `ROLE_VIEWER` | `ROLE_ORG_USER` | `ROLE_ORG_ADMIN` | `ROLE_SUPER_ADMIN` |
+|---|:---:|:---:|:---:|:---:|
+| Dashboard, capteurs, alertes (lecture) | ✅ | ✅ | ✅ | ✅ |
+| Plants, salles, variétés, récoltes, intrants, destructions (lecture) | ✅ | ✅ | ✅ | ✅ |
+| Créer / modifier plants, intrants, lectures capteurs, acquitter alertes | ❌ | ✅ | ✅ | ✅ |
+| Récolte / destruction de plants | ❌ | ✅¹ | ✅ | ✅ |
+| Créer / modifier fermes, salles, variétés, capteurs | ❌ | ❌ | ✅ | ✅ |
+| Paramètres org, membres, invitations | ❌ | ❌ | ✅ | ✅ |
+| Rapports & exports (génération + CTS Health Canada) | ❌ | ❌ | ✅ | ✅ |
+| Facturation Stripe (checkout / portail) | ❌ | ❌ | ✅ | ✅ |
+| Documents de licence KYB (entité) | ❌ | ✅ | ✅ | ✅ |
+| Validation KYB backoffice | ❌ | ❌ | ❌ | ✅ |
+
+¹ La récolte est ouverte à `ROLE_ORG_USER` ; la **destruction** exige `ROLE_ORG_ADMIN` (cf. `PlantVoter`).
+
+`ROLE_VIEWER` est le palier **lecture seule** destiné aux profils consultation (comptable,
+inspecteur, investisseur) : il peut consulter les données opérationnelles et le statut
+KYB/facturation, mais aucune opération mutante ne lui est accessible. La gouvernance
+(rapports, gestion des membres, exports réglementaires) reste réservée aux admins.
+
 ## Flows utilisateur MVP
 
 ### 1. Inscription et KYB
@@ -84,15 +114,22 @@ GET|POST        /api/farms            Fermes (soft-delete via DELETE → archive
 DELETE          /api/farms/{id}       Soft-delete (archivedAt IS NULL dans les collections)
 GET|POST|PATCH  /api/rooms            Salles de culture
 GET|POST|PATCH  /api/sensors          Capteurs IoT
-GET             /api/sensors/{id}/reading/live    Dernière lecture live
-GET             /api/sensors/{id}/reading/history Historique TimescaleDB
+POST            /api/sensors/{id}/reading         Ingestion d'une lecture (ROLE_ORG_USER ou ROLE_API)
+GET             /api/sensors/{id}/readings        Historique agrégé TimescaleDB (?period=7d|30d|90d|365d)
 ```
 
 ### 5. Rapports
 
+Génération et exports réservés à `ROLE_ORG_ADMIN` (voir la matrice de permissions).
+
 ```
-POST /api/report-exports              Déclencher un export PDF/CSV
-GET  /api/report-exports/{id}         Statut et téléchargement
+GET  /api/plants/{id}/report              Rapport PDF d'un plant (PLANT_VIEW + tenant)
+POST /api/reporting/harvest-summary       Générer un résumé de récolte (admin)
+POST /api/reporting/audit-export          Générer un export d'audit CSV (admin)
+GET  /api/reporting/exports               Lister les exports de l'organisation (admin)
+GET  /api/reporting/exports/{id}          Statut d'un export (admin + tenant)
+GET  /api/reporting/exports/{id}/download Télécharger un export (admin + tenant)
+GET  /api/compliance/ctsreport?month=YYYY-MM  Rapport CTS Health Canada (admin)
 ```
 
 ## Prérequis
@@ -215,6 +252,19 @@ php bin/console app:sync-seed-catalog --no-upsert  # export seul
 ```
 
 Snapshot versionné : `catalog/seed-catalog/humboldt-california-canada.json`
+
+Les entrées fournisseur sont stockées dans le contexte borné `ExternalCatalogEntry`
+(jamais directement dans `Genetic`). Pour relier une entrée externe à une génétique
+interne validée, un service de mapping propose des liens `pending` (match par
+code/nom normalisé) qu'un relecteur approuve ou rejette :
+
+```bash
+php bin/console app:catalog:propose-mappings   # crée les GeneticCatalogMapping en statut pending
+```
+
+L'approbation / le rejet (`CatalogMappingService::approve|reject`) enregistre le
+relecteur et l'horodatage ; les génétiques internes restent souveraines et ne sont
+jamais mutées par l'ingestion catalogue.
 
 ## Notes de développement
 
