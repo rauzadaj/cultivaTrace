@@ -230,7 +230,7 @@ const statusBannerClass = computed(() => {
     expired:   'bg-negative text-white',
     suspended: 'bg-negative text-white',
   }
-  return map[kybStatus.value?.licenseStatus] ?? 'bg-grey-3'
+  return map[kybStatus.value?.licenseStatus ?? ''] ?? 'bg-grey-3'
 })
 
 const statusIcon = computed(() => {
@@ -241,7 +241,7 @@ const statusIcon = computed(() => {
     expired:   'warning',
     suspended: 'lock',
   }
-  return map[kybStatus.value?.licenseStatus] ?? 'info'
+  return map[kybStatus.value?.licenseStatus ?? ''] ?? 'info'
 })
 
 const statusMessage = computed(() => {
@@ -252,7 +252,7 @@ const statusMessage = computed(() => {
     expired:   'License expired — Renew your license',
     suspended: 'Account suspended — contact the compliance team.',
   }
-  return map[kybStatus.value?.licenseStatus] ?? 'Unknown status'
+  return map[kybStatus.value?.licenseStatus ?? ''] ?? 'Unknown status'
 })
 
 async function loadStatus(): Promise<void> {
