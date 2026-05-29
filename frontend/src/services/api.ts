@@ -136,7 +136,7 @@ http.interceptors.response.use(
     const axiosError = error as AxiosError
     const originalRequest = axiosError.config as RetryableRequestConfig | undefined
 
-    if (axiosError.response?.status === 401 && shouldAttemptRefresh(originalRequest)) {
+    if (originalRequest && axiosError.response?.status === 401 && shouldAttemptRefresh(originalRequest)) {
       originalRequest._retry = true
 
       const refreshedAccessToken = await refreshAccessToken()
