@@ -332,6 +332,34 @@ export interface HydraCollection<T> {
   }
 }
 
+// ── Catalog mapping ─────────────────────────────────────────────────────
+
+export type CatalogMappingStatus = 'pending' | 'linked' | 'rejected'
+
+export interface ExternalCatalogEntry {
+  id: string
+  sourceProvider: string
+  externalCode: string
+  name: string
+}
+
+export interface Genetic {
+  id: string
+  code: string
+  name: string
+}
+
+export interface GeneticCatalogMapping {
+  id: string
+  externalCatalogEntry: ExternalCatalogEntry | null
+  genetic: Genetic | null
+  status: CatalogMappingStatus
+  notes: string | null
+  reviewedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────
 
 export interface LoginCredentials {
