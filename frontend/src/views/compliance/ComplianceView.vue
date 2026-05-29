@@ -12,7 +12,7 @@
         <p>Genere le CSV de conformite pour le mois selectionne.</p>
       </q-card-section>
       <q-card-section class="compliance-card__controls">
-        <q-input v-model="month" type="month" label="Mois" outlined />
+        <q-input v-model="month" :type="monthInputType" label="Mois" outlined />
         <q-btn color="primary" no-caps label="Telecharger le CSV" :loading="loading" @click="download" />
       </q-card-section>
     </q-card>
@@ -27,6 +27,9 @@ import { complianceApi } from '@/services/api'
 const $q = useQuasar()
 const month = ref(new Date().toISOString().slice(0, 7))
 const loading = ref(false)
+// Native month picker: Quasar's QInput type prop does not enumerate "month",
+// so widen it through a typed constant rather than casting inline in template.
+const monthInputType = 'month' as unknown as 'date'
 
 async function download() {
   loading.value = true
