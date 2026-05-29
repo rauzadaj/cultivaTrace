@@ -12,6 +12,7 @@ import ComplianceView from '../views/compliance/ComplianceView.vue'
 import KybView from '../views/auth/KybView.vue'
 import BillingView from '../views/billing/BillingView.vue'
 import ReportingView from '../views/reporting/ReportingView.vue'
+import CatalogMappingsView from '../views/catalog/CatalogMappingsView.vue'
 import SettingsView from '../views/settings/SettingsView.vue'
 import PlantDetailView from '../views/plants/PlantDetailView.vue'
 import PlantListView from '../views/plants/PlantListView.vue'
@@ -21,6 +22,7 @@ import { canAccessRoles } from './access'
 
 const ORG_USER_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN', 'ROLE_ORG_USER']
 const ORG_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN']
+const SUPER_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN']
 
 const router = createRouter({
   history: createWebHistory(),
@@ -125,6 +127,12 @@ const router = createRouter({
           name: 'reporting',
           component: ReportingView,
           meta: { roles: ORG_ADMIN_ROLES },
+        },
+        {
+          path: 'catalog/mappings',
+          name: 'catalog-mappings',
+          component: CatalogMappingsView,
+          meta: { roles: SUPER_ADMIN_ROLES },
         },
         {
           path: 'billing/success',
