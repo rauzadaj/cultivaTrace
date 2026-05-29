@@ -21,6 +21,17 @@ Recommended action:
 
 ### P1 - Legacy API resources are still exposed
 
+> **✅ Resolved (2026-05-29).** `Plot` and `CropActivity` no longer exist: the
+> entity classes are gone from `src/Entity`, no `#[ApiResource]` references them,
+> and no code, test, fixture or frontend call targets `/api/plots` or
+> `/api/crop_activities`. Their tables were dropped, and migration
+> `Version20260403093000` defensively runs `DROP TABLE IF EXISTS crop_activity`
+> / `plot` so older environments converge to the same clean schema. The `Crop`
+> batch aggregate under `src/Domain/Cultivation/Model/Crop.php` is a pure domain
+> model with **no** API exposure, intentionally deferred (see
+> `src/Domain/Cultivation/DEFERRED.md`) — it is not a legacy leak. No further
+> action required; this section is retained for historical traceability.
+
 `Plot` and `CropActivity` remain exposed as API resources even though the active codebase now follows a Domain/Application/Infrastructure split elsewhere.
 
 Impact:
@@ -112,8 +123,8 @@ Recommended action:
 
 ## Roadmap
 
-1. Secure the API with RBAC and operation-level authorization.
-2. Remove or migrate legacy API resources.
+1. Secure the API with RBAC and operation-level authorization. *(in progress — RBAC + read-only `ROLE_VIEWER` shipped)*
+2. ~~Remove or migrate legacy API resources.~~ ✅ **Done** — `Plot`/`CropActivity` removed from code and schema (migration `Version20260403093000`); `Crop` domain model is deferred and unexposed.
 3. Decouple runtime bootstrap from external catalog synchronization.
 4. Split external catalog data from internal genetics.
 5. Rework dashboard data loading and scalability.
@@ -141,6 +152,12 @@ Acceptance criteria:
 - The project documentation includes a role/permission matrix.
 
 ### 2. Legacy API cleanup
+
+> **✅ Completed.** All acceptance criteria below are met: `Plot` and
+> `CropActivity` are fully removed from the exposed API surface and the schema,
+> no dead API Platform resource remains under `src/Entity`, the documented
+> resource list (README) reflects only supported resources, and the table
+> teardown is enforced idempotently by migration `Version20260403093000`.
 
 ```text
 Audit the remaining legacy ApiResource entities in src/Entity and remove or migrate them into the current DDD architecture. Specifically assess Plot and CropActivity, remove dead endpoints, update persistence if needed, and align the public API documentation with the remaining supported resources.
@@ -234,8 +251,8 @@ Acceptance criteria:
 
 The roadmap items above are intended to map one-to-one to GitHub issues:
 
-1. Security: implement RBAC strategy on API Platform
-2. Remove legacy API surface (Plot and CropActivity)
+1. Security: implement RBAC strategy on API Platform *(in progress)*
+2. ~~Remove legacy API surface (Plot and CropActivity)~~ ✅ **Done**
 3. Decouple Docker bootstrap from seed catalog synchronization
 4. Separate external seed catalog from internal Genetic repository
 5. Optimize frontend dashboard refresh strategy
