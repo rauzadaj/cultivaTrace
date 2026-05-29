@@ -207,23 +207,49 @@ final class SyncHealthCanadaRegistryCommand extends Command
         }
 
         foreach ($tables as $table) {
-            // Collect only the first header row (skip colspan sub-rows)
-            $headerNodes = $xpath->query('.//thead/tr[1]/th | .//thead/tr[1]/td', $table);
-            if ($headerNodes === false || $headerNodes->length === 0) {
-                $headerNodes = $xpath->query('.//tr[1]/th | .//tr[1]/td', $table);
+            // Read ALL header rows and merge them so that sub-column names
+            // (supplied by a second thead row after a colspan in the first row)
+            // fill the blank slots created by colspan expansion.
+            // Strategy: first row wins for non-blank cells; subsequent rows
+            // fill only the blank (colspan-expanded) slots.
+            $allHeaderRows = $xpath->query('.//thead/tr', $table);
+            if ($allHeaderRows === false || $allHeaderRows->length === 0) {
+                $allHeaderRows = $xpath->query('.//tr[position()<=2]', $table);
             }
-            if ($headerNodes === false || $headerNodes->length === 0) {
+            if ($allHeaderRows === false || $allHeaderRows->length === 0) {
                 continue;
             }
 
             $headers = [];
-            foreach ($headerNodes as $cell) {
-                $text    = strtolower(trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? ''));
-                $colspan = max(1, (int) ($cell->getAttribute('colspan') ?: 1));
-                $headers[] = $text;
-                for ($i = 1; $i < $colspan; $i++) {
-                    $headers[] = '';
+            foreach ($allHeaderRows as $headerRow) {
+                $cells = $xpath->query('th | td', $headerRow);
+                if ($cells === false || $cells->length === 0) {
+                    continue;
                 }
+
+                $rowHeaders = [];
+                foreach ($cells as $cell) {
+                    $text    = strtolower(trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? ''));
+                    $colspan = max(1, (int) ($cell->getAttribute('colspan') ?: 1));
+                    $rowHeaders[] = $text;
+                    for ($i = 1; $i < $colspan; $i++) {
+                        $rowHeaders[] = '';
+                    }
+                }
+
+                // Merge: first-row text is kept; later rows fill only blank slots
+                foreach ($rowHeaders as $idx => $text) {
+                    if (!isset($headers[$idx]) || ($headers[$idx] === '' && $text !== '')) {
+                        $headers[$idx] = $text;
+                    }
+                }
+            }
+
+            ksort($headers);
+            $headers = array_values($headers);
+
+            if ($headers === []) {
+                continue;
             }
 
             $colMap = $this->mapColumns($headers);
@@ -342,13 +368,18 @@ final class SyncHealthCanadaRegistryCommand extends Command
             }
 
             // Use explicit license number when available, otherwise derive a stable
-            // key from company name + province (Health Canada dropped individual numbers)
+            // key from company name + province (Health Canada dropped individual numbers).
+            // A 6-char hash suffix guarantees uniqueness even when the slug is truncated.
             if (isset($colMap['licenseNumber']) && ($row[$colMap['licenseNumber']] ?? '') !== '') {
                 $licenseNumber = strtoupper(trim($row[$colMap['licenseNumber']]));
             } else {
-                $province = strtoupper(trim($row[$colMap['province'] ?? -1] ?? ''));
-                $licenseNumber = 'HC-' . strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', $companyRaw) ?? '') . ($province !== '' ? '-' . $province : '');
-                $licenseNumber = substr($licenseNumber, 0, 64);
+                $province  = strtoupper(trim($row[$colMap['province'] ?? -1] ?? ''));
+                $slug      = strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', $companyRaw) ?? '');
+                $hash      = strtoupper(substr(md5($companyRaw . '|' . $province), 0, 6));
+                $suffix    = ($province !== '' ? '-' . $province : '') . '-' . $hash;
+                // Reserve space for 'HC-', slug, suffix; total ≤ 64
+                $maxSlug   = 64 - 3 - strlen($suffix);
+                $licenseNumber = 'HC-' . substr($slug, 0, max(1, $maxSlug)) . $suffix;
             }
 
             $producer = $repo->findOneBy(['licenseNumber' => $licenseNumber]);
