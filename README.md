@@ -229,7 +229,10 @@ Flux de démo local :
 APP_ENV=test php bin/phpunit
 
 # Frontend
-cd frontend && npm run type-check
+cd frontend
+npm run test:unit   # vitest (composants, stores, router, services)
+npm run test:e2e    # Playwright (parcours smoke + journeys)
+npm run build       # build Vite (transpilation type-aware)
 ```
 
 ## Structure
