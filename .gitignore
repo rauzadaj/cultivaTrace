@@ -27,6 +27,8 @@
 /frontend/.logs/
 /frontend/.env.local
 /frontend/.env.*.local
+/frontend/test-results/
+/frontend/playwright-report/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
