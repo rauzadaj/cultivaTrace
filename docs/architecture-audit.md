@@ -71,11 +71,13 @@ Recommended action:
 > (`Version20260403160000`) evacuated legacy supplier rows out of `genetic`.
 > `Genetic` is unexposed (`operations: []`) so supplier data can no longer be
 > edited as internal master data, and `GeneticCatalogMapping` (status + reviewer
-> metadata) is defined with admin-only writes. **Remaining gap:** the mapping
-> layer is never populated — no service/command auto-links or drives
-> external→internal review, and there is no admin UI for it. Closing this needs
-> a mapping service + review UI; deferred to a dedicated PR as it is net-new
-> product surface rather than a security/correctness fix.
+> metadata) is defined with admin-only writes. The mapping layer is now driven
+> by `CatalogMappingService` (`app:catalog:propose-mappings`): it proposes
+> `pending` links by normalized code/name match — never mutating `Genetic` — and
+> exposes `approve()` / `reject()` review actions that record reviewer +
+> timestamp, covered by integration tests. **Remaining gap (UI only):** no
+> admin review screen in the Vue frontend yet; reviewers act via the API /
+> command. Deferred to a dedicated frontend PR.
 
 Impact:
 - Internal and external reference data share the same CRUD surface.
@@ -181,7 +183,7 @@ Recommended action:
 1. ✅ **Done** — Secure the API with RBAC and operation-level authorization (per-operation `security`, voters, custom controllers, read-only `ROLE_VIEWER`, permission matrix in README).
 2. ✅ **Done** — Remove or migrate legacy API resources (`Plot`/`CropActivity` gone from code and schema via `Version20260403093000`; `Crop` deferred and unexposed).
 3. ✅ **Done** — Decouple runtime bootstrap from external catalog synchronization (standalone `app:sync-seed-catalog`; `GET /api/health` readiness probe; Docker healthchecks).
-4. ⚠️ **Partial** — Split external catalog data from internal genetics (bounded contexts + data migration done; mapping service + review UI still to build).
+4. 🟢 **Largely done** — Split external catalog data from internal genetics (bounded contexts + data migration + `CatalogMappingService` propose/approve/reject done; only the admin review UI remains).
 5. 🟢 **Largely done** — Rework dashboard data loading and scalability (aggregated `/api/dashboard`, no timed polling, `pagination_maximum_items_per_page` cap).
 6. 🟢 **Largely done** — Build a full testing pyramid (backend + vitest + Playwright + CI; only frontend component/E2E breadth remains).
 7. ✅ **Done** — Harden authentication and onboarding (login/register/invitation rate limiting, password policy, mandatory email verification, demo isolated to dev/test).
