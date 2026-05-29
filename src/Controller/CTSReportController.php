@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,8 +33,16 @@ class CTSReportController extends AbstractController
         private readonly EntityManagerInterface $em,
     ) {}
 
-    public function __invoke(Request $request, #[CurrentUser] $user): Response
+    public function __invoke(Request $request, #[CurrentUser] ?User $user): Response
     {
+        // Compliance exports expose tenant-wide regulatory data; restrict to
+        // organization admins, consistent with /api/reporting/* and ReportExport.
+        $this->denyAccessUnlessGranted('ROLE_ORG_ADMIN');
+
+        if (!$user instanceof User || !$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('Authenticated organization admin required.');
+        }
+
         $month = $request->query->get('month', date('Y-m'));
 
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
