@@ -16,15 +16,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Downloads Health Canada's authorized licensed producers CSV and upserts
- * it into the health_canada_registry table for offline KYB verification.
+ * Syncs Health Canada's licensed producers list into the health_canada_registry table.
  *
- * Source dataset:
- *   https://health-products.canada.ca/api/dataset/
- *   95c29d8f-3688-4a37-aca0-1a50af7b1c86
+ * Accepts either an HTML listing page or a direct CSV file — auto-detected.
+ * The official page is:
+ *   https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/
+ *   industry-licensees-applicants/licensed-cultivators-processors-sellers.html
  *
- * Run daily via scheduler (see SyncHealthCanadaRegistryScheduler).
- * Can also be run manually: php bin/console app:sync-health-canada-registry
+ * Usage:
+ *   php bin/console app:sync-health-canada-registry
+ *   php bin/console app:sync-health-canada-registry --url=<page-or-csv-url>
+ *   php bin/console app:sync-health-canada-registry --file=/tmp/producers.html
+ *   php bin/console app:sync-health-canada-registry --file=/tmp/producers.csv
  */
 #[AsCommand(
     name: 'app:sync-health-canada-registry',
@@ -32,28 +35,40 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 )]
 final class SyncHealthCanadaRegistryCommand extends Command
 {
-    private const HC_CSV_URL = 'https://health-products.canada.ca/api/dataset/95c29d8f-3688-4a37-aca0-1a50af7b1c86?lang=en&type=csv';
+    private const HC_URL_DEFAULT = 'https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis/industry-licensees-applicants/licensed-cultivators-processors-sellers.html';
 
-    // Column indexes in the HC CSV (0-based). Verify against the live CSV if format changes.
-    private const COL_LICENSE_NUMBER = 0;
-    private const COL_COMPANY_NAME   = 1;
-    private const COL_LICENSE_TYPE   = 2;
-    private const COL_STATUS         = 3;
-    private const COL_PROVINCE       = 4;
-    private const COL_ISSUED_AT      = 5;
-    private const COL_EXPIRES_AT     = 6;
+    /**
+     * Keyword patterns used to identify each column by its header text.
+     * First match wins; case-insensitive substring on the full header text.
+     * licenseNumber is optional — if absent the company name is used as key.
+     *
+     * @var array<string, list<string>>
+     */
+    private const COLUMN_KEYWORDS = [
+        'licenseNumber' => ['license number', 'licence number', 'no. de licen', 'licence no'],
+        'companyName'   => ['licence holder', 'license holder', 'company', 'holder', 'name'],
+        'licenseType'   => ['licence(s)', 'license(s)', 'license class', 'licence class', 'class', 'type of licen', 'authorized activities'],
+        'status'        => ['status'],
+        'province'      => ['province', 'territory'],
+        'issuedAt'      => ['date of initial', 'issue date', 'date issued', 'issued', 'granted'],
+        'expiresAt'     => ['expiry date', 'date expir', 'expir', 'renewal'],
+    ];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
+        private readonly string $hcUrl = self::HC_URL_DEFAULT,
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Parse CSV but do not persist');
+        $this
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Parse but do not persist')
+            ->addOption('url', null, InputOption::VALUE_REQUIRED, 'Health Canada page or CSV URL (env: HC_CSV_URL)')
+            ->addOption('file', null, InputOption::VALUE_REQUIRED, 'Load from a local HTML or CSV file instead of downloading');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -63,57 +78,308 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
         $io->title('Health Canada Registry Sync');
 
-        // ── Download CSV ───────────────────────────────────────────────────
-        $io->text('Downloading CSV from Health Canada...');
+        // ── Fetch raw content ──────────────────────────────────────────────
+        $localFile = $input->getOption('file');
 
-        try {
-            $response = $this->httpClient->request('GET', self::HC_CSV_URL, ['timeout' => 30]);
-            $csvContent = $response->getContent();
-        } catch (\Throwable $e) {
-            $io->error('Failed to download CSV: ' . $e->getMessage());
-            $this->logger->error('[HC Sync] Download failed', ['error' => $e->getMessage()]);
+        if (is_string($localFile) && $localFile !== '') {
+            $io->text(sprintf('Reading from local file: %s', $localFile));
 
-            return Command::FAILURE;
+            if (!file_exists($localFile) || !is_readable($localFile)) {
+                $io->error(sprintf('File not found or not readable: %s', $localFile));
+                return Command::FAILURE;
+            }
+
+            $content = (string) file_get_contents($localFile);
+        } else {
+            $url = (string) ($input->getOption('url') ?? getenv('HC_CSV_URL') ?: $this->hcUrl);
+
+            try {
+                $content = $this->download($url, $io);
+            } catch (\Throwable $e) {
+                $io->error([
+                    'Download failed: ' . $e->getMessage(),
+                    'Tips:',
+                    '  --url=<url>   override the URL (or set HC_CSV_URL env var)',
+                    '  --file=<path> pass a locally saved HTML or CSV file',
+                ]);
+                $this->logger->error('[HC Sync] Download failed', ['error' => $e->getMessage()]);
+                return Command::FAILURE;
+            }
         }
 
-        // ── Parse CSV ──────────────────────────────────────────────────────
-        $rows = $this->parseCsv($csvContent);
+        // ── Parse: auto-detect HTML vs CSV ────────────────────────────────
+        if ($this->isHtml($content)) {
+            $io->text('HTML page detected — scraping table...');
+            [$colMap, $rows] = $this->parseHtmlTable($content);
 
-        if (count($rows) < 2) {
-            $io->error('CSV appears empty or malformed (fewer than 2 rows).');
+            if ($colMap === [] || $rows === []) {
+                $io->error([
+                    'Could not find a licensed-producers table in the HTML.',
+                    'Check that the URL points to the Health Canada licensed producers page.',
+                ]);
+                return Command::FAILURE;
+            }
 
-            return Command::FAILURE;
+            $io->text(sprintf('Found %d producer rows. Column map: %s', count($rows), json_encode($colMap)));
+        } else {
+            $io->text('CSV format detected — parsing...');
+            [$colMap, $rows] = $this->parseCsvContent($content);
+
+            if ($colMap === [] || count($rows) < 1) {
+                $io->error('CSV appears empty or its header does not match expected Health Canada format.');
+                return Command::FAILURE;
+            }
+
+            $io->text(sprintf('Found %d producer rows.', count($rows)));
         }
-
-        $header = array_shift($rows);
-
-        if (!$this->isValidHeader($header)) {
-            $io->error('CSV header does not match expected Health Canada format — aborting to prevent corrupt data.');
-            $this->logger->error('[HC Sync] Unexpected CSV header', ['header' => $header]);
-
-            return Command::FAILURE;
-        }
-
-        $io->text(sprintf('Downloaded %d producer records.', count($rows)));
 
         if ($dryRun) {
-            $io->note('Dry-run mode — no changes persisted.');
+            $io->note('Dry-run — no changes persisted.');
             $io->success(sprintf('Would upsert %d records.', count($rows)));
-
             return Command::SUCCESS;
         }
 
-        // ── Upsert into DB ─────────────────────────────────────────────────
-        $repo = $this->em->getRepository(HealthCanadaLicensedProducer::class);
+        // ── Upsert ────────────────────────────────────────────────────────
+        $counts = $this->upsert($rows, $colMap);
 
+        $io->success(sprintf(
+            'Sync complete — inserted: %d, updated: %d, skipped: %d.',
+            $counts['inserted'],
+            $counts['updated'],
+            $counts['skipped'],
+        ));
+        $this->logger->info('[HC Sync] Completed', $counts);
+
+        return Command::SUCCESS;
+    }
+
+    // ── HTTP ──────────────────────────────────────────────────────────────────
+
+    private function download(string $url, SymfonyStyle $io): string
+    {
+        $io->text(sprintf('Downloading from: %s', $url));
+
+        $response = $this->httpClient->request('GET', $url, [
+            'timeout'      => 30,
+            'http_version' => '1.1',
+            'headers'      => [
+                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+                'Accept'          => 'text/html,application/xhtml+xml,*/*;q=0.9',
+                'Accept-Language' => 'en-CA,en;q=0.9',
+            ],
+        ]);
+
+        return $response->getContent();
+    }
+
+    // ── HTML scraping ─────────────────────────────────────────────────────────
+
+    private function isHtml(string $content): bool
+    {
+        $trimmed = ltrim($content);
+        return stripos($trimmed, '<!doctype') === 0
+            || stripos($trimmed, '<html') === 0
+            || stripos($trimmed, '<table') !== false;
+    }
+
+    /**
+     * Parses an HTML page and returns the licensed-producers table.
+     * Prefers tables with the canada.ca WET class (wb-tables), then falls back
+     * to any table whose headers match our column keywords.
+     *
+     * @return array{0: array<string,int>, 1: list<list<string>>}
+     */
+    private function parseHtmlTable(string $html): array
+    {
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+
+        // Prefer the WET datatable used on canada.ca, then try all tables
+        /** @var \DOMNodeList<\DOMElement>|false $tables */
+        $tables = $xpath->query("//table[contains(@class,'wb-tables')] | //table");
+
+        if ($tables === false) {
+            return [[], []];
+        }
+
+        foreach ($tables as $table) {
+            // Read ALL header rows and merge them so that sub-column names
+            // (supplied by a second thead row after a colspan in the first row)
+            // fill the blank slots created by colspan expansion.
+            // Strategy: first row wins for non-blank cells; subsequent rows
+            // fill only the blank (colspan-expanded) slots.
+            $allHeaderRows = $xpath->query('.//thead/tr', $table);
+            if ($allHeaderRows === false || $allHeaderRows->length === 0) {
+                $allHeaderRows = $xpath->query('.//tr[position()<=2]', $table);
+            }
+            if ($allHeaderRows === false || $allHeaderRows->length === 0) {
+                continue;
+            }
+
+            $headers = [];
+            foreach ($allHeaderRows as $headerRow) {
+                $cells = $xpath->query('th | td', $headerRow);
+                if ($cells === false || $cells->length === 0) {
+                    continue;
+                }
+
+                $rowHeaders = [];
+                foreach ($cells as $cell) {
+                    $text    = strtolower(trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? ''));
+                    $colspan = max(1, (int) ($cell->getAttribute('colspan') ?: 1));
+                    $rowHeaders[] = $text;
+                    for ($i = 1; $i < $colspan; $i++) {
+                        $rowHeaders[] = '';
+                    }
+                }
+
+                // Merge: first-row text is kept; later rows fill only blank slots
+                foreach ($rowHeaders as $idx => $text) {
+                    if (!isset($headers[$idx]) || ($headers[$idx] === '' && $text !== '')) {
+                        $headers[$idx] = $text;
+                    }
+                }
+            }
+
+            ksort($headers);
+            $headers = array_values($headers);
+
+            if ($headers === []) {
+                continue;
+            }
+
+            $colMap = $this->mapColumns($headers);
+
+            // Need at least companyName to be useful (licenseNumber may be absent)
+            if (!isset($colMap['companyName'])) {
+                continue;
+            }
+
+            // Extract data rows
+            $rows      = [];
+            $dataNodes = $xpath->query('.//tbody/tr', $table);
+            if ($dataNodes === false || $dataNodes->length === 0) {
+                $dataNodes = $xpath->query('.//tr[position()>1]', $table);
+            }
+            if ($dataNodes === false) {
+                continue;
+            }
+
+            foreach ($dataNodes as $tr) {
+                $cells = $xpath->query('td', $tr);
+                if ($cells === false) continue;
+
+                $row = [];
+                foreach ($cells as $cell) {
+                    $row[] = trim(preg_replace('/\s+/', ' ', (string) $cell->textContent) ?? '');
+                }
+
+                if (count($row) >= 2) {
+                    $rows[] = $row;
+                }
+            }
+
+            if ($rows !== []) {
+                return [$colMap, $rows];
+            }
+        }
+
+        return [[], []];
+    }
+
+    /**
+     * Maps column header strings to field names using keyword matching.
+     *
+     * @param  list<string>         $headers  lowercase header texts
+     * @return array<string, int>             field => column index
+     */
+    private function mapColumns(array $headers): array
+    {
+        $map = [];
+
+        foreach (self::COLUMN_KEYWORDS as $field => $keywords) {
+            foreach ($headers as $idx => $header) {
+                foreach ($keywords as $keyword) {
+                    if (str_contains($header, $keyword)) {
+                        $map[$field] = $idx;
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    // ── CSV parsing ───────────────────────────────────────────────────────────
+
+    /**
+     * @return array{0: array<string,int>, 1: list<list<string>>}
+     */
+    private function parseCsvContent(string $content): array
+    {
+        $handle = fopen('php://memory', 'r+');
+        if ($handle === false) return [[], []];
+
+        fwrite($handle, $content);
+        rewind($handle);
+
+        $allRows = [];
+        while (($row = fgetcsv($handle, 0, ',', '"')) !== false) {
+            $allRows[] = $row;
+        }
+        fclose($handle);
+
+        if (count($allRows) < 2) return [[], []];
+
+        $rawHeader = array_shift($allRows);
+        $headers   = array_map(static fn($h) => strtolower(trim((string) $h)), $rawHeader);
+        $colMap    = $this->mapColumns($headers);
+
+        if (!isset($colMap['companyName'])) {
+            return [[], []];
+        }
+
+        return [$colMap, $allRows];
+    }
+
+    // ── DB upsert ─────────────────────────────────────────────────────────────
+
+    /**
+     * @param list<list<string>>  $rows
+     * @param array<string, int>  $colMap
+     * @return array{inserted:int, updated:int, skipped:int}
+     */
+    private function upsert(array $rows, array $colMap): array
+    {
+        $repo   = $this->em->getRepository(HealthCanadaLicensedProducer::class);
         $counts = ['inserted' => 0, 'updated' => 0, 'skipped' => 0];
 
         foreach ($rows as $index => $row) {
-            $licenseNumber = strtoupper(trim($row[self::COL_LICENSE_NUMBER] ?? ''));
+            $companyRaw = trim($row[$colMap['companyName']] ?? '');
 
-            if ($licenseNumber === '') {
+            if ($companyRaw === '') {
                 $counts['skipped']++;
                 continue;
+            }
+
+            // Use explicit license number when available, otherwise derive a stable
+            // key from company name + province (Health Canada dropped individual numbers).
+            // A 6-char hash suffix guarantees uniqueness even when the slug is truncated.
+            if (isset($colMap['licenseNumber']) && ($row[$colMap['licenseNumber']] ?? '') !== '') {
+                $licenseNumber = strtoupper(trim($row[$colMap['licenseNumber']]));
+            } else {
+                $province  = strtoupper(trim($row[$colMap['province'] ?? -1] ?? ''));
+                $slug      = strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', $companyRaw) ?? '');
+                $hash      = strtoupper(substr(md5($companyRaw . '|' . $province), 0, 6));
+                $suffix    = ($province !== '' ? '-' . $province : '') . '-' . $hash;
+                // Reserve space for 'HC-', slug, suffix; total ≤ 64
+                $maxSlug   = 64 - 3 - strlen($suffix);
+                $licenseNumber = 'HC-' . substr($slug, 0, max(1, $maxSlug)) . $suffix;
             }
 
             $producer = $repo->findOneBy(['licenseNumber' => $licenseNumber]);
@@ -126,19 +392,31 @@ final class SyncHealthCanadaRegistryCommand extends Command
                 $producer->touch();
             }
 
+            if (isset($colMap['status'])) {
+                $rawStatus = $row[$colMap['status']] ?? '';
+            } else {
+                $licenseTypeText = strtolower($row[$colMap['licenseType'] ?? -1] ?? '');
+                $rawStatus = match (true) {
+                    str_contains($licenseTypeText, 'revok')  => 'revoked',
+                    str_contains($licenseTypeText, 'suspend') => 'suspended',
+                    str_contains($licenseTypeText, 'cancel')  => 'cancelled',
+                    str_contains($licenseTypeText, 'expir')   => 'expired',
+                    default                                    => 'active',
+                };
+            }
+
             $producer
-                ->setCompanyName($row[self::COL_COMPANY_NAME] ?? '')
-                ->setLicenseType($row[self::COL_LICENSE_TYPE] ?? '')
-                ->setStatus($this->normalizeStatus($row[self::COL_STATUS] ?? ''))
-                ->setProvince($row[self::COL_PROVINCE] ?? '')
-                ->setIssuedAt($this->parseDate($row[self::COL_ISSUED_AT] ?? ''))
-                ->setExpiresAt($this->parseDate($row[self::COL_EXPIRES_AT] ?? ''));
+                ->setCompanyName($companyRaw)
+                ->setLicenseType($row[$colMap['licenseType'] ?? -1] ?? '')
+                ->setStatus($this->normalizeStatus($rawStatus))
+                ->setProvince($row[$colMap['province'] ?? -1] ?? '')
+                ->setIssuedAt($this->parseDate($row[$colMap['issuedAt'] ?? -1] ?? ''))
+                ->setExpiresAt($this->parseDate($row[$colMap['expiresAt'] ?? -1] ?? ''));
 
             $this->em->persist($producer);
 
             $isNew ? $counts['inserted']++ : $counts['updated']++;
 
-            // Flush every 200 records to avoid memory pressure
             if (($index + 1) % 200 === 0) {
                 $this->em->flush();
                 $this->em->clear();
@@ -147,58 +425,10 @@ final class SyncHealthCanadaRegistryCommand extends Command
 
         $this->em->flush();
 
-        $io->success(sprintf(
-            'Sync complete — inserted: %d, updated: %d, skipped: %d.',
-            $counts['inserted'],
-            $counts['updated'],
-            $counts['skipped'],
-        ));
-
-        $this->logger->info('[HC Sync] Completed', $counts);
-
-        return Command::SUCCESS;
+        return $counts;
     }
 
-    /** @return list<list<string>> */
-    private function parseCsv(string $content): array
-    {
-        $lines = [];
-        $handle = fopen('php://memory', 'r+');
-
-        if ($handle === false) {
-            return [];
-        }
-
-        fwrite($handle, $content);
-        rewind($handle);
-
-        while (($row = fgetcsv($handle, 0, ',', '"')) !== false) {
-            $lines[] = $row;
-        }
-
-        fclose($handle);
-
-        return $lines;
-    }
-
-    /**
-     * Validates that the CSV header row matches the expected Health Canada format.
-     * Checks minimum column count and keyword presence to catch format changes or
-     * non-CSV responses (e.g. HTML error pages returned with a 200 status).
-     *
-     * @param list<string>|null $header
-     */
-    private function isValidHeader(?array $header): bool
-    {
-        if ($header === null || count($header) < 7) {
-            return false;
-        }
-
-        $col0 = strtolower($header[self::COL_LICENSE_NUMBER] ?? '');
-        $col3 = strtolower($header[self::COL_STATUS] ?? '');
-
-        return str_contains($col0, 'licen') && str_contains($col3, 'status');
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function normalizeStatus(string $raw): string
     {
@@ -219,9 +449,8 @@ final class SyncHealthCanadaRegistryCommand extends Command
             return null;
         }
 
-        foreach (['Y-m-d', 'd/m/Y', 'm/d/Y', 'Y/m/d'] as $format) {
+        foreach (['Y-m-d', 'd/m/Y', 'm/d/Y', 'Y/m/d', 'F j, Y', 'M j, Y'] as $format) {
             $date = \DateTimeImmutable::createFromFormat($format, $raw);
-
             if ($date !== false) {
                 return $date->setTime(0, 0);
             }

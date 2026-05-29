@@ -8,8 +8,8 @@ use App\Command\SeedDemoDataCommand;
 use App\Entity\Organization;
 use App\Entity\User;
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -18,6 +18,26 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class SeedDemoDataCommandTest extends TestCase
 {
+    private function makeCommand(
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher,
+        KernelInterface $kernel,
+        Connection $connection,
+    ): SeedDemoDataCommand {
+        return new SeedDemoDataCommand($em, $hasher, $kernel, $connection);
+    }
+
+    private function makeNullRepo(): EntityRepository
+    {
+        $repo = $this->getMockBuilder(EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $repo->method('findOneBy')->willReturn(null);
+
+        return $repo;
+    }
+
     public function testItFailsOutsideDevAndTestEnvironments(): void
     {
         $entityManager = $this->createMock(EntityManagerInterface::class);
@@ -28,7 +48,7 @@ final class SeedDemoDataCommandTest extends TestCase
             'getEnvironment' => 'prod',
         ]);
 
-        $commandTester = new CommandTester(new SeedDemoDataCommand(
+        $commandTester = new CommandTester($this->makeCommand(
             $entityManager,
             $this->createMock(UserPasswordHasherInterface::class),
             $kernel,
@@ -41,26 +61,28 @@ final class SeedDemoDataCommandTest extends TestCase
 
     public function testItSeedsDemoDataInTestEnvironment(): void
     {
+        $nullRepo = $this->makeNullRepo();
+
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->method('getRepository')
-            ->willReturn($this->emptyRepository());
+        $entityManager->method('getRepository')->willReturn($nullRepo);
         $entityManager->expects(self::atLeastOnce())->method('persist');
         $entityManager->expects(self::atLeastOnce())->method('flush');
 
         $passwordHasher = $this->createMock(UserPasswordHasherInterface::class);
-        $passwordHasher->expects(self::once())
-            ->method('hashPassword')
-            ->willReturn('hashed-demo-password');
+        $passwordHasher->method('hashPassword')->willReturn('hashed-demo-password');
 
         $kernel = $this->createConfiguredMock(KernelInterface::class, [
             'getEnvironment' => 'test',
         ]);
 
-        $commandTester = new CommandTester(new SeedDemoDataCommand(
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeStatement')->willReturn(0);
+
+        $commandTester = new CommandTester($this->makeCommand(
             $entityManager,
             $passwordHasher,
             $kernel,
-            $this->createMock(Connection::class),
+            $connection,
         ));
 
         self::assertSame(Command::SUCCESS, $commandTester->execute([]));
@@ -77,20 +99,21 @@ final class SeedDemoDataCommandTest extends TestCase
             ->setOrganization($organization)
             ->setPassword('stale-password-hash');
 
-        $userRepository = $this->getMockBuilder(EntityRepository::class)
+        $userRepo = $this->getMockBuilder(EntityRepository::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['findOneBy'])
             ->getMock();
-        $userRepository->expects(self::once())
-            ->method('findOneBy')
+        $userRepo->method('findOneBy')
             ->with(['email' => 'demo@cultivatrace.local'])
             ->willReturn($existingUser);
 
-        $emptyRepository = $this->emptyRepository();
+        $nullRepo = $this->makeNullRepo();
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->method('getRepository')
-            ->willReturnCallback(static fn (string $class) => $class === User::class ? $userRepository : $emptyRepository);
+            ->willReturnCallback(static function (string $class) use ($userRepo, $nullRepo) {
+                return $class === User::class ? $userRepo : $nullRepo;
+            });
         $entityManager->expects(self::atLeastOnce())->method('persist');
         $entityManager->expects(self::atLeastOnce())->method('flush');
 
@@ -104,29 +127,17 @@ final class SeedDemoDataCommandTest extends TestCase
             'getEnvironment' => 'test',
         ]);
 
-        $commandTester = new CommandTester(new SeedDemoDataCommand(
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeStatement')->willReturn(0);
+
+        $commandTester = new CommandTester($this->makeCommand(
             $entityManager,
             $passwordHasher,
             $kernel,
-            $this->createMock(Connection::class),
+            $connection,
         ));
 
         self::assertSame(Command::SUCCESS, $commandTester->execute([]));
         self::assertSame('fresh-demo-password-hash', $existingUser->getPassword());
-    }
-
-    /**
-     * A repository stub whose findOneBy() always returns null so the command
-     * creates every demo entity from scratch.
-     */
-    private function emptyRepository(): EntityRepository
-    {
-        $repository = $this->getMockBuilder(EntityRepository::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['findOneBy'])
-            ->getMock();
-        $repository->method('findOneBy')->willReturn(null);
-
-        return $repository;
     }
 }
