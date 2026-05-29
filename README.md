@@ -114,15 +114,22 @@ GET|POST        /api/farms            Fermes (soft-delete via DELETE → archive
 DELETE          /api/farms/{id}       Soft-delete (archivedAt IS NULL dans les collections)
 GET|POST|PATCH  /api/rooms            Salles de culture
 GET|POST|PATCH  /api/sensors          Capteurs IoT
-GET             /api/sensors/{id}/reading/live    Dernière lecture live
-GET             /api/sensors/{id}/reading/history Historique TimescaleDB
+POST            /api/sensors/{id}/reading         Ingestion d'une lecture (ROLE_ORG_USER ou ROLE_API)
+GET             /api/sensors/{id}/readings        Historique agrégé TimescaleDB (?period=7d|30d|90d|365d)
 ```
 
 ### 5. Rapports
 
+Génération et exports réservés à `ROLE_ORG_ADMIN` (voir la matrice de permissions).
+
 ```
-POST /api/report-exports              Déclencher un export PDF/CSV
-GET  /api/report-exports/{id}         Statut et téléchargement
+GET  /api/plants/{id}/report              Rapport PDF d'un plant (PLANT_VIEW + tenant)
+POST /api/reporting/harvest-summary       Générer un résumé de récolte (admin)
+POST /api/reporting/audit-export          Générer un export d'audit CSV (admin)
+GET  /api/reporting/exports               Lister les exports de l'organisation (admin)
+GET  /api/reporting/exports/{id}          Statut d'un export (admin + tenant)
+GET  /api/reporting/exports/{id}/download Télécharger un export (admin + tenant)
+GET  /api/compliance/ctsreport?month=YYYY-MM  Rapport CTS Health Canada (admin)
 ```
 
 ## Prérequis
