@@ -168,7 +168,6 @@ import type {
   DashboardOverviewResponse,
   DashboardRecentEvent,
   DashboardSpotlightPlant,
-  PlantEvent,
   PlantStage,
 } from '@/types/api'
 import FarmForm from '@/components/farms/FarmForm.vue'
@@ -242,7 +241,7 @@ const stageBars = computed(() => {
   }))
 })
 
-function eventContext(entry: PlantEvent) {
+function eventContext(entry: DashboardRecentEvent) {
   if (entry.eventType === 'stage_change' && entry.payload && 'to' in entry.payload) {
     return `Stage change to ${String(entry.payload.to)}`
   }

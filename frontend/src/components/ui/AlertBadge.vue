@@ -9,8 +9,10 @@
 import { computed } from 'vue'
 import type { AlertSeverity } from '../../types/api'
 
+// Accepts the dashboard's 'default' tone in addition to the core AlertSeverity
+// values, so neutral informational alerts render without a type cast.
 const props = defineProps<{
-  severity: AlertSeverity
+  severity: AlertSeverity | 'default'
 }>()
 
 const icon = computed(() => {
@@ -52,6 +54,12 @@ const icon = computed(() => {
   color: #065F46;
   background: #D1FAE5;
   border: 1px solid #A7F3D0;
+}
+
+.alert-badge--default {
+  color: #374151;
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
 }
 
 @keyframes pulse {
