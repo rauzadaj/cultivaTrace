@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <q-page class="billing-page">
     <div class="billing-container">
 
