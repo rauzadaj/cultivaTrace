@@ -253,6 +253,19 @@ php bin/console app:sync-seed-catalog --no-upsert  # export seul
 
 Snapshot versionné : `catalog/seed-catalog/humboldt-california-canada.json`
 
+Les entrées fournisseur sont stockées dans le contexte borné `ExternalCatalogEntry`
+(jamais directement dans `Genetic`). Pour relier une entrée externe à une génétique
+interne validée, un service de mapping propose des liens `pending` (match par
+code/nom normalisé) qu'un relecteur approuve ou rejette :
+
+```bash
+php bin/console app:catalog:propose-mappings   # crée les GeneticCatalogMapping en statut pending
+```
+
+L'approbation / le rejet (`CatalogMappingService::approve|reject`) enregistre le
+relecteur et l'horodatage ; les génétiques internes restent souveraines et ne sont
+jamais mutées par l'ingestion catalogue.
+
 ## Notes de développement
 
 - Backend aligné sur PHP 8.4, Symfony 8.0, Doctrine ORM 3.
