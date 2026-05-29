@@ -408,6 +408,7 @@ const stageOptions = computed(() => {
 
 const ORG_USER_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN', 'ROLE_ORG_USER']
 const ORG_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN', 'ROLE_ORG_ADMIN']
+const SUPER_ADMIN_ROLES: readonly UserRole[] = ['ROLE_SUPER_ADMIN']
 
 const mobileNavigation: readonly RoleScopedNavigationItem[] = [
   { label: 'Home', icon: 'mdi-home-outline', to: '/dashboard/overview', roles: ORG_USER_ROLES },
@@ -420,6 +421,7 @@ const mobileNavigation: readonly RoleScopedNavigationItem[] = [
 const desktopNavigation: readonly RoleScopedNavigationItem[] = [
   ...mobileNavigation.slice(0, 4),
   { label: 'Reporting', icon: 'mdi-file-chart-outline', to: '/reporting', roles: ORG_ADMIN_ROLES },
+  { label: 'Catalog', icon: 'mdi-dna', to: '/catalog/mappings', roles: SUPER_ADMIN_ROLES },
   { label: 'Compliance', icon: 'mdi-shield-check-outline', to: '/compliance', roles: ORG_ADMIN_ROLES },
   { label: 'Billing', icon: 'mdi-credit-card-outline', to: '/billing', roles: ORG_ADMIN_ROLES },
   { label: 'Settings', icon: 'mdi-cog-outline', to: '/settings', roles: ORG_ADMIN_ROLES },
