@@ -33,13 +33,10 @@ class DashboardController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
-        if (!$user instanceof User) {
-            throw $this->createAccessDeniedException('Authenticated user required.');
-        }
-        $org      = $user->getOrganization();
-        if ($org === null) {
+        if (!$user instanceof User || !$user->hasOrganization()) {
             throw $this->createAccessDeniedException('Authenticated user must belong to an organization.');
         }
+        $org = $user->getOrganization();
 
         // Active plants by stage
         $plantsByStage = $this->em->createQuery(

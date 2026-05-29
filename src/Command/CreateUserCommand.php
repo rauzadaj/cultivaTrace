@@ -53,7 +53,7 @@ final class CreateUserCommand extends Command
         $organizationName = (string) $input->getOption('organization');
         $role = strtoupper((string) $input->getOption('role'));
         $country = strtoupper((string) $input->getOption('country'));
-        $allowedRoles = ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_API'];
+        $allowedRoles = ['ROLE_VIEWER', 'ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_API'];
 
         if ($email === '' || $password === '' || $organizationName === '') {
             $io->error('The options --email, --password and --organization are required.');
