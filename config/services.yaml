@@ -87,6 +87,10 @@ services:
         arguments:
             $registerRateLimiter: '@limiter.api_register'
 
+    App\Infrastructure\Http\Controller\AcceptOrganizationInvitationController:
+        arguments:
+            $invitationAcceptRateLimiter: '@limiter.api_register_invitation'
+
     App\Infrastructure\Http\EventSubscriber\ApiRateLimitSubscriber:
         arguments:
             $apiGlobalLimiter: '@limiter.api_global'
