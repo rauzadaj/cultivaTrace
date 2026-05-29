@@ -8,6 +8,8 @@ use App\Application\Catalog\Mapping\CatalogMappingService;
 use App\Domain\Catalog\Model\ExternalCatalogEntry;
 use App\Domain\Catalog\Model\GeneticCatalogMapping;
 use App\Domain\Cultivation\Model\Genetic;
+use App\Entity\Organization;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -26,7 +28,12 @@ final class CatalogMappingServiceTest extends KernelTestCase
         $this->entityManager = $container->get('doctrine')->getManager();
         $this->service = $container->get(CatalogMappingService::class);
 
+        // GeneticCatalogMapping has a FK to "user" (reviewedBy) and User has a FK
+        // to organization; PostgreSQL (unlike SQLite) refuses to create the
+        // constraints unless the referenced tables exist, so include both.
         $this->resetSchema([
+            Organization::class,
+            User::class,
             Genetic::class,
             ExternalCatalogEntry::class,
             GeneticCatalogMapping::class,
