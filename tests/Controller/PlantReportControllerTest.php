@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Controller\CTSReportController;
 use App\Controller\PlantReportController;
 use App\Entity\Farm;
 use App\Entity\HarvestRecord;
@@ -17,7 +16,6 @@ use App\Entity\Strain;
 use App\Entity\User;
 use App\Enum\RoomType;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\Request;
 
 final class PlantReportControllerTest extends ApiTestCase
 {
@@ -70,16 +68,17 @@ final class PlantReportControllerTest extends ApiTestCase
 
     public function testCtsCsvExportIncludesUtf8BomAndExpectedColumns(): void
     {
-        [$user] = $this->createReportFixture();
+        [$admin] = $this->createReportFixture('ROLE_ORG_ADMIN');
+        $this->authorizeClient($admin);
 
-        $controller = new CTSReportController($this->entityManager);
-        $response = $controller->__invoke(new Request(['month' => '2026-03']), $user);
+        $this->client->request('GET', '/api/compliance/ctsreport?month=2026-03');
 
-        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertStatusCode(Response::HTTP_OK);
 
-        ob_start();
-        $response->sendContent();
-        $content = (string) ob_get_clean();
+        $response = $this->client->getResponse();
+        // KernelBrowser already consumed the StreamedResponse callback when
+        // building the response, so read the captured body instead of re-streaming.
+        $content = (string) $this->client->getInternalResponse()->getContent();
 
         self::assertStringContainsString('text/csv', $response->headers->get('Content-Type', ''));
         self::assertStringStartsWith("\xEF\xBB\xBF", $content);
@@ -88,13 +87,25 @@ final class PlantReportControllerTest extends ApiTestCase
         self::assertStringContainsString('Report Strain', $content);
     }
 
+    public function testCtsCsvExportIsForbiddenForNonAdminUser(): void
+    {
+        [, , $organization] = $this->createReportFixture('ROLE_ORG_ADMIN');
+        $member = $this->createUser($organization, 'cts-member@test.local', role: 'ROLE_ORG_USER');
+        $this->entityManager->flush();
+
+        $this->authorizeClient($member);
+        $this->client->request('GET', '/api/compliance/ctsreport?month=2026-03');
+
+        $this->assertStatusCode(Response::HTTP_FORBIDDEN);
+    }
+
     /**
-     * @return array{0: User, 1: Plant}
+     * @return array{0: User, 1: Plant, 2: Organization}
      */
-    private function createReportFixture(): array
+    private function createReportFixture(string $role = 'ROLE_ORG_USER'): array
     {
         $organization = $this->createOrganization('Org Reports');
-        $user = $this->createUser($organization, 'reports@test.local');
+        $user = $this->createUser($organization, 'reports@test.local', role: $role);
         $farm = $this->createFarm($organization, 'Report Farm');
         $room = $this->createRoom($farm, 'Report Room', RoomType::Flower);
         $strain = $this->createStrain($organization, 'Report Strain');
@@ -113,6 +124,9 @@ final class PlantReportControllerTest extends ApiTestCase
         /** @var Plant $reloadedPlant */
         $reloadedPlant = $this->entityManager->getRepository(Plant::class)->findOneBy(['rfidTag' => 'PLANT-REPORT']);
 
-        return [$user, $reloadedPlant];
+        /** @var Organization $reloadedOrganization */
+        $reloadedOrganization = $this->entityManager->getRepository(Organization::class)->find($organization->getId());
+
+        return [$user, $reloadedPlant, $reloadedOrganization];
     }
 }
