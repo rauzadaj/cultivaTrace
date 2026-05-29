@@ -32,6 +32,36 @@ Plateforme de traçabilité agricole avec journal append-only, suivi de cycle cu
 - `Organization` : tenant racine, plan d'abonnement, statut de licence KYB
 - `ReportExport` : exports PDF/CSV générés via Gotenberg
 
+## Rôles & permissions (RBAC)
+
+L'autorisation combine trois couches : **rôle** (hiérarchie ci-dessous), **isolation tenant**
+(`TENANT_ACCESS` + `tenant_filter` Doctrine), et **garde de licence** (les mutations sont
+bloquées tant que la licence KYB de l'organisation n'est pas active).
+
+Hiérarchie (chaque rôle hérite du précédent) :
+`ROLE_VIEWER` → `ROLE_ORG_USER` → `ROLE_ORG_ADMIN` → `ROLE_SUPER_ADMIN`.
+`ROLE_API` est un rôle disjoint réservé à l'ingestion IoT (lecture capteurs + écriture de lectures).
+
+| Domaine | `ROLE_VIEWER` | `ROLE_ORG_USER` | `ROLE_ORG_ADMIN` | `ROLE_SUPER_ADMIN` |
+|---|:---:|:---:|:---:|:---:|
+| Dashboard, capteurs, alertes (lecture) | ✅ | ✅ | ✅ | ✅ |
+| Plants, salles, variétés, récoltes, intrants, destructions (lecture) | ✅ | ✅ | ✅ | ✅ |
+| Créer / modifier plants, intrants, lectures capteurs, acquitter alertes | ❌ | ✅ | ✅ | ✅ |
+| Récolte / destruction de plants | ❌ | ✅¹ | ✅ | ✅ |
+| Créer / modifier fermes, salles, variétés, capteurs | ❌ | ❌ | ✅ | ✅ |
+| Paramètres org, membres, invitations | ❌ | ❌ | ✅ | ✅ |
+| Rapports & exports (génération + CTS Health Canada) | ❌ | ❌ | ✅ | ✅ |
+| Facturation Stripe (checkout / portail) | ❌ | ❌ | ✅ | ✅ |
+| Documents de licence KYB (entité) | ❌ | ✅ | ✅ | ✅ |
+| Validation KYB backoffice | ❌ | ❌ | ❌ | ✅ |
+
+¹ La récolte est ouverte à `ROLE_ORG_USER` ; la **destruction** exige `ROLE_ORG_ADMIN` (cf. `PlantVoter`).
+
+`ROLE_VIEWER` est le palier **lecture seule** destiné aux profils consultation (comptable,
+inspecteur, investisseur) : il peut consulter les données opérationnelles et le statut
+KYB/facturation, mais aucune opération mutante ne lui est accessible. La gouvernance
+(rapports, gestion des membres, exports réglementaires) reste réservée aux admins.
+
 ## Flows utilisateur MVP
 
 ### 1. Inscription et KYB

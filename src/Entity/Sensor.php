@@ -41,10 +41,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'sensor')]
 #[ApiResource(operations: [
     new GetCollection(
-        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')"
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API') or is_granted('ROLE_VIEWER')"
     ),
     new Get(
-        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')) and is_granted('TENANT_ACCESS', object)"
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API') or is_granted('ROLE_VIEWER')) and is_granted('TENANT_ACCESS', object)"
     ),
     new Post(
         processor: SensorStateProcessor::class,
