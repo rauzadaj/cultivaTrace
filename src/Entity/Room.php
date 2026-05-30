@@ -69,9 +69,11 @@ class Room
     #[ORM\Column(type: 'integer')]
     private int $capacityMax = 100;
 
+    /** @var Collection<int, Plant> */
     #[ORM\OneToMany(targetEntity: Plant::class, mappedBy: 'room')]
     private Collection $plants;
 
+    /** @var Collection<int, Sensor> */
     #[ORM\OneToMany(targetEntity: Sensor::class, mappedBy: 'room')]
     private Collection $sensors;
 
@@ -95,7 +97,9 @@ class Room
     public function setType(RoomType $type): self { $this->type = $type; return $this; }
     public function getCapacityMax(): int { return $this->capacityMax; }
     public function setCapacityMax(int $cap): self { $this->capacityMax = $cap; return $this; }
+    /** @return Collection<int, Plant> */
     public function getPlants(): Collection { return $this->plants; }
+    /** @return Collection<int, Sensor> */
     public function getSensors(): Collection { return $this->sensors; }
 
     public function getActivePlantCount(): int

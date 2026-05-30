@@ -170,6 +170,7 @@ final class ReportingExportService
         }
     }
 
+    /** @param list<array<string, mixed>> $rows */
     private function writeCsv(string $absolutePath, array $rows): void
     {
         $handle = fopen($absolutePath, 'wb');
