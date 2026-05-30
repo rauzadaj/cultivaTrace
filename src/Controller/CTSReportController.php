@@ -97,6 +97,9 @@ class CTSReportController extends AbstractController
         return $response;
     }
 
+    /**
+     * @return list<list<float|int|string|null>>
+     */
     private function fetchPlantsForPeriod(\Symfony\Component\Uid\Uuid $tenantId, \DateTimeImmutable $start, \DateTimeImmutable $end): array
     {
         $period = $start->format('Y-m');
