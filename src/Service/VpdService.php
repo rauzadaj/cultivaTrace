@@ -92,6 +92,8 @@ class VpdService
 
     /**
      * Computes and evaluates VPD in a single call.
+     *
+     * @return array<string, mixed>
      */
     public function computeAndEvaluate(
         float  $temperatureCelsius,

@@ -11,6 +11,8 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * Refresh tokens are stored server-side so they can be revoked individually or globally.
+ *
+ * @extends ServiceEntityRepository<RefreshToken>
  */
 final class RefreshTokenRepository extends ServiceEntityRepository
 {

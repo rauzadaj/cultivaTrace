@@ -8,6 +8,9 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 
+/**
+ * @extends Voter<string, Plant|null>
+ */
 class PlantVoter extends Voter
 {
     public const VIEW    = 'PLANT_VIEW';
@@ -40,6 +43,9 @@ class PlantVoter extends Voter
         };
     }
 
+    /**
+     * @param list<string> $roles
+     */
     private function hasAnyRole(User $user, array $roles): bool
     {
         foreach ($roles as $role) {
