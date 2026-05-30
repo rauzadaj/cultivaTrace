@@ -22,6 +22,7 @@ class PlanLimitExceededException extends \RuntimeException
         parent::__construct($message);
     }
 
+    /** @return array<string, mixed> */
     public function toArray(): array
     {
         return [
