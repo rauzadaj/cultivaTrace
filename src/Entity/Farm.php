@@ -87,6 +87,7 @@ class Farm
     #[Groups(['farm:read'])]
     private ?\DateTimeImmutable $archivedAt = null;
 
+    /** @var Collection<int, Room> */
     #[ORM\OneToMany(targetEntity: Room::class, mappedBy: 'farm')]
     private Collection $rooms;
 
@@ -110,5 +111,6 @@ class Farm
     public function getArchivedAt(): ?\DateTimeImmutable { return $this->archivedAt; }
     public function setArchivedAt(?\DateTimeImmutable $archivedAt): self { $this->archivedAt = $archivedAt; return $this; }
     public function isArchived(): bool { return $this->archivedAt !== null; }
+    /** @return Collection<int, Room> */
     public function getRooms(): Collection { return $this->rooms; }
 }

@@ -102,6 +102,7 @@ class Plant
     #[ORM\JoinColumn(nullable: false)]
     private User $createdBy;
 
+    /** @var Collection<int, PlantEvent> */
     #[ORM\OneToMany(targetEntity: PlantEvent::class, mappedBy: 'plant')]
     #[ORM\OrderBy(['occurredAt' => 'DESC'])]
     private Collection $events;
@@ -134,6 +135,7 @@ class Plant
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getCreatedBy(): User { return $this->createdBy; }
     public function setCreatedBy(User $user): self { $this->createdBy = $user; return $this; }
+    /** @return Collection<int, PlantEvent> */
     public function getEvents(): Collection { return $this->events; }
     public function getHarvestRecord(): ?HarvestRecord { return $this->harvestRecord; }
     #[Groups(['plant:read'])]

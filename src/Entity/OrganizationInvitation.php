@@ -31,6 +31,7 @@ class OrganizationInvitation
     #[ORM\Column(length: 180)]
     private string $email = '';
 
+    /** @var list<string> */
     #[ORM\Column]
     private array $roles = [];
 
@@ -93,11 +94,13 @@ class OrganizationInvitation
         return $this;
     }
 
+    /** @return list<string> */
     public function getRoles(): array
     {
         return $this->roles;
     }
 
+    /** @param list<string> $roles */
     public function setRoles(array $roles): self
     {
         $this->roles = array_values(array_unique(array_filter(
