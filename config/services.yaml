@@ -70,7 +70,6 @@ services:
 
     App\Service\KybService:
         arguments:
-            $appEnv: '%kernel.environment%'
             $metrcApiKey: '%env(KYB_METRC_API_KEY)%'
             $alertFromEmail: '%env(KYB_ALERT_FROM_EMAIL)%'
             $adminReviewEmail: '%env(KYB_ADMIN_REVIEW_EMAIL)%'

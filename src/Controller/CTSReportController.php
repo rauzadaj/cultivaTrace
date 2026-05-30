@@ -59,7 +59,7 @@ class CTSReportController extends AbstractController
 
         $plants = $this->fetchPlantsForPeriod($tenantId, $startDate, $endDate);
 
-        $response = new StreamedResponse(function () use ($plants, $month) {
+        $response = new StreamedResponse(function () use ($plants) {
             $handle = fopen('php://output', 'w');
 
             // UTF-8 BOM for Excel
