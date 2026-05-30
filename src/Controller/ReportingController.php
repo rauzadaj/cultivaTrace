@@ -10,7 +10,6 @@ use App\Security\Voter\TenantAwareVoter;
 use App\Service\License\LicenseGuard;
 use App\Service\ReportingExportService;
 use App\Service\Storage\ArtifactStorage;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,7 +23,6 @@ final class ReportingController extends AbstractController
 {
     public function __construct(
         private readonly ReportingExportService $reportingExportService,
-        private readonly EntityManagerInterface $entityManager,
         private readonly LicenseGuard $licenseGuard,
         private readonly ArtifactStorage $artifactStorage,
     ) {
@@ -104,7 +102,7 @@ final class ReportingController extends AbstractController
     {
         $this->denyAccessUnlessGranted('ROLE_ORG_ADMIN');
 
-        if (!$user instanceof User || $user->getOrganization() === null) {
+        if (!$user instanceof User || !$user->hasOrganization()) {
             throw $this->createAccessDeniedException('Authenticated organization admin required.');
         }
 

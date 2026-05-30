@@ -34,7 +34,6 @@ class KybService
         private readonly MailerInterface $mailer,
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
-        private readonly string $appEnv = 'dev',
         private readonly string $metrcApiKey = '',
         private readonly string $alertFromEmail = '',
         private readonly string $adminReviewEmail = '',
