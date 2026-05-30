@@ -62,6 +62,8 @@ class SensorReadingRepository
 
     /**
      * Latest reading for a sensor.
+     *
+     * @return array<string, mixed>|null
      */
     public function findLatest(string $sensorId, string $tenantId): ?array
     {

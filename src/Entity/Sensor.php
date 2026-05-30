@@ -110,6 +110,7 @@ class Sensor
     /**
      * Seuils d'alerte — voir format dans le docblock de la classe
      */
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $thresholds = null;
 
@@ -149,6 +150,8 @@ class Sensor
     public function setStatus(string $s): self { $this->status = $s; return $this; }
     public function getLastSeen(): ?\DateTimeImmutable { return $this->lastSeen; }
     public function setLastSeen(?\DateTimeImmutable $d): self { $this->lastSeen = $d; return $this; }
+    /** @return array<string, mixed>|null */
     public function getThresholds(): ?array { return $this->thresholds; }
+    /** @param array<string, mixed>|null $t */
     public function setThresholds(?array $t): self { $this->thresholds = $t; return $this; }
 }

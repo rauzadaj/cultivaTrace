@@ -18,8 +18,14 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  * is patched via the API, keeping the append-only audit trail consistent with
  * the corrected weights stored in HarvestRecord.
  */
+/**
+ * @implements ProcessorInterface<HarvestRecord, HarvestRecord|null>
+ */
 final class HarvestRecordPatchProcessor implements ProcessorInterface
 {
+    /**
+     * @param ProcessorInterface<HarvestRecord, HarvestRecord|null> $persistProcessor
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,

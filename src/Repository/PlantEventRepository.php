@@ -19,6 +19,8 @@ use Symfony\Component\Uid\Uuid;
  *
  * ABSOLUTE RULE: use appendEvent() to create a PlantEvent.
  * Never call EntityManager::remove() or ::flush() on an existing PlantEvent.
+ *
+ * @extends ServiceEntityRepository<PlantEvent>
  */
 class PlantEventRepository extends ServiceEntityRepository
 {
@@ -35,6 +37,9 @@ class PlantEventRepository extends ServiceEntityRepository
     /**
      * Creates and persists a PlantEvent with automatic hash-chaining.
      * This is the ONLY way to create a PlantEvent.
+     *
+     * @param array<string, mixed>|null $payload
+     * @param list<string>|null         $photoUrls
      */
     public function appendEvent(
         Plant   $plant,

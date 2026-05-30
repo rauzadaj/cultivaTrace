@@ -9,6 +9,9 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 
+/**
+ * @extends Voter<string, object>
+ */
 final class TenantAwareVoter extends Voter
 {
     public const ACCESS = 'TENANT_ACCESS';

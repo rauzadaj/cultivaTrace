@@ -64,9 +64,11 @@ class Organization
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
+    /** @var Collection<int, User> */
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'organization')]
     private Collection $users;
 
+    /** @var Collection<int, Farm> */
     #[ORM\OneToMany(targetEntity: Farm::class, mappedBy: 'organization')]
     private Collection $farms;
 
@@ -98,7 +100,9 @@ class Organization
     /** @param array<string, mixed> $config */
     public function setConfig(array $config): self { $this->config = $config; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    /** @return Collection<int, User> */
     public function getUsers(): Collection { return $this->users; }
+    /** @return Collection<int, Farm> */
     public function getFarms(): Collection { return $this->farms; }
 
     public function isSuspended(): bool

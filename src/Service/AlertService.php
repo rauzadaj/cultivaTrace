@@ -87,6 +87,7 @@ class AlertService
         $this->entityManager->flush();
     }
 
+    /** @param array<string, mixed> $thresholds */
     private function determineSeverity(array $thresholds, float $value): string
     {
         $min = isset($thresholds['min']) ? (float) $thresholds['min'] : null;
