@@ -84,6 +84,7 @@ final class HumboldtSeedCatalogProvider implements SeedCatalogProvider
         return $this->extractSitemapUrls($this->fetch(self::SITEMAP_URL));
     }
 
+    /** @param array<string, mixed> $page */
     private function hydrateEntry(array $page): ?SeedCatalogEntry
     {
         $title = $this->sanitizeTitle($this->stringValue($page['title']['rendered'] ?? ''));
@@ -196,6 +197,7 @@ final class HumboldtSeedCatalogProvider implements SeedCatalogProvider
         return false;
     }
 
+    /** @return array<string, mixed>|null */
     private function fetchPageBySlug(string $slug): ?array
     {
         $endpoint = sprintf('%s/wp-json/wp/v2/pages?slug=%s', self::BASE_URL, rawurlencode($slug));

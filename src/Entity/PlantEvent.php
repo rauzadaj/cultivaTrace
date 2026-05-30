@@ -87,6 +87,7 @@ class PlantEvent
      * - destruction_intent: {"reason": "...", "planned_date": "..."}
      * - destruction_confirmed: {"gross_weight_g": 100, "non_cannabis_ratio": 0.55}
      */
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     #[Groups(['plant_event:read'])]
     private ?array $payload = null;
@@ -95,6 +96,7 @@ class PlantEvent
     #[Groups(['plant_event:read'])]
     private ?string $notes = null;
 
+    /** @var list<string>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     #[Groups(['plant_event:read'])]
     private ?array $photoUrls = null;
@@ -130,11 +132,15 @@ class PlantEvent
     public function setUser(User $user): self { $this->user = $user; return $this; }
     public function getEventType(): string { return $this->eventType; }
     public function setEventType(string $type): self { $this->eventType = $type; return $this; }
+    /** @return array<string, mixed>|null */
     public function getPayload(): ?array { return $this->payload; }
+    /** @param array<string, mixed>|null $payload */
     public function setPayload(?array $payload): self { $this->payload = $payload; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $notes): self { $this->notes = $notes; return $this; }
+    /** @return list<string>|null */
     public function getPhotoUrls(): ?array { return $this->photoUrls; }
+    /** @param list<string>|null $urls */
     public function setPhotoUrls(?array $urls): self { $this->photoUrls = $urls; return $this; }
     public function getOccurredAt(): \DateTimeImmutable { return $this->occurredAt; }
     public function setOccurredAt(\DateTimeImmutable $date): self { $this->occurredAt = $date; return $this; }

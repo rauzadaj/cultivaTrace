@@ -16,8 +16,14 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
+/**
+ * @implements ProcessorInterface<Room, Room|null>
+ */
 final class RoomStateProcessor implements ProcessorInterface
 {
+    /**
+     * @param ProcessorInterface<Room, Room|null> $persistProcessor
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,

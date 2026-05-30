@@ -94,6 +94,7 @@ class DestructionIntent
     #[Groups(['destruction:read'])]
     private ?string $nonCannabisRatio = null;
 
+    /** @var list<string>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Groups(['destruction:read'])]
     private ?array $photoUrls = null;
@@ -154,7 +155,9 @@ class DestructionIntent
     public function setTotalWeightG(?string $w): self { $this->totalWeightG = $w; return $this; }
     public function getNonCannabisRatio(): ?string { return $this->nonCannabisRatio; }
     public function setNonCannabisRatio(?string $r): self { $this->nonCannabisRatio = $r; return $this; }
+    /** @return list<string>|null */
     public function getPhotoUrls(): ?array { return $this->photoUrls; }
+    /** @param list<string>|null $u */
     public function setPhotoUrls(?array $u): self { $this->photoUrls = $u; return $this; }
     public function getConfirmedAt(): ?\DateTimeImmutable { return $this->confirmedAt; }
     public function setConfirmedAt(?\DateTimeImmutable $d): self { $this->confirmedAt = $d; return $this; }
