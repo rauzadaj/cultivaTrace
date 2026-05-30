@@ -28,7 +28,7 @@ class PlantVoter extends Voter
     {
         $user = $token->getUser();
         if (!$user instanceof User) return false;
-        if ($user->getOrganization()?->isSuspended()) return false;
+        if ($user->hasOrganization() && $user->getOrganization()->isSuspended()) return false;
 
         return match ($attribute) {
             self::VIEW    => $this->hasAnyRole($user, ['ROLE_VIEWER', 'ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
