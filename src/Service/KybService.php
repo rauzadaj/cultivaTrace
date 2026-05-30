@@ -72,6 +72,8 @@ class KybService
 
     /**
      * Dev simulation — auto-approves after a fake verification.
+     *
+     * @return array<string, mixed>
      */
     private function simulateVerification(LicenseDocument $license): array
     {
@@ -123,6 +125,7 @@ class KybService
      *
      * If the registry is empty (first install), falls back to manual review.
      */
+    /** @return array<string, mixed> */
     private function verifyHealthCanada(LicenseDocument $license): array
     {
         $licenseNumber = strtoupper(trim($license->getLicenseNumber()));
@@ -187,6 +190,7 @@ class KybService
     /** US states supported by METRC */
     private const METRC_ALLOWED_STATES = ['co', 'ca', 'or', 'wa', 'ma', 'mi', 'il', 'nv', 'me', 'ak', 'mo', 'md', 'mn', 'mt', 'nm', 'nj'];
 
+    /** @return array<string, mixed> */
     private function verifyMetrc(LicenseDocument $license): array
     {
         if (empty($this->metrcApiKey)) {
@@ -243,6 +247,7 @@ class KybService
     /**
      * Manual fallback — notifies the CultivaTrace admin by email.
      */
+    /** @return array<string, mixed> */
     private function fallbackManual(LicenseDocument $license, string $reason): array
     {
         $this->logger->info('[KYB] Manual fallback', [
@@ -263,6 +268,8 @@ class KybService
     /**
      * Applies the verification result to the LicenseDocument
      * and updates the Organization status.
+     *
+     * @param array<string, mixed> $result
      */
     public function applyVerificationResult(
         LicenseDocument $license,
