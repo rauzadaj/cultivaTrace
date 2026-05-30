@@ -228,12 +228,21 @@ Flux de démo local :
 # Backend
 APP_ENV=test php bin/phpunit
 
+# Backend — analyse statique (PHPStan niveau 6)
+php bin/console cache:warmup --env=test   # génère le conteneur lu par l'extension Symfony
+composer phpstan                          # erreurs existantes figées dans phpstan-baseline.neon
+
 # Frontend
 cd frontend
+npm run type-check  # vue-tsc (0 erreur attendue)
 npm run test:unit   # vitest (composants, stores, router, services)
 npm run test:e2e    # Playwright (parcours smoke + journeys)
 npm run build       # build Vite (transpilation type-aware)
 ```
+
+> La dette PHPStan existante est figée dans `phpstan-baseline.neon` : l'analyse
+> passe au vert sur le code actuel mais signale toute **nouvelle** erreur. La CI
+> exécute PHPStan avant PHPUnit.
 
 ## Structure
 
