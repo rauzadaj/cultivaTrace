@@ -103,7 +103,7 @@
                   color="positive"
                   text-color="white"
                   dense
-                  label="Actif"
+                  label="Active"
                 />
               </div>
               <div class="text-h4 text-weight-bold text-primary q-my-sm">
@@ -243,10 +243,10 @@ const recommendedPlan = computed(() => 'pro')
 
 const planLabel = computed(() => {
   const labels: Record<string, string> = {
-    growth: 'Growth — 249 €/mois',
-    pro: 'Pro — 499 €/mois',
-    scale: 'Scale — 999 €/mois',
-    enterprise: 'Enterprise — Sur devis',
+    growth: 'Growth — €249/mo',
+    pro: 'Pro — €499/mo',
+    scale: 'Scale — €999/mo',
+    enterprise: 'Enterprise — Custom pricing',
   }
   return labels[currentPlan.value] ?? currentPlan.value
 })
@@ -283,14 +283,14 @@ const plans = [
   },
   {
     id: 'pro', name: 'Pro', price: '499 €',
-    features: ['2 500 plants', '3 sites', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
+    features: ['2,500 plants', '3 sites', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
   },
   {
     id: 'scale', name: 'Scale', price: '999 €',
     features: ['Unlimited plants', 'Unlimited sites', 'Multi-site dashboard', 'API access', 'Priority support'],
   },
   {
-    id: 'enterprise', name: 'Enterprise', price: 'Sur devis',
+    id: 'enterprise', name: 'Enterprise', price: 'Custom',
     features: ['Everything in Scale', 'Custom SLA', 'Dedicated CSM', 'Custom integrations', 'Team training'],
   },
 ]
