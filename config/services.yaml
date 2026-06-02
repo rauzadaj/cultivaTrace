@@ -54,9 +54,9 @@ services:
         arguments:
             $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
             $stripeWebhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
-            $priceStarter: '%env(STRIPE_PRICE_STARTER)%'
+            $priceGrowth: '%env(STRIPE_PRICE_GROWTH)%'
             $pricePro: '%env(STRIPE_PRICE_PRO)%'
-            $priceBusiness: '%env(STRIPE_PRICE_BUSINESS)%'
+            $priceScale: '%env(STRIPE_PRICE_SCALE)%'
             $priceEnterprise: '%env(STRIPE_PRICE_ENTERPRISE)%'
             $alertFromEmail: '%env(STRIPE_ALERT_FROM_EMAIL)%'
 

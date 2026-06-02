@@ -197,12 +197,12 @@ final readonly class RegisterOrganizationController
     /** @param array<string, mixed> $payload */
     private function resolveSelectedPlan(array $payload): SubscriptionPlan
     {
-        $rawPlan = strtolower(trim((string) ($payload['plan'] ?? SubscriptionPlan::STARTER->value)));
+        $rawPlan = strtolower(trim((string) ($payload['plan'] ?? SubscriptionPlan::GROWTH->value)));
 
         return match ($rawPlan) {
-            SubscriptionPlan::STARTER->value => SubscriptionPlan::STARTER,
+            SubscriptionPlan::GROWTH->value => SubscriptionPlan::GROWTH,
             SubscriptionPlan::PRO->value => SubscriptionPlan::PRO,
-            SubscriptionPlan::BUSINESS->value => SubscriptionPlan::BUSINESS,
+            SubscriptionPlan::SCALE->value => SubscriptionPlan::SCALE,
             default => throw new InvalidArgumentException('Selected plan is not available for self-serve onboarding.'),
         };
     }

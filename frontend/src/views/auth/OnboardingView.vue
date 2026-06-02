@@ -83,7 +83,7 @@
           </q-banner>
 
           <q-banner rounded class="onboarding-note">
-            The active plan remains <strong>starter</strong> until KYB and the Stripe subscription are finalized.
+            The active plan remains <strong>growth</strong> until KYB and the Stripe subscription are finalized.
           </q-banner>
 
           <q-btn
@@ -121,7 +121,7 @@ const organizationName = ref('')
 const email = ref('')
 const password = ref('')
 const country = ref('FR')
-const plan = ref<RegistrationPlan>('starter')
+const plan = ref<RegistrationPlan>('growth')
 const loading = ref(false)
 const { fieldErrors, formError, validateField, validateAll, clearFieldError, clearAllErrors, applyApiError } = useFormValidation(
   {
@@ -158,9 +158,9 @@ const countryOptions = [
 ]
 
 const planOptions = [
-  { label: 'Starter', value: 'starter' },
-  { label: 'Pro', value: 'pro' },
-  { label: 'Business', value: 'business' },
+  { label: 'Growth — 249 €/mo', value: 'growth' },
+  { label: 'Pro — 499 €/mo', value: 'pro' },
+  { label: 'Scale — 999 €/mo', value: 'scale' },
 ]
 
 async function submit() {
