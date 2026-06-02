@@ -34,9 +34,9 @@ export type LicenseStatus =
   | 'rejected'
 
 export type SubscriptionPlan =
-  | 'starter'
+  | 'growth'
   | 'pro'
-  | 'business'
+  | 'scale'
   | 'enterprise'
 
 export type UserRole =
@@ -339,7 +339,7 @@ export interface LoginCredentials {
   password: string
 }
 
-export type RegistrationPlan = Extract<SubscriptionPlan, 'starter' | 'pro' | 'business'>
+export type RegistrationPlan = Extract<SubscriptionPlan, 'growth' | 'pro' | 'scale'>
 
 export interface OrganizationRegistrationPayload {
   organizationName: string
