@@ -220,6 +220,11 @@ export const billingApi = {
 
   status: () =>
     http.get('/billing/status'),
+
+  contactSales: (payload: { name: string; email: string; company: string; message: string }) =>
+    http.post('/contact/sales', payload, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
 }
 
 export const organizationAdminApi = {

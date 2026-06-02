@@ -6,6 +6,8 @@
 parameters:
     app.storage.kyb_root: '%kernel.project_dir%/var/storage/licenses'
     app.storage.report_root: '%kernel.project_dir%/var/storage/report_exports'
+    app.billing.alert_from_email: 'billing@cultivatrace.app'
+    app.sales.contact_email: 'sales@cultivatrace.app'
 
 services:
     # default configuration for services in *this* file
@@ -58,7 +60,7 @@ services:
             $pricePro: '%env(STRIPE_PRICE_PRO)%'
             $priceScale: '%env(STRIPE_PRICE_SCALE)%'
             $priceEnterprise: '%env(STRIPE_PRICE_ENTERPRISE)%'
-            $alertFromEmail: '%env(STRIPE_ALERT_FROM_EMAIL)%'
+            $alertFromEmail: '%env(default:app.billing.alert_from_email:STRIPE_ALERT_FROM_EMAIL)%'
 
     App\Scheduler\LicenseExpirationScheduler:
         arguments:
