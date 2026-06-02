@@ -23,7 +23,7 @@ final class StripeServiceTest extends TestCase
             'whsec_123',
             'prod_wrong',
             'price_ok',
-            'price_ok_business',
+            'price_ok_scale',
             'price_ok_enterprise',
         );
 
@@ -33,6 +33,6 @@ final class StripeServiceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Expected a Stripe price_ identifier');
 
-        $method->invoke($service, SubscriptionPlan::STARTER);
+        $method->invoke($service, SubscriptionPlan::GROWTH);
     }
 }
