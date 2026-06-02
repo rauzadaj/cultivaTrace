@@ -29,7 +29,7 @@ final class PlantStateProcessorTest extends TestCase
         $organization = new Organization();
         $organization->setName('Org Test');
         $organization->setLicenseStatus(LicenseStatus::ACTIVE);
-        $organization->setPlan(SubscriptionPlan::STARTER);
+        $organization->setPlan(SubscriptionPlan::GROWTH);
 
         $user = new User();
         $user->setEmail('grower@test.local');
