@@ -148,6 +148,71 @@
 
     </div>
   </q-page>
+
+  <!-- Enterprise contact dialog -->
+  <q-dialog v-model="showContactDialog" persistent>
+    <q-card style="min-width: 480px; max-width: 560px; width: 100%">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Contact our sales team</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup :disable="contactLoading" />
+      </q-card-section>
+
+      <q-card-section class="q-pt-md">
+        <div class="text-body2 text-grey-7 q-mb-lg">
+          Tell us about your project and we'll get back to you within one business day.
+        </div>
+        <div class="q-gutter-md">
+          <q-input
+            v-model="contactForm.name"
+            label="Full name *"
+            outlined dense
+            :error="!!contactErrors.name"
+            :error-message="contactErrors.name"
+            @update:model-value="contactErrors.name = ''"
+          />
+          <q-input
+            v-model="contactForm.email"
+            label="Email *"
+            type="email"
+            outlined dense
+            :error="!!contactErrors.email"
+            :error-message="contactErrors.email"
+            @update:model-value="contactErrors.email = ''"
+          />
+          <q-input
+            v-model="contactForm.company"
+            label="Company"
+            outlined dense
+          />
+          <q-input
+            v-model="contactForm.message"
+            label="Message *"
+            type="textarea"
+            outlined dense
+            rows="4"
+            :error="!!contactErrors.message"
+            :error-message="contactErrors.message"
+            @update:model-value="contactErrors.message = ''"
+          />
+        </div>
+        <q-banner v-if="contactError" rounded class="bg-negative text-white q-mt-md">
+          {{ contactError }}
+        </q-banner>
+      </q-card-section>
+
+      <q-card-actions align="right" class="q-px-md q-pb-md">
+        <q-btn flat label="Cancel" v-close-popup :disable="contactLoading" />
+        <q-btn
+          label="Send message"
+          color="primary"
+          unelevated
+          :loading="contactLoading"
+          @click="submitContact"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
@@ -165,6 +230,13 @@ const loadingCheckout = ref<string | null>(null)
 const hasStripeSubscription = ref(false)
 const resolvedPlan = ref<string | null>(null)
 const billingLoadError = ref('')
+
+// Contact dialog
+const showContactDialog = ref(false)
+const contactLoading = ref(false)
+const contactError = ref('')
+const contactForm = ref({ name: '', email: '', company: '', message: '' })
+const contactErrors = ref({ name: '', email: '', message: '' })
 
 const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'growth')
 const recommendedPlan = computed(() => 'pro')
@@ -261,7 +333,37 @@ async function openPortal(): Promise<void> {
 }
 
 function contactSales(): void {
-  window.location.href = 'mailto:jonathan@rauzada.me?subject=Enterprise CultivaTrace'
+  contactForm.value = {
+    name: auth.user?.email?.split('@')[0] ?? '',
+    email: auth.user?.email ?? '',
+    company: auth.organization?.name ?? '',
+    message: '',
+  }
+  contactErrors.value = { name: '', email: '', message: '' }
+  contactError.value = ''
+  showContactDialog.value = true
+}
+
+async function submitContact(): Promise<void> {
+  contactErrors.value = { name: '', email: '', message: '' }
+  contactError.value = ''
+
+  let valid = true
+  if (!contactForm.value.name.trim()) { contactErrors.value.name = 'Required.'; valid = false }
+  if (!contactForm.value.email.trim()) { contactErrors.value.email = 'Required.'; valid = false }
+  if (!contactForm.value.message.trim()) { contactErrors.value.message = 'Required.'; valid = false }
+  if (!valid) return
+
+  contactLoading.value = true
+  try {
+    await billingApi.contactSales(contactForm.value)
+    showContactDialog.value = false
+    $q.notify({ type: 'positive', message: 'Message sent! We\'ll get back to you within one business day.' })
+  } catch (e: any) {
+    contactError.value = e?.response?.data?.detail ?? e?.response?.data?.error ?? 'Failed to send message.'
+  } finally {
+    contactLoading.value = false
+  }
 }
 
 function actionLabel(planId: string): string {
