@@ -43,7 +43,7 @@ class Organization
     private string $country; // FR, DE, CA, US, BE, ES
 
     #[ORM\Column(length: 50, enumType: SubscriptionPlan::class)]
-    private SubscriptionPlan $plan = SubscriptionPlan::STARTER;
+    private SubscriptionPlan $plan = SubscriptionPlan::GROWTH;
 
     #[ORM\Column(length: 50, enumType: LicenseStatus::class)]
     private LicenseStatus $licenseStatus = LicenseStatus::PENDING;
