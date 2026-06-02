@@ -19,6 +19,7 @@ services:
       APP_AUTO_BOOTSTRAP: "1"
       APP_BOOTSTRAP_SEED_DEMO: "1"
       DATABASE_URL: postgresql://cultiva:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD env var is required}@db:5432/cultivatrace?serverVersion=13&charset=utf8
+      JWT_PASSPHRASE: "${JWT_PASSPHRASE:-changeit}"
     healthcheck:
       test: ["CMD", "sh", "/var/www/html/docker/app/healthcheck.sh"]
       interval: 15s

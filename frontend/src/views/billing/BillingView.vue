@@ -166,15 +166,15 @@ const hasStripeSubscription = ref(false)
 const resolvedPlan = ref<string | null>(null)
 const billingLoadError = ref('')
 
-const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'starter')
+const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'growth')
 const recommendedPlan = computed(() => 'pro')
 
 const planLabel = computed(() => {
   const labels: Record<string, string> = {
-    starter: 'Starter — 79 €/mois',
-    pro: 'Pro — 249 €/mois',
-    business: 'Business — 599 €/mois',
-    enterprise: 'Enterprise',
+    growth: 'Growth — 249 €/mois',
+    pro: 'Pro — 499 €/mois',
+    scale: 'Scale — 999 €/mois',
+    enterprise: 'Enterprise — Sur devis',
   }
   return labels[currentPlan.value] ?? currentPlan.value
 })
@@ -199,27 +199,27 @@ const displayLimits = computed(() => {
   if (!limits.value) return []
   return [
     { key: 'plants', label: 'Plants', current: limits.value.plants.current, max: limits.value.plants.max },
-    { key: 'rooms',  label: 'Rooms',  current: limits.value.rooms.current,  max: limits.value.rooms.max  },
+    { key: 'farms',  label: 'Sites',  current: limits.value.farms.current,  max: limits.value.farms.max  },
     { key: 'users',  label: 'Users',  current: limits.value.users.current,  max: limits.value.users.max  },
   ]
 })
 
 const plans = [
   {
-    id: 'starter', name: 'Starter', price: '79 €',
-    features: ['200 plants', '2 rooms', '3 users', 'PDF reports', 'Audit trail'],
+    id: 'growth', name: 'Growth', price: '249 €',
+    features: ['500 plants', '1 site', 'IoT sensors', 'PDF reports', 'Audit trail'],
   },
   {
-    id: 'pro', name: 'Pro', price: '249 €',
-    features: ['1,500 plants', '10 rooms', '15 users', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
+    id: 'pro', name: 'Pro', price: '499 €',
+    features: ['2 500 plants', '3 sites', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
   },
   {
-    id: 'business', name: 'Business', price: '599 €',
-    features: ['Unlimited plants', 'Unlimited rooms', 'Unlimited users', 'Multi-site', 'API access', 'Priority support'],
+    id: 'scale', name: 'Scale', price: '999 €',
+    features: ['Unlimited plants', 'Unlimited sites', 'Multi-site dashboard', 'API access', 'Priority support'],
   },
   {
-    id: 'enterprise', name: 'Enterprise', price: 'Custom',
-    features: ['Everything in Business', 'Dedicated SLA', 'Dedicated CSM', 'Custom integrations', 'Team training'],
+    id: 'enterprise', name: 'Enterprise', price: 'Sur devis',
+    features: ['Everything in Scale', 'Custom SLA', 'Dedicated CSM', 'Custom integrations', 'Team training'],
   },
 ]
 
@@ -265,15 +265,16 @@ function contactSales(): void {
 }
 
 function actionLabel(planId: string): string {
-  const order = ['starter', 'pro', 'business', 'enterprise']
+  const order = ['growth', 'pro', 'scale', 'enterprise']
+  const labels: Record<string, string> = { growth: 'Growth', pro: 'Pro', scale: 'Scale', enterprise: 'Enterprise' }
   const currentIndex = order.indexOf(currentPlan.value)
   const nextIndex = order.indexOf(planId)
 
   if (currentIndex !== -1 && nextIndex !== -1 && nextIndex < currentIndex) {
-    return `Switch back to ${planId === 'starter' ? 'Starter' : planId}`
+    return `Switch back to ${labels[planId] ?? planId}`
   }
 
-  return `Switch to ${planId === 'starter' ? 'Starter' : planId === 'pro' ? 'Pro' : planId === 'business' ? 'Business' : 'Enterprise'}`
+  return `Switch to ${labels[planId] ?? planId}`
 }
 
 onMounted(loadBillingStatus)

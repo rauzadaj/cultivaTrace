@@ -85,7 +85,7 @@ final class CreateUserCommand extends Command
             $organization = (new Organization())
                 ->setName($organizationName)
                 ->setCountry($country)
-                ->setPlan(SubscriptionPlan::STARTER)
+                ->setPlan(SubscriptionPlan::GROWTH)
                 ->setLicenseStatus(LicenseStatus::PENDING);
 
             $this->entityManager->persist($organization);

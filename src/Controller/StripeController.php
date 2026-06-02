@@ -36,7 +36,7 @@ class StripeController extends AbstractController
      * Creates a Stripe Checkout session to subscribe to a plan.
      *
      * JSON body:
-     *   plan : starter | pro | business
+     *   plan : growth | pro | scale | enterprise
      */
     #[Route('/api/billing/checkout', methods: ['POST'])]
     public function checkout(Request $request, #[CurrentUser] ?User $user): JsonResponse
@@ -45,7 +45,7 @@ class StripeController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? [];
         $plan = $data['plan'] ?? null;
 
-        $validPlans = ['starter', 'pro', 'business', 'enterprise'];
+        $validPlans = ['growth', 'pro', 'scale', 'enterprise'];
         if (!in_array($plan, $validPlans, true)) {
             return $this->json([
                 'error'       => 'Invalid plan',
