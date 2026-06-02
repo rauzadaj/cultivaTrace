@@ -243,9 +243,9 @@ const recommendedPlan = computed(() => 'pro')
 
 const planLabel = computed(() => {
   const labels: Record<string, string> = {
-    growth: 'Growth — €249/mo',
-    pro: 'Pro — €499/mo',
-    scale: 'Scale — €999/mo',
+    growth: 'Growth — $249/mo',
+    pro: 'Pro — $499/mo',
+    scale: 'Scale — $999/mo',
     enterprise: 'Enterprise — Custom pricing',
   }
   return labels[currentPlan.value] ?? currentPlan.value
@@ -278,15 +278,15 @@ const displayLimits = computed(() => {
 
 const plans = [
   {
-    id: 'growth', name: 'Growth', price: '249 €',
+    id: 'growth', name: 'Growth', price: '$249',
     features: ['500 plants', '1 site', 'IoT sensors', 'PDF reports', 'Audit trail'],
   },
   {
-    id: 'pro', name: 'Pro', price: '499 €',
+    id: 'pro', name: 'Pro', price: '$499',
     features: ['2,500 plants', '3 sites', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
   },
   {
-    id: 'scale', name: 'Scale', price: '999 €',
+    id: 'scale', name: 'Scale', price: '$999',
     features: ['Unlimited plants', 'Unlimited sites', 'Multi-site dashboard', 'API access', 'Priority support'],
   },
   {
