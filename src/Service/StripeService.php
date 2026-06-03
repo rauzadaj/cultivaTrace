@@ -48,6 +48,9 @@ class StripeService
         private readonly string $priceScale,
         private readonly string $priceEnterprise,
         private readonly string $alertFromEmail = 'billing@cultivatrace.app',
+        // Legacy price IDs kept during the migration window — remove once all subscriptions have migrated
+        private readonly string $priceStarter = '',
+        private readonly string $priceBusiness = '',
     ) {
         Stripe::setApiKey($this->stripeSecretKey);
     }
@@ -379,16 +382,20 @@ class StripeService
 
     private function resolvePlanFromPriceId(string $priceId): SubscriptionPlan
     {
-        return match ($priceId) {
-            trim($this->priceGrowth)     => SubscriptionPlan::GROWTH,
-            trim($this->pricePro)        => SubscriptionPlan::PRO,
-            trim($this->priceScale)      => SubscriptionPlan::SCALE,
-            trim($this->priceEnterprise) => SubscriptionPlan::ENTERPRISE,
-            default => throw new \InvalidArgumentException(sprintf(
-                'Unknown Stripe price ID "%s" returned by subscription sync.',
-                $priceId,
-            )),
-        };
+        // Current price IDs
+        if ($priceId === trim($this->priceGrowth))     return SubscriptionPlan::GROWTH;
+        if ($priceId === trim($this->pricePro))        return SubscriptionPlan::PRO;
+        if ($priceId === trim($this->priceScale))      return SubscriptionPlan::SCALE;
+        if ($priceId === trim($this->priceEnterprise)) return SubscriptionPlan::ENTERPRISE;
+
+        // Legacy price IDs — pre-rename subscriptions still carry old Starter/Business IDs
+        if ($this->priceStarter !== '' && $priceId === trim($this->priceStarter))   return SubscriptionPlan::GROWTH;
+        if ($this->priceBusiness !== '' && $priceId === trim($this->priceBusiness)) return SubscriptionPlan::SCALE;
+
+        throw new \InvalidArgumentException(sprintf(
+            'Unknown Stripe price ID "%s" returned by subscription sync.',
+            $priceId,
+        ));
     }
 
     private function maskCustomerId(string $customerId): string
