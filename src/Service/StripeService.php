@@ -29,14 +29,11 @@ use Symfony\Component\Mime\Email;
  * Required env variables:
  *   STRIPE_SECRET_KEY=sk_test_...
  *   STRIPE_WEBHOOK_SECRET=whsec_...
- *   STRIPE_PRICE_STARTER=price_...
+ *   STRIPE_PRICE_GROWTH=price_...
  *   STRIPE_PRICE_PRO=price_...
- *   STRIPE_PRICE_BUSINESS=price_...
+ *   STRIPE_PRICE_SCALE=price_...
+ *   STRIPE_PRICE_ENTERPRISE=price_...
  *   FRONTEND_URL=http://localhost:5173
- *
- * Creating Stripe prices:
- *   Stripe Dashboard → Products → Create product
- *   One product per plan (Starter €79/mo, Pro €249/mo, Business €599/mo)
  */
 class StripeService
 {
@@ -46,11 +43,14 @@ class StripeService
         private readonly LoggerInterface $logger,
         private readonly string $stripeSecretKey,
         private readonly string $stripeWebhookSecret,
-        private readonly string $priceStarter,
+        private readonly string $priceGrowth,
         private readonly string $pricePro,
-        private readonly string $priceBusiness,
+        private readonly string $priceScale,
         private readonly string $priceEnterprise,
-        private readonly string $alertFromEmail = 'billing@cannas.app',
+        private readonly string $alertFromEmail = 'billing@cultivatrace.app',
+        // Legacy price IDs kept during the migration window — remove once all subscriptions have migrated
+        private readonly string $priceStarter = '',
+        private readonly string $priceBusiness = '',
     ) {
         Stripe::setApiKey($this->stripeSecretKey);
     }
@@ -109,7 +109,7 @@ class StripeService
     public function createCustomer(
         Organization $organization,
         string $email,
-        SubscriptionPlan $selectedPlan = SubscriptionPlan::STARTER,
+        SubscriptionPlan $selectedPlan = SubscriptionPlan::GROWTH,
     ): string {
         $customer = Customer::create([
             'email' => $email,
@@ -154,7 +154,7 @@ class StripeService
             throw new \InvalidArgumentException('Stripe checkout session is missing the target plan.');
         }
 
-        $planEnum = SubscriptionPlan::from($plan);
+        $planEnum = SubscriptionPlan::fromWebhookValue($plan);
         $organization->setPlan($planEnum);
 
         if (is_string($session->customer) && $session->customer !== '') {
@@ -242,7 +242,7 @@ class StripeService
             return;
         }
 
-        $org->setPlan(SubscriptionPlan::from($plan));
+        $org->setPlan(SubscriptionPlan::fromWebhookValue($plan));
         $org->setStripeCustomerId($session->customer);
         $this->em->flush();
 
@@ -285,7 +285,7 @@ class StripeService
             return;
         }
 
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setPlan(SubscriptionPlan::GROWTH);
         $org->setLicenseStatus(LicenseStatus::SUSPENDED);
         $this->em->flush();
 
@@ -358,9 +358,9 @@ class StripeService
     private function getPriceId(SubscriptionPlan $plan): string
     {
         $priceId = match ($plan) {
-            SubscriptionPlan::STARTER    => $this->priceStarter,
+            SubscriptionPlan::GROWTH     => $this->priceGrowth,
             SubscriptionPlan::PRO        => $this->pricePro,
-            SubscriptionPlan::BUSINESS   => $this->priceBusiness,
+            SubscriptionPlan::SCALE      => $this->priceScale,
             SubscriptionPlan::ENTERPRISE => $this->priceEnterprise,
         };
 
@@ -382,16 +382,20 @@ class StripeService
 
     private function resolvePlanFromPriceId(string $priceId): SubscriptionPlan
     {
-        return match ($priceId) {
-            trim($this->priceStarter)    => SubscriptionPlan::STARTER,
-            trim($this->pricePro)        => SubscriptionPlan::PRO,
-            trim($this->priceBusiness)   => SubscriptionPlan::BUSINESS,
-            trim($this->priceEnterprise) => SubscriptionPlan::ENTERPRISE,
-            default => throw new \InvalidArgumentException(sprintf(
-                'Unknown Stripe price ID "%s" returned by subscription sync.',
-                $priceId,
-            )),
-        };
+        // Current price IDs
+        if ($priceId === trim($this->priceGrowth))     return SubscriptionPlan::GROWTH;
+        if ($priceId === trim($this->pricePro))        return SubscriptionPlan::PRO;
+        if ($priceId === trim($this->priceScale))      return SubscriptionPlan::SCALE;
+        if ($priceId === trim($this->priceEnterprise)) return SubscriptionPlan::ENTERPRISE;
+
+        // Legacy price IDs — pre-rename subscriptions still carry old Starter/Business IDs
+        if ($this->priceStarter !== '' && $priceId === trim($this->priceStarter))   return SubscriptionPlan::GROWTH;
+        if ($this->priceBusiness !== '' && $priceId === trim($this->priceBusiness)) return SubscriptionPlan::SCALE;
+
+        throw new \InvalidArgumentException(sprintf(
+            'Unknown Stripe price ID "%s" returned by subscription sync.',
+            $priceId,
+        ));
     }
 
     private function maskCustomerId(string $customerId): string

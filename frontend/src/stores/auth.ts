@@ -29,10 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isPlanActive = computed(() => organization.value?.licenseStatus === 'active')
 
-  const hasIoT = computed(() => {
-    const plan = organization.value?.plan
-    return plan === 'pro' || plan === 'business' || plan === 'enterprise'
-  })
+  const hasIoT = computed(() => organization.value?.plan != null)
 
   function syncTokenFromStorage(): void {
     const storedToken = getAccessToken()
