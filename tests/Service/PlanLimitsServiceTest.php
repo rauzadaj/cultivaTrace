@@ -137,6 +137,21 @@ final class PlanLimitsServiceTest extends ApiTestCase
         $this->addToAssertionCount(1);
     }
 
+    public function testCheckFarmLimitDoesNotCountArchivedFarms(): void
+    {
+        $org = $this->createOrganization('Org Farm Archived');
+        $org->setPlan(SubscriptionPlan::GROWTH); // max 1
+
+        $farm = $this->createFarm($org, 'Archived Farm');
+        $farm->setArchivedAt(new \DateTimeImmutable());
+        $this->entityManager->flush();
+
+        // The only farm is archived — quota should read 0 active, so POST must succeed
+        $this->service->checkFarmLimit($org);
+
+        $this->addToAssertionCount(1);
+    }
+
     // ── checkRoomLimit ─────────────────────────────────────────────────────────
 
     public function testCheckRoomLimitNeverThrowsBecauseRoomsAreUnlimited(): void

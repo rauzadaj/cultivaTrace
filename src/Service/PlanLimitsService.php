@@ -201,7 +201,7 @@ class PlanLimitsService
     {
         return (int) $this->em->createQuery(
             'SELECT COUNT(f.id) FROM App\Entity\Farm f
-             WHERE f.tenantId = :tenantId'
+             WHERE f.tenantId = :tenantId AND f.archivedAt IS NULL'
         )
         ->setParameter('tenantId', $org->getId(), UuidType::NAME)
         ->getSingleScalarResult();
