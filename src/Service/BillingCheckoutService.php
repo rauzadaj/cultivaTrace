@@ -27,7 +27,7 @@ final readonly class BillingCheckoutService
             );
         }
 
-        $planEnum = SubscriptionPlan::from($plan);
+        $planEnum = SubscriptionPlan::fromWebhookValue($plan);
 
         return $this->stripeService->createCheckoutSession(
             organization: $organization,
