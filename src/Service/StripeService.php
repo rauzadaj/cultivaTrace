@@ -151,7 +151,7 @@ class StripeService
             throw new \InvalidArgumentException('Stripe checkout session is missing the target plan.');
         }
 
-        $planEnum = SubscriptionPlan::from($plan);
+        $planEnum = SubscriptionPlan::fromWebhookValue($plan);
         $organization->setPlan($planEnum);
 
         if (is_string($session->customer) && $session->customer !== '') {
@@ -239,7 +239,7 @@ class StripeService
             return;
         }
 
-        $org->setPlan(SubscriptionPlan::from($plan));
+        $org->setPlan(SubscriptionPlan::fromWebhookValue($plan));
         $org->setStripeCustomerId($session->customer);
         $this->em->flush();
 
