@@ -164,7 +164,7 @@ final class RegisterOrganizationControllerTest extends TestCase
             'organizationName' => 'CultivaTrace Org',
             'email' => 'admin@cultivatrace.local',
             'password' => 'StrongPass!123',
-            'plan' => 'starter',
+            'plan' => 'growth',
         ], JSON_THROW_ON_ERROR)));
 
         self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());

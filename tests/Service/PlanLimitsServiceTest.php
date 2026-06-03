@@ -41,7 +41,7 @@ final class PlanLimitsServiceTest extends ApiTestCase
     public function testCheckPlantLimitDoesNotThrowWhenUnderLimit(): void
     {
         $org = $this->createOrganization('Org Under Limit');
-        $org->setPlan(SubscriptionPlan::STARTER); // max 200
+        $org->setPlan(SubscriptionPlan::GROWTH); // max 500
         $this->entityManager->flush();
 
         $this->service->checkPlantLimit($org); // should not throw
@@ -54,7 +54,7 @@ final class PlanLimitsServiceTest extends ApiTestCase
         $this->expectException(PlanLimitExceededException::class);
 
         $org  = $this->createOrganization('Org At Limit');
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setPlan(SubscriptionPlan::GROWTH);
         $org->setLicenseStatus(LicenseStatus::ACTIVE);
         $user = $this->createUser($org, 'limit@test.local');
         $farm = $this->createFarm($org, 'Farm');
@@ -62,8 +62,8 @@ final class PlanLimitsServiceTest extends ApiTestCase
         $strain = $this->createStrain($org, 'Strain');
         $this->entityManager->flush();
 
-        // Inject exactly maxPlants active plants
-        $max = SubscriptionPlan::STARTER->maxPlants(); // 200
+        // Inject exactly maxPlants plants
+        $max = SubscriptionPlan::GROWTH->maxPlants(); // 500
         for ($i = 0; $i < $max; $i++) {
             $this->createPlant($room, $user, $strain, rfidTag: sprintf('RFID-%04d', $i));
         }
@@ -75,14 +75,14 @@ final class PlanLimitsServiceTest extends ApiTestCase
     public function testCheckPlantLimitExceptionCarriesMetadata(): void
     {
         $org  = $this->createOrganization('Org Meta');
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setPlan(SubscriptionPlan::GROWTH);
         $org->setLicenseStatus(LicenseStatus::ACTIVE);
         $user   = $this->createUser($org, 'meta@test.local');
         $farm   = $this->createFarm($org, 'Farm Meta');
         $room   = $this->createRoom($farm, 'Room Meta');
         $strain = $this->createStrain($org, 'Strain Meta');
 
-        $max = SubscriptionPlan::STARTER->maxPlants();
+        $max = SubscriptionPlan::GROWTH->maxPlants();
         for ($i = 0; $i < $max; $i++) {
             $this->createPlant($room, $user, $strain, rfidTag: sprintf('META-%04d', $i));
         }
@@ -99,46 +99,86 @@ final class PlanLimitsServiceTest extends ApiTestCase
         }
     }
 
-    // ── checkRoomLimit ─────────────────────────────────────────────────────────
+    // ── checkFarmLimit ─────────────────────────────────────────────────────────
 
-    public function testCheckRoomLimitDoesNotThrowWhenUnderLimit(): void
+    public function testCheckFarmLimitDoesNotThrowWhenUnderLimit(): void
     {
-        $org = $this->createOrganization('Org Rooms OK');
-        $org->setPlan(SubscriptionPlan::STARTER); // max 2
-        $farm = $this->createFarm($org, 'Farm');
-        $this->createRoom($farm, 'Room 1');
+        $org = $this->createOrganization('Org Farm OK');
+        $org->setPlan(SubscriptionPlan::GROWTH); // max 1
         $this->entityManager->flush();
 
-        $this->service->checkRoomLimit($org); // 1 room < 2 max
+        $this->service->checkFarmLimit($org); // 0 farms < 1 max
 
         $this->addToAssertionCount(1);
     }
 
-    public function testCheckRoomLimitThrowsAtLimit(): void
+    public function testCheckFarmLimitThrowsWhenAtLimit(): void
     {
         $this->expectException(PlanLimitExceededException::class);
 
-        $org  = $this->createOrganization('Org Rooms Full');
-        $org->setPlan(SubscriptionPlan::STARTER); // max 2
-        $farm = $this->createFarm($org, 'Farm');
-        $this->createRoom($farm, 'Room 1');
-        $this->createRoom($farm, 'Room 2');
+        $org = $this->createOrganization('Org Farm Full');
+        $org->setPlan(SubscriptionPlan::GROWTH); // max 1
+        $this->createFarm($org, 'Farm 1');
         $this->entityManager->flush();
 
-        $this->service->checkRoomLimit($org);
+        $this->service->checkFarmLimit($org);
+    }
+
+    public function testCheckFarmLimitProAllowsThreeSites(): void
+    {
+        $org = $this->createOrganization('Org Pro Farm');
+        $org->setPlan(SubscriptionPlan::PRO); // max 3
+        $this->createFarm($org, 'Farm 1');
+        $this->createFarm($org, 'Farm 2');
+        $this->entityManager->flush();
+
+        $this->service->checkFarmLimit($org); // 2 < 3
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testCheckFarmLimitDoesNotCountArchivedFarms(): void
+    {
+        $org = $this->createOrganization('Org Farm Archived');
+        $org->setPlan(SubscriptionPlan::GROWTH); // max 1
+
+        $farm = $this->createFarm($org, 'Archived Farm');
+        $farm->setArchivedAt(new \DateTimeImmutable());
+        $this->entityManager->flush();
+
+        // The only farm is archived — quota should read 0 active, so POST must succeed
+        $this->service->checkFarmLimit($org);
+
+        $this->addToAssertionCount(1);
+    }
+
+    // ── checkRoomLimit ─────────────────────────────────────────────────────────
+
+    public function testCheckRoomLimitNeverThrowsBecauseRoomsAreUnlimited(): void
+    {
+        $org = $this->createOrganization('Org Rooms Unlimited');
+        $org->setPlan(SubscriptionPlan::GROWTH);
+        $farm = $this->createFarm($org, 'Farm');
+        for ($i = 1; $i <= 20; $i++) {
+            $this->createRoom($farm, "Room {$i}");
+        }
+        $this->entityManager->flush();
+
+        $this->service->checkRoomLimit($org); // rooms are unlimited on all plans
+
+        $this->addToAssertionCount(1);
     }
 
     // ── checkIoTAccess ─────────────────────────────────────────────────────────
 
-    public function testCheckIoTAccessThrowsOnStarterPlan(): void
+    public function testCheckIoTAccessDoesNotThrowOnGrowthPlan(): void
     {
-        $this->expectException(PlanLimitExceededException::class);
-        $this->expectExceptionMessageMatches('/IoT/');
-
-        $org = $this->createOrganization('Org Starter IoT');
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org = $this->createOrganization('Org Growth IoT');
+        $org->setPlan(SubscriptionPlan::GROWTH);
 
         $this->service->checkIoTAccess($org);
+
+        $this->addToAssertionCount(1);
     }
 
     public function testCheckIoTAccessDoesNotThrowOnProPlan(): void
@@ -156,7 +196,7 @@ final class PlanLimitsServiceTest extends ApiTestCase
     public function testGetLimitsReturnsCorrectStructure(): void
     {
         $org  = $this->createOrganization('Org Limits');
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setPlan(SubscriptionPlan::GROWTH);
         $farm = $this->createFarm($org, 'Farm');
         $this->createRoom($farm, 'Room');
         $this->entityManager->flush();
@@ -164,9 +204,9 @@ final class PlanLimitsServiceTest extends ApiTestCase
         $limits = $this->service->getLimits($org);
 
         self::assertArrayHasKey('plan', $limits);
-        self::assertSame('starter', $limits['plan']);
-        self::assertSame(1, $limits['rooms']['current']);
-        self::assertSame(2, $limits['rooms']['max']);
-        self::assertFalse($limits['iot']['available']);
+        self::assertSame('growth', $limits['plan']);
+        self::assertSame(1, $limits['farms']['current']);
+        self::assertSame(1, $limits['farms']['max']);
+        self::assertTrue($limits['iot']['available']);
     }
 }
