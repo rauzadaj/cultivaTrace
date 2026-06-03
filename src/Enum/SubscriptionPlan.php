@@ -44,4 +44,14 @@ enum SubscriptionPlan: string
     {
         return true;
     }
+
+    /** Resolve a plan from webhook/checkout metadata, mapping legacy pre-rename values. */
+    public static function fromWebhookValue(string $value): self
+    {
+        return match ($value) {
+            'starter'  => self::GROWTH,  // legacy alias — pre-rename in-flight checkouts
+            'business' => self::SCALE,   // legacy alias — pre-rename in-flight checkouts
+            default    => self::from($value),
+        };
+    }
 }
