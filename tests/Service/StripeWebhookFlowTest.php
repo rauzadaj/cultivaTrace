@@ -40,9 +40,9 @@ final class StripeWebhookFlowTest extends TestCase
             $logger ?? $this->createMock(LoggerInterface::class),
             'sk_test_dummy',
             self::WEBHOOK_SECRET,
-            'price_starter',
+            'price_growth',
             'price_pro',
-            'price_business',
+            'price_scale',
             'price_enterprise',
             'billing@test.local',
         );
@@ -64,7 +64,7 @@ final class StripeWebhookFlowTest extends TestCase
     {
         $org = new Organization();
         $org->setName('Test Org');
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setPlan(SubscriptionPlan::GROWTH);
         $org->setLicenseStatus(LicenseStatus::ACTIVE);
 
         $user = new User();
@@ -134,7 +134,7 @@ final class StripeWebhookFlowTest extends TestCase
 
     // ── customer.subscription.deleted ────────────────────────────────────
 
-    public function testSubscriptionDeletedRevertsToStarterAndSuspends(): void
+    public function testSubscriptionDeletedRevertsToGrowthAndSuspends(): void
     {
         $org = new Organization();
         $org->setName('Test Org');
@@ -166,7 +166,7 @@ final class StripeWebhookFlowTest extends TestCase
 
         $this->makeService($em)->handleWebhook($json, $sig);
 
-        self::assertSame(SubscriptionPlan::STARTER, $org->getPlan());
+        self::assertSame(SubscriptionPlan::GROWTH, $org->getPlan());
         self::assertSame(LicenseStatus::SUSPENDED, $org->getLicenseStatus());
     }
 
@@ -246,7 +246,7 @@ final class StripeWebhookFlowTest extends TestCase
     {
         $org = new Organization();
         $org->setName('Idempotent Org');
-        $org->setPlan(SubscriptionPlan::STARTER);
+        $org->setPlan(SubscriptionPlan::GROWTH);
         $org->setLicenseStatus(LicenseStatus::ACTIVE);
 
         $orgId = '01930000-0000-0000-0000-000000000002';

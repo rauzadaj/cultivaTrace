@@ -7,12 +7,16 @@ namespace App\State;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use ApiPlatform\Metadata\Post;
 use App\Entity\Farm;
 use App\Entity\User;
 use App\Service\License\LicenseGuard;
+use App\Service\PlanLimitExceededException;
+use App\Service\PlanLimitsService;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -30,6 +34,7 @@ final class FarmStateProcessor implements ProcessorInterface
         private readonly TokenStorageInterface $tokenStorage,
         private readonly LicenseGuard $licenseGuard,
         private readonly EntityManagerInterface $em,
+        private readonly PlanLimitsService $planLimits,
     ) {
     }
 
@@ -64,6 +69,18 @@ final class FarmStateProcessor implements ProcessorInterface
 
         if ($this->requiresLicenseApproval($operation)) {
             $this->licenseGuard->assertLicenseApproved($organization);
+        }
+
+        if ($operation instanceof Post) {
+            try {
+                $this->planLimits->checkFarmLimit($organization);
+            } catch (PlanLimitExceededException $exception) {
+                throw new HttpException(
+                    402,
+                    json_encode($exception->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $exception->getMessage(),
+                    $exception,
+                );
+            }
         }
 
         if (isset($context['previous_data']) && $context['previous_data'] instanceof Farm) {

@@ -44,7 +44,7 @@ final class StripeControllerTest extends KernelTestCase
             $logger,
         );
 
-        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'starter'], JSON_THROW_ON_ERROR));
+        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'growth'], JSON_THROW_ON_ERROR));
         $request->headers->set('CONTENT_TYPE', 'application/json');
 
         $response = $controller->checkout($request, $this->createUserWithOrganization());
@@ -132,7 +132,7 @@ final class StripeControllerTest extends KernelTestCase
             $this->createMock(LoggerInterface::class),
         );
 
-        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'starter'], JSON_THROW_ON_ERROR));
+        $request = new Request([], [], [], [], [], [], json_encode(['plan' => 'growth'], JSON_THROW_ON_ERROR));
         $request->headers->set('CONTENT_TYPE', 'application/json');
 
         $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
@@ -240,9 +240,9 @@ final class StripeControllerTest extends KernelTestCase
             ->expects(self::once())
             ->method('syncOrganizationSubscription')
             ->willReturnCallback(static function (Organization $organization): SubscriptionPlan {
-                $organization->setPlan(SubscriptionPlan::BUSINESS);
+                $organization->setPlan(SubscriptionPlan::SCALE);
 
-                return SubscriptionPlan::BUSINESS;
+                return SubscriptionPlan::SCALE;
             });
 
         $controller = $this->createController(
@@ -256,7 +256,7 @@ final class StripeControllerTest extends KernelTestCase
         $payload = json_decode($response->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame('business', $payload['plan']);
+        self::assertSame('scale', $payload['plan']);
         self::assertTrue($payload['hasActiveSubscription']);
     }
 
@@ -264,7 +264,7 @@ final class StripeControllerTest extends KernelTestCase
     {
         $organization = new Organization();
         $organization->setName('Org Stripe');
-        $organization->setPlan(SubscriptionPlan::STARTER);
+        $organization->setPlan(SubscriptionPlan::GROWTH);
         $organization->setLicenseStatus(LicenseStatus::ACTIVE);
         $organization->setStripeCustomerId($stripeCustomerId);
 

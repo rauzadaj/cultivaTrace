@@ -319,13 +319,13 @@ final class PlantApiTest extends ApiTestCase
     {
         $organization = $this->createOrganization('Org At Limit');
         $organization->setLicenseStatus(LicenseStatus::ACTIVE);
-        $organization->setPlan(SubscriptionPlan::STARTER);
+        $organization->setPlan(SubscriptionPlan::GROWTH);
         $user = $this->createUser($organization, 'limit@test.local');
         $farm = $this->createFarm($organization, 'Farm');
         $room = $this->createRoom($farm, 'Room');
         $strain = $this->createStrain($organization, 'Strain');
 
-        $max = SubscriptionPlan::STARTER->maxPlants();
+        $max = SubscriptionPlan::GROWTH->maxPlants();
         for ($i = 0; $i < $max; $i++) {
             $this->createPlant($room, $user, $strain, rfidTag: sprintf('RFID-LIMIT-%04d', $i));
         }
