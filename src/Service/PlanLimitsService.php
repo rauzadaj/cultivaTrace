@@ -51,6 +51,31 @@ class PlanLimitsService
     }
 
     /**
+     * Checks whether the organization can create a new farm (site).
+     *
+     * @throws PlanLimitExceededException
+     */
+    public function checkFarmLimit(Organization $org): void
+    {
+        $max     = $org->getPlan()->maxFarms();
+        $current = $this->countFarms($org);
+
+        if ($current >= $max) {
+            throw new PlanLimitExceededException(
+                sprintf(
+                    'Site limit reached (%d/%d). Upgrade your plan to add more sites.',
+                    $current,
+                    $max
+                ),
+                'farms',
+                $current,
+                $max,
+                $this->getUpgradePlan($org->getPlan())
+            );
+        }
+    }
+
+    /**
      * Checks whether the organization can create a new room.
      *
      * @throws PlanLimitExceededException
@@ -101,7 +126,7 @@ class PlanLimitsService
     }
 
     /**
-     * Checks whether the organization has IoT access (Pro+ plan required).
+     * Checks whether the organization has IoT access (Growth plan or higher).
      *
      * @throws PlanLimitExceededException
      */
@@ -109,11 +134,11 @@ class PlanLimitsService
     {
         if (!$org->getPlan()->hasIoT()) {
             throw new PlanLimitExceededException(
-                'IoT sensor access requires the Pro plan or higher.',
+                'IoT sensor access requires the Growth plan or higher.',
                 'iot',
                 0,
                 0,
-                SubscriptionPlan::PRO
+                SubscriptionPlan::GROWTH
             );
         }
     }
@@ -125,10 +150,10 @@ class PlanLimitsService
      */
     public function getLimits(Organization $org): array
     {
-        $plan           = $org->getPlan();
-        $activePlants   = $this->countActivePlants($org);
-        $rooms          = $this->countRooms($org);
-        $users          = $this->countUsers($org);
+        $plan        = $org->getPlan();
+        $activePlants = $this->countActivePlants($org);
+        $farms       = $this->countFarms($org);
+        $users       = $this->countUsers($org);
 
         return [
             'plan'   => $plan->value,
@@ -137,10 +162,10 @@ class PlanLimitsService
                 'max'     => $plan->maxPlants() === PHP_INT_MAX ? null : $plan->maxPlants(),
                 'reached' => $activePlants >= $plan->maxPlants(),
             ],
-            'rooms'  => [
-                'current' => $rooms,
-                'max'     => $plan->maxRooms() === PHP_INT_MAX ? null : $plan->maxRooms(),
-                'reached' => $rooms >= $plan->maxRooms(),
+            'farms'  => [
+                'current' => $farms,
+                'max'     => $plan->maxFarms() === PHP_INT_MAX ? null : $plan->maxFarms(),
+                'reached' => $farms >= $plan->maxFarms(),
             ],
             'users'  => [
                 'current' => $users,
@@ -174,6 +199,16 @@ class PlanLimitsService
         ->getSingleScalarResult();
     }
 
+    private function countFarms(Organization $org): int
+    {
+        return (int) $this->em->createQuery(
+            'SELECT COUNT(f.id) FROM App\Entity\Farm f
+             WHERE f.tenantId = :tenantId AND f.archivedAt IS NULL'
+        )
+        ->setParameter('tenantId', $org->getId(), UuidType::NAME)
+        ->getSingleScalarResult();
+    }
+
     private function countRooms(Organization $org): int
     {
         return (int) $this->em->createQuery(
@@ -188,10 +223,10 @@ class PlanLimitsService
     private function getUpgradePlan(SubscriptionPlan $current): SubscriptionPlan
     {
         return match ($current) {
-            SubscriptionPlan::STARTER  => SubscriptionPlan::PRO,
-            SubscriptionPlan::PRO      => SubscriptionPlan::BUSINESS,
-            SubscriptionPlan::BUSINESS => SubscriptionPlan::ENTERPRISE,
-            default                    => SubscriptionPlan::ENTERPRISE,
+            SubscriptionPlan::GROWTH => SubscriptionPlan::PRO,
+            SubscriptionPlan::PRO    => SubscriptionPlan::SCALE,
+            SubscriptionPlan::SCALE  => SubscriptionPlan::ENTERPRISE,
+            default                  => SubscriptionPlan::ENTERPRISE,
         };
     }
 }

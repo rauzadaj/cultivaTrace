@@ -103,7 +103,7 @@
                   color="positive"
                   text-color="white"
                   dense
-                  label="Actif"
+                  label="Active"
                 />
               </div>
               <div class="text-h4 text-weight-bold text-primary q-my-sm">
@@ -148,6 +148,71 @@
 
     </div>
   </q-page>
+
+  <!-- Enterprise contact dialog -->
+  <q-dialog v-model="showContactDialog" persistent>
+    <q-card style="min-width: 480px; max-width: 560px; width: 100%">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Contact our sales team</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup :disable="contactLoading" />
+      </q-card-section>
+
+      <q-card-section class="q-pt-md">
+        <div class="text-body2 text-grey-7 q-mb-lg">
+          Tell us about your project and we'll get back to you within one business day.
+        </div>
+        <div class="q-gutter-md">
+          <q-input
+            v-model="contactForm.name"
+            label="Full name *"
+            outlined dense
+            :error="!!contactErrors.name"
+            :error-message="contactErrors.name"
+            @update:model-value="contactErrors.name = ''"
+          />
+          <q-input
+            v-model="contactForm.email"
+            label="Email *"
+            type="email"
+            outlined dense
+            :error="!!contactErrors.email"
+            :error-message="contactErrors.email"
+            @update:model-value="contactErrors.email = ''"
+          />
+          <q-input
+            v-model="contactForm.company"
+            label="Company"
+            outlined dense
+          />
+          <q-input
+            v-model="contactForm.message"
+            label="Message *"
+            type="textarea"
+            outlined dense
+            rows="4"
+            :error="!!contactErrors.message"
+            :error-message="contactErrors.message"
+            @update:model-value="contactErrors.message = ''"
+          />
+        </div>
+        <q-banner v-if="contactError" rounded class="bg-negative text-white q-mt-md">
+          {{ contactError }}
+        </q-banner>
+      </q-card-section>
+
+      <q-card-actions align="right" class="q-px-md q-pb-md">
+        <q-btn flat label="Cancel" v-close-popup :disable="contactLoading" />
+        <q-btn
+          label="Send message"
+          color="primary"
+          unelevated
+          :loading="contactLoading"
+          @click="submitContact"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
@@ -166,15 +231,22 @@ const hasStripeSubscription = ref(false)
 const resolvedPlan = ref<string | null>(null)
 const billingLoadError = ref('')
 
-const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'starter')
+// Contact dialog
+const showContactDialog = ref(false)
+const contactLoading = ref(false)
+const contactError = ref('')
+const contactForm = ref({ name: '', email: '', company: '', message: '' })
+const contactErrors = ref({ name: '', email: '', message: '' })
+
+const currentPlan = computed(() => resolvedPlan.value ?? auth.organization?.plan ?? 'growth')
 const recommendedPlan = computed(() => 'pro')
 
 const planLabel = computed(() => {
   const labels: Record<string, string> = {
-    starter: 'Starter — 79 €/mois',
-    pro: 'Pro — 249 €/mois',
-    business: 'Business — 599 €/mois',
-    enterprise: 'Enterprise',
+    growth: 'Growth — $249/mo',
+    pro: 'Pro — $499/mo',
+    scale: 'Scale — $999/mo',
+    enterprise: 'Enterprise — Custom pricing',
   }
   return labels[currentPlan.value] ?? currentPlan.value
 })
@@ -199,27 +271,27 @@ const displayLimits = computed(() => {
   if (!limits.value) return []
   return [
     { key: 'plants', label: 'Plants', current: limits.value.plants.current, max: limits.value.plants.max },
-    { key: 'rooms',  label: 'Rooms',  current: limits.value.rooms.current,  max: limits.value.rooms.max  },
+    { key: 'farms',  label: 'Sites',  current: limits.value.farms.current,  max: limits.value.farms.max  },
     { key: 'users',  label: 'Users',  current: limits.value.users.current,  max: limits.value.users.max  },
   ]
 })
 
 const plans = [
   {
-    id: 'starter', name: 'Starter', price: '79 €',
-    features: ['200 plants', '2 rooms', '3 users', 'PDF reports', 'Audit trail'],
+    id: 'growth', name: 'Growth', price: '$249',
+    features: ['500 plants', '1 site', 'IoT sensors', 'PDF reports', 'Audit trail'],
   },
   {
-    id: 'pro', name: 'Pro', price: '249 €',
-    features: ['1,500 plants', '10 rooms', '15 users', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
+    id: 'pro', name: 'Pro', price: '$499',
+    features: ['2,500 plants', '3 sites', 'IoT sensors', 'Real-time VPD', 'METRC (USA)'],
   },
   {
-    id: 'business', name: 'Business', price: '599 €',
-    features: ['Unlimited plants', 'Unlimited rooms', 'Unlimited users', 'Multi-site', 'API access', 'Priority support'],
+    id: 'scale', name: 'Scale', price: '$999',
+    features: ['Unlimited plants', 'Unlimited sites', 'Multi-site dashboard', 'API access', 'Priority support'],
   },
   {
     id: 'enterprise', name: 'Enterprise', price: 'Custom',
-    features: ['Everything in Business', 'Dedicated SLA', 'Dedicated CSM', 'Custom integrations', 'Team training'],
+    features: ['Everything in Scale', 'Custom SLA', 'Dedicated CSM', 'Custom integrations', 'Team training'],
   },
 ]
 
@@ -261,19 +333,50 @@ async function openPortal(): Promise<void> {
 }
 
 function contactSales(): void {
-  window.location.href = 'mailto:jonathan@rauzada.me?subject=Enterprise CultivaTrace'
+  contactForm.value = {
+    name: auth.user?.email?.split('@')[0] ?? '',
+    email: auth.user?.email ?? '',
+    company: auth.organization?.name ?? '',
+    message: '',
+  }
+  contactErrors.value = { name: '', email: '', message: '' }
+  contactError.value = ''
+  showContactDialog.value = true
+}
+
+async function submitContact(): Promise<void> {
+  contactErrors.value = { name: '', email: '', message: '' }
+  contactError.value = ''
+
+  let valid = true
+  if (!contactForm.value.name.trim()) { contactErrors.value.name = 'Required.'; valid = false }
+  if (!contactForm.value.email.trim()) { contactErrors.value.email = 'Required.'; valid = false }
+  if (!contactForm.value.message.trim()) { contactErrors.value.message = 'Required.'; valid = false }
+  if (!valid) return
+
+  contactLoading.value = true
+  try {
+    await billingApi.contactSales(contactForm.value)
+    showContactDialog.value = false
+    $q.notify({ type: 'positive', message: 'Message sent! We\'ll get back to you within one business day.' })
+  } catch (e: any) {
+    contactError.value = e?.response?.data?.detail ?? e?.response?.data?.error ?? 'Failed to send message.'
+  } finally {
+    contactLoading.value = false
+  }
 }
 
 function actionLabel(planId: string): string {
-  const order = ['starter', 'pro', 'business', 'enterprise']
+  const order = ['growth', 'pro', 'scale', 'enterprise']
+  const labels: Record<string, string> = { growth: 'Growth', pro: 'Pro', scale: 'Scale', enterprise: 'Enterprise' }
   const currentIndex = order.indexOf(currentPlan.value)
   const nextIndex = order.indexOf(planId)
 
   if (currentIndex !== -1 && nextIndex !== -1 && nextIndex < currentIndex) {
-    return `Switch back to ${planId === 'starter' ? 'Starter' : planId}`
+    return `Switch back to ${labels[planId] ?? planId}`
   }
 
-  return `Switch to ${planId === 'starter' ? 'Starter' : planId === 'pro' ? 'Pro' : planId === 'business' ? 'Business' : 'Enterprise'}`
+  return `Switch to ${labels[planId] ?? planId}`
 }
 
 onMounted(loadBillingStatus)
