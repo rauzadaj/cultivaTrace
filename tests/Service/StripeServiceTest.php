@@ -35,4 +35,51 @@ final class StripeServiceTest extends TestCase
 
         $method->invoke($service, SubscriptionPlan::GROWTH);
     }
+
+    public function testResolvePlanFromPriceIdResolvesLegacyStarterToGrowth(): void
+    {
+        $service = new StripeService(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(MailerInterface::class),
+            $this->createMock(LoggerInterface::class),
+            'sk_test_123',
+            'whsec_123',
+            'price_growth',
+            'price_pro',
+            'price_scale',
+            'price_enterprise',
+            'billing@test.local',
+            'price_legacy_starter',
+            'price_legacy_business',
+        );
+
+        $method = new \ReflectionMethod($service, 'resolvePlanFromPriceId');
+        $method->setAccessible(true);
+
+        self::assertSame(SubscriptionPlan::GROWTH, $method->invoke($service, 'price_legacy_starter'));
+        self::assertSame(SubscriptionPlan::SCALE,  $method->invoke($service, 'price_legacy_business'));
+    }
+
+    public function testResolvePlanFromPriceIdThrowsOnTrulyUnknownId(): void
+    {
+        $service = new StripeService(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(MailerInterface::class),
+            $this->createMock(LoggerInterface::class),
+            'sk_test_123',
+            'whsec_123',
+            'price_growth',
+            'price_pro',
+            'price_scale',
+            'price_enterprise',
+        );
+
+        $method = new \ReflectionMethod($service, 'resolvePlanFromPriceId');
+        $method->setAccessible(true);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown Stripe price ID');
+
+        $method->invoke($service, 'price_completely_unknown');
+    }
 }

@@ -61,6 +61,9 @@ services:
             $priceScale: '%env(STRIPE_PRICE_SCALE)%'
             $priceEnterprise: '%env(STRIPE_PRICE_ENTERPRISE)%'
             $alertFromEmail: '%env(default:app.billing.alert_from_email:STRIPE_ALERT_FROM_EMAIL)%'
+            # Legacy price IDs — set during migration window to handle pre-rename subscriptions; remove after all customers migrate
+            $priceStarter: '%env(default::STRIPE_PRICE_LEGACY_STARTER)%'
+            $priceBusiness: '%env(default::STRIPE_PRICE_LEGACY_BUSINESS)%'
 
     App\Scheduler\LicenseExpirationScheduler:
         arguments:
