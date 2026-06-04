@@ -83,7 +83,17 @@ final readonly class RefreshTokenService
 
     public function revokeAllForUser(User $user, ?\DateTimeImmutable $revokedAt = null): int
     {
-        return $this->refreshTokenRepository->revokeAllForUser($user, $revokedAt);
+        $ids = $this->cache !== null
+            ? $this->refreshTokenRepository->findActiveIdsByUser($user, new \DateTimeImmutable())
+            : [];
+
+        $count = $this->refreshTokenRepository->revokeAllForUser($user, $revokedAt);
+
+        foreach ($ids as $id) {
+            $this->cache->delete('rt_valid_' . $id);
+        }
+
+        return $count;
     }
 
     public function purgeExpired(?\DateTimeImmutable $now = null): int
