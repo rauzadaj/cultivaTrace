@@ -8,15 +8,16 @@ use App\Enum\UserAccountStatus;
 use App\Repository\RefreshTokenRepository;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTDecodedEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
+use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 final readonly class JwtDecodedSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private RefreshTokenRepository $refreshTokenRepository,
-        private CacheInterface $cache,
+        #[Autowire(service: 'cache.app')]
+        private CacheItemPoolInterface $cache,
     ) {
     }
 
@@ -35,30 +36,37 @@ final readonly class JwtDecodedSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $sid = (int) $payload['sid'];
+        $sid  = (int) $payload['sid'];
+        $item = $this->cache->getItem('rt_valid_' . $sid);
 
-        /** @var array{userId: int, tenantId: string}|null $cached */
-        $cached = $this->cache->get('rt_valid_' . $sid, function (ItemInterface $item) use ($sid): ?array {
-            $item->expiresAfter(60);
-
+        if ($item->isHit()) {
+            /** @var array{userId: int, tenantId: string} $cached */
+            $cached = $item->get();
+        } else {
             $refreshToken = $this->refreshTokenRepository->findActiveById($sid, new \DateTimeImmutable());
+
             if ($refreshToken === null || !$refreshToken->getUser()->hasOrganization()) {
-                return null;
+                $event->markAsInvalid();
+                return;
             }
 
             $user = $refreshToken->getUser();
             $org  = $user->getOrganization();
 
             if ($org->isSuspended() || $user->getAccountStatus() !== UserAccountStatus::ACTIVE) {
-                return null;
+                $event->markAsInvalid();
+                return;
             }
 
-            return ['userId' => $user->getId(), 'tenantId' => (string) $org->getId()];
-        });
+            $cached = ['userId' => $user->getId(), 'tenantId' => (string) $org->getId()];
+
+            // Only cache valid results — invalid tokens always hit the DB to avoid stale cache across test resets
+            $item->set($cached)->expiresAfter(60);
+            $this->cache->save($item);
+        }
 
         if (
-            $cached === null
-            || $cached['userId'] !== (int) $payload['userId']
+            $cached['userId'] !== (int) $payload['userId']
             || $cached['tenantId'] !== (string) $payload['tenantId']
         ) {
             $event->markAsInvalid();
