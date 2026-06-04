@@ -47,6 +47,25 @@ final class RefreshTokenRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * @return int[]
+     */
+    public function findActiveIdsByUser(User $user, \DateTimeImmutable $now): array
+    {
+        return array_column(
+            $this->createQueryBuilder('rt')
+                ->select('rt.id')
+                ->andWhere('rt.user = :user')
+                ->andWhere('rt.revokedAt IS NULL')
+                ->andWhere('rt.expiresAt > :now')
+                ->setParameter('user', $user)
+                ->setParameter('now', $now)
+                ->getQuery()
+                ->getArrayResult(),
+            'id',
+        );
+    }
+
     public function revokeAllForUser(User $user, ?\DateTimeImmutable $revokedAt = null): int
     {
         return $this->createQueryBuilder('rt')
