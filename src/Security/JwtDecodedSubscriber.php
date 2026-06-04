@@ -9,11 +9,14 @@ use App\Repository\RefreshTokenRepository;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTDecodedEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 final readonly class JwtDecodedSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private RefreshTokenRepository $refreshTokenRepository,
+        private CacheInterface $cache,
     ) {
     }
 
@@ -32,28 +35,31 @@ final readonly class JwtDecodedSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $refreshToken = $this->refreshTokenRepository->findActiveById((int) $payload['sid'], new \DateTimeImmutable());
+        $sid = (int) $payload['sid'];
 
-        if ($refreshToken === null) {
-            $event->markAsInvalid();
+        /** @var array{userId: int, tenantId: string}|null $cached */
+        $cached = $this->cache->get('rt_valid_' . $sid, function (ItemInterface $item) use ($sid): ?array {
+            $item->expiresAfter(60);
 
-            return;
-        }
+            $refreshToken = $this->refreshTokenRepository->findActiveById($sid, new \DateTimeImmutable());
+            if ($refreshToken === null || !$refreshToken->getUser()->hasOrganization()) {
+                return null;
+            }
 
-        $user = $refreshToken->getUser();
-        if (!$user->hasOrganization()) {
-            $event->markAsInvalid();
+            $user = $refreshToken->getUser();
+            $org  = $user->getOrganization();
 
-            return;
-        }
+            if ($org->isSuspended() || $user->getAccountStatus() !== UserAccountStatus::ACTIVE) {
+                return null;
+            }
 
-        $organization = $user->getOrganization();
+            return ['userId' => $user->getId(), 'tenantId' => (string) $org->getId()];
+        });
 
         if (
-            $user->getId() !== (int) $payload['userId']
-            || (string) $organization->getId() !== (string) $payload['tenantId']
-            || $organization->isSuspended()
-            || $user->getAccountStatus() !== UserAccountStatus::ACTIVE
+            $cached === null
+            || $cached['userId'] !== (int) $payload['userId']
+            || $cached['tenantId'] !== (string) $payload['tenantId']
         ) {
             $event->markAsInvalid();
         }
