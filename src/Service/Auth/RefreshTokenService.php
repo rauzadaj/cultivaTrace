@@ -67,9 +67,9 @@ final readonly class RefreshTokenService
         }
 
         $currentToken->revoke($now);
-        $this->cache?->delete('rt_valid_' . $currentToken->getId());
         $replacement = $this->issue($currentToken->getUser(), $now);
         $this->entityManager->flush();
+        $this->cache?->delete('rt_valid_' . $currentToken->getId());
 
         return $replacement;
     }
