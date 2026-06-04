@@ -8,6 +8,7 @@ use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Repository\RefreshTokenRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Contracts\Cache\CacheInterface;
 
 final readonly class RefreshTokenService
 {
@@ -17,6 +18,7 @@ final readonly class RefreshTokenService
         private EntityManagerInterface $entityManager,
         private RefreshTokenRepository $refreshTokenRepository,
         private TokenHasher $tokenHasher,
+        private ?CacheInterface $cache = null,
     ) {
     }
 
@@ -65,6 +67,7 @@ final readonly class RefreshTokenService
         }
 
         $currentToken->revoke($now);
+        $this->cache?->delete('rt_valid_' . $currentToken->getId());
         $replacement = $this->issue($currentToken->getUser(), $now);
         $this->entityManager->flush();
 
@@ -75,6 +78,7 @@ final readonly class RefreshTokenService
     {
         $refreshToken->revoke($revokedAt);
         $this->entityManager->flush();
+        $this->cache?->delete('rt_valid_' . $refreshToken->getId());
     }
 
     public function revokeAllForUser(User $user, ?\DateTimeImmutable $revokedAt = null): int

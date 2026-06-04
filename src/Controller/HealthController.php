@@ -27,10 +27,7 @@ final class HealthController extends AbstractController
 
         return $this->json([
             'status' => $db === 'ok' ? 'ok' : 'degraded',
-            'ready' => $db === 'ok',
-            'db' => $db,
-            'env' => $this->getParameter('kernel.environment'),
-            'version' => '1.0.0',
+            'ready'  => $db === 'ok',
         ]);
     }
 }
