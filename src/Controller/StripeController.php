@@ -197,6 +197,10 @@ class StripeController extends AbstractController
             return $this->json(['error' => 'Authentication required.'], Response::HTTP_UNAUTHORIZED);
         }
 
+        if (!$user->hasOrganization()) {
+            return $this->json(['error' => 'No organization found.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $org = $user->getOrganization();
 
         if ($org->getStripeCustomerId()) {
