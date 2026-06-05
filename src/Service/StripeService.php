@@ -49,8 +49,8 @@ class StripeService
         private readonly string $priceEnterprise,
         private readonly string $alertFromEmail = 'billing@cultivatrace.app',
         // Legacy price IDs kept during the migration window — remove once all subscriptions have migrated
-        private readonly string $priceStarter = '',
-        private readonly string $priceBusiness = '',
+        private readonly ?string $priceStarter = null,
+        private readonly ?string $priceBusiness = null,
     ) {
         Stripe::setApiKey($this->stripeSecretKey);
     }
@@ -389,8 +389,8 @@ class StripeService
         if ($priceId === trim($this->priceEnterprise)) return SubscriptionPlan::ENTERPRISE;
 
         // Legacy price IDs — pre-rename subscriptions still carry old Starter/Business IDs
-        if ($this->priceStarter !== '' && $priceId === trim($this->priceStarter))   return SubscriptionPlan::GROWTH;
-        if ($this->priceBusiness !== '' && $priceId === trim($this->priceBusiness)) return SubscriptionPlan::SCALE;
+        if ($this->priceStarter !== null && $this->priceStarter !== '' && $priceId === trim($this->priceStarter))   return SubscriptionPlan::GROWTH;
+        if ($this->priceBusiness !== null && $this->priceBusiness !== '' && $priceId === trim($this->priceBusiness)) return SubscriptionPlan::SCALE;
 
         throw new \InvalidArgumentException(sprintf(
             'Unknown Stripe price ID "%s" returned by subscription sync.',
