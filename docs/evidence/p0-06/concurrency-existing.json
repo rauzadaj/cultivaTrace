@@ -1,0 +1,10 @@
+{
+    "pid_a": 11160,
+    "pid_b": 2116,
+    "both_read_h0": "182689f951b0944ba1f287eb848235cd485fa8d208dd23988c7e592bed2b7de2",
+    "a_previous": "182689f951b0944ba1f287eb848235cd485fa8d208dd23988c7e592bed2b7de2",
+    "a_self": "ead188849a4209d8658358b99defb97cb281d374504743946fdabd04806ea85d",
+    "b_previous": "182689f951b0944ba1f287eb848235cd485fa8d208dd23988c7e592bed2b7de2",
+    "b_self": "9f58e03d47274d9f43e2fee28f50fa7b35bea1f9db51ed95a6adaac4264a64d2",
+    "b_waited_on_lock": false
+}

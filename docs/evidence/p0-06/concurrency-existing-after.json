@@ -1,0 +1,10 @@
+{
+    "pid_a": 25336,
+    "pid_b": 5296,
+    "both_read_h0": "f0d55fa6a827a3d4a5b795995d90ed8aa48cf96a3b589df58b72c9d0d5384e33",
+    "a_previous": "f0d55fa6a827a3d4a5b795995d90ed8aa48cf96a3b589df58b72c9d0d5384e33",
+    "a_self": "9f631a6ca60eb2d9498bed351dea1337cd5db79b25225a964b800b22da6b4da9",
+    "b_previous": "9f631a6ca60eb2d9498bed351dea1337cd5db79b25225a964b800b22da6b4da9",
+    "b_self": "d5a22de7a3d8a560c7a86a5d3750b59b875e948f75cd31d91af099429c1a9150",
+    "b_waited_on_lock": true
+}

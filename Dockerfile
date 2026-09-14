@@ -19,6 +19,9 @@ RUN npm run build
 
 FROM php:8.4-fpm AS prod
 
+# Symfony 8.1 requires PHP >= 8.4.1; keep current 8.4 security patches.
+RUN php -r 'if (PHP_VERSION_ID < 80401) { exit(1); }'
+
 RUN apt-get update && apt-get install -y \
     nginx \
     gettext-base \
@@ -35,7 +38,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 

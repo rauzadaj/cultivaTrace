@@ -8,6 +8,7 @@ use App\Entity\Plant;
 use App\Entity\PlantEvent;
 use App\Service\HashChainService;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -17,6 +18,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * RÈGLE ABSOLUE : utiliser appendEvent() pour créer un PlantEvent.
  * Ne jamais appeler EntityManager::remove() ni ::flush() sur un PlantEvent existant.
+ *
+ * @extends ServiceEntityRepository<PlantEvent>
  */
 class PlantEventRepository extends ServiceEntityRepository
 {
@@ -31,6 +34,11 @@ class PlantEventRepository extends ServiceEntityRepository
     /**
      * Crée et persiste un PlantEvent avec hash-chaining automatique.
      * C'est la SEULE façon de créer un PlantEvent.
+     *
+     * Flushes the unit of work for legacy compatibility. Inside a caller-owned
+     * transaction, the savepoint is released but only the caller can commit.
+     * On failure Doctrine closes/clears the EntityManager; the caller must roll
+     * back its outer transaction and obtain a new manager before retrying.
      */
     public function appendEvent(
         Plant   $plant,
@@ -39,6 +47,40 @@ class PlantEventRepository extends ServiceEntityRepository
         ?array  $payload   = null,
         ?string $notes     = null,
         ?array  $photoUrls = null,
+    ): PlantEvent {
+        $em = $this->getEntityManager();
+
+        return $em->wrapInTransaction(function () use ($plant, $eventType, $user, $payload, $notes, $photoUrls): PlantEvent {
+            $connection = $this->getEntityManager()->getConnection();
+            if ($connection->getDatabasePlatform() instanceof PostgreSQLPlatform) {
+                // Each statement must see commits made while waiting for the plant lock.
+                // Read the actual isolation (DBAL's cached default misses raw SET commands).
+                if ($connection->fetchOne('SHOW transaction_isolation') !== 'read committed') {
+                    throw new \LogicException('PlantEvent append requires PostgreSQL READ COMMITTED isolation.');
+                }
+
+                // Lock the parent, which exists even before its first event. NO KEY UPDATE
+                // serializes writers without conflicting with FK KEY SHARE locks.
+                $lockedId = $connection->fetchOne(
+                    'SELECT id FROM plant WHERE id = :id AND tenant_id = :tenant FOR NO KEY UPDATE',
+                    ['id' => (string) $plant->getId(), 'tenant' => (string) $plant->getTenantId()],
+                );
+                if ($lockedId === false) {
+                    throw new \LogicException('PlantEvent requires a persisted plant in the same tenant.');
+                }
+            }
+
+            return $this->createEvent($plant, $eventType, $user, $payload, $notes, $photoUrls);
+        });
+    }
+
+    private function createEvent(
+        Plant $plant,
+        string $eventType,
+        mixed $user,
+        ?array $payload,
+        ?string $notes,
+        ?array $photoUrls,
     ): PlantEvent {
         $lastEvent    = $this->findLastForPlant($plant->getId());
         $previousHash = $lastEvent?->getHashSelf() ?? str_repeat('0', 64);
@@ -59,8 +101,9 @@ class PlantEventRepository extends ServiceEntityRepository
             new \DateTimeImmutable($event->getOccurredAt()->format('Y-m-d H:i:s'))
         );
 
-        // The DB stores occurredAt with second precision. Make append order deterministic
-        // so hash-chain verification remains stable when multiple events are written quickly.
+        // Historical ordering uses seconds, with UUIDv4 only as a tie-breaker. Retain this
+        // ordering compatibility until a separate technical order is designed (P1-02).
+        // Concurrency is serialized by the plant lock above, never by this timestamp.
         if ($lastEvent !== null && $event->getOccurredAt() <= $lastEvent->getOccurredAt()) {
             $event->setOccurredAt($lastEvent->getOccurredAt()->modify('+1 second'));
         }
@@ -70,7 +113,7 @@ class PlantEventRepository extends ServiceEntityRepository
         );
 
         $this->getEntityManager()->persist($event);
-        $this->getEntityManager()->flush();
+        // wrapInTransaction flushes once, while the parent lock is still held.
 
         return $event;
     }

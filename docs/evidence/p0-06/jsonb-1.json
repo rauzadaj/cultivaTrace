@@ -1,0 +1,29 @@
+{
+    "event_id": "338f1550-aac5-4940-8324-6060b97fbf00",
+    "length": 1,
+    "occurred_at_unix": "1789380816",
+    "hash_previous": "0000000000000000000000000000000000000000000000000000000000000000",
+    "payload_original": {
+        "quantity": 10,
+        "unit": "g",
+        "metadata": {
+            "source": "manual",
+            "operator": "test"
+        }
+    },
+    "payload_reloaded": {
+        "unit": "g",
+        "metadata": {
+            "source": "manual",
+            "operator": "test"
+        },
+        "quantity": 10
+    },
+    "hash_expected_stored": "5e3c2cd8c77c55768f88661c4bf47f1eec3695ab7cebedbd6c44ab8bb4697a6c",
+    "hash_obtained_recomputed": "2d067b34009e106337a14264a8ee2b5f2ee99f196efd85e91eb12427fe71c2f6",
+    "verification": {
+        "valid": false,
+        "broken_at": "338f1550-aac5-4940-8324-6060b97fbf00",
+        "checked": 0
+    }
+}
