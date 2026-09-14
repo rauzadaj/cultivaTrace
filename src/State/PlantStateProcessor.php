@@ -50,11 +50,12 @@ final class PlantStateProcessor implements ProcessorInterface
 
             $organization = $user->getOrganization();
 
+            $this->licenseGuard->assertLicenseApproved($organization);
+
             $data->setTenantId($organization->getId());
 
             if (!isset($context['previous_data']) || !$context['previous_data'] instanceof Plant) {
                 $isCreate = true;
-                $this->licenseGuard->assertLicenseApproved($organization);
                 try {
                     $this->planLimits->checkPlantLimit($organization);
                 } catch (PlanLimitExceededException $exception) {

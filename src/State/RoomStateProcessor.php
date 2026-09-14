@@ -43,8 +43,9 @@ final class RoomStateProcessor implements ProcessorInterface
 
             $organization = $user->getOrganization();
 
+            $this->licenseGuard->assertLicenseApproved($organization);
+
             if (!isset($context['previous_data'])) {
-                $this->licenseGuard->assertLicenseApproved($organization);
                 try {
                     $this->planLimits->checkRoomLimit($organization);
                 } catch (PlanLimitExceededException $exception) {
