@@ -2,14 +2,15 @@
   <div class="compliance-view">
     <header>
       <p class="eyebrow">Conformite</p>
-      <h1>Exports reglmentaires</h1>
+      <h1>Exports de suivi</h1>
     </header>
 
     <q-card class="compliance-card">
       <q-card-section>
-        <p class="eyebrow">CTS</p>
-        <h2>Rapport mensuel</h2>
-        <p>Genere le CSV de conformite pour le mois selectionne.</p>
+        <p class="eyebrow">Export interne</p>
+        <h2>Suivi des plants</h2>
+        <p>Exporte les plants germés avant la fin du mois sélectionné, avec leurs données actuelles.</p>
+        <p role="note">Ce CSV provisoire ne reconstitue pas l’inventaire historique et ne constitue pas un rapport CTLS validé pour soumission à Santé Canada.</p>
       </q-card-section>
       <q-card-section class="compliance-card__controls">
         <q-input v-model="month" type="month" label="Mois" outlined />
