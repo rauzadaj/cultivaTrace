@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\User;
+use App\Service\Export\SpreadsheetCell;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,11 +34,15 @@ class CTSReportController extends AbstractController
         private readonly EntityManagerInterface $em,
     ) {}
 
-    public function __invoke(Request $request, #[CurrentUser] $user): Response
+    public function __invoke(Request $request, #[CurrentUser] ?User $user): Response
     {
+        if (!$user instanceof User || !$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('An authenticated organization user is required.');
+        }
+
         $month = $request->query->get('month', date('Y-m'));
 
-        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        if (!preg_match('/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/D', $month)) {
             return $this->json(
                 ['error' => 'Format invalide. Utilisez YYYY-MM'],
                 Response::HTTP_BAD_REQUEST
@@ -50,7 +56,7 @@ class CTSReportController extends AbstractController
 
         $plants = $this->fetchPlantsForPeriod($tenantId, $startDate, $endDate);
 
-        $response = new StreamedResponse(function () use ($plants, $month) {
+        $response = new StreamedResponse(function () use ($plants) {
             $handle = fopen('php://output', 'w');
 
             // BOM UTF-8 pour Excel
@@ -112,12 +118,12 @@ class CTSReportController extends AbstractController
             $rows[]  = [
                 $period,
                 substr((string) $plant->getId(), 0, 8),
-                $plant->getStrain()?->getName() ?? 'N/A',
-                $plant->getStrain()?->getCannabisType() ?? 'marijuana',
+                SpreadsheetCell::text($plant->getStrain()?->getName() ?? 'N/A'),
+                SpreadsheetCell::text($plant->getStrain()?->getCannabisType() ?? 'marijuana'),
                 $plant->getStage()->value,
                 $plant->getStatus()->value,
                 $plant->getGerminatedAt()->format('Y-m-d'),
-                $plant->getRoom()->getName(),
+                SpreadsheetCell::text($plant->getRoom()->getName()),
                 $harvest?->getHarvestedAt()->format('Y-m-d') ?? '',
                 $harvest?->getGrossWeightG() ?? '',
                 $harvest?->getNetWeightG() ?? '',
