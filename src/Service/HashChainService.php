@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\PlantEvent;
+use App\Repository\PlantEventRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
@@ -58,9 +59,9 @@ class HashChainService
      */
     public function verify(Uuid $plantId): array
     {
-        $events = $this->registry
-            ->getRepository(PlantEvent::class)
-            ->findByPlantOrderedAsc($plantId);
+        /** @var PlantEventRepository $repository */
+        $repository = $this->registry->getRepository(PlantEvent::class);
+        $events = $repository->findByPlantOrderedAsc($plantId);
 
         $previousHash = str_repeat('0', 64);
         $checked = 0;
@@ -68,7 +69,7 @@ class HashChainService
         foreach ($events as $event) {
             $expectedHash = $this->computeHash($event, $previousHash);
 
-            if (!hash_equals($event->getHashSelf(), $expectedHash)) {
+            if (!hash_equals($previousHash, $event->getHashPrevious()) || !hash_equals($event->getHashSelf(), $expectedHash)) {
                 return [
                     'valid'      => false,
                     'broken_at'  => (string) $event->getId(),
