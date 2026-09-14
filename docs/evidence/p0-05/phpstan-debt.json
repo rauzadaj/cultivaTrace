@@ -1,0 +1,318 @@
+{
+  "phpstan_version": "2.1.0",
+  "level": 5,
+  "before": 32,
+  "after": 31,
+  "new_diagnostics": 0,
+  "debt": [
+    {
+      "file": "src/Command/CreateUserCommand.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Call to an undefined method Symfony\\Component\\Console\\Application::getKernel().",
+          "line": 47,
+          "ignorable": true,
+          "identifier": "method.notFound"
+        }
+      ]
+    },
+    {
+      "file": "src/Command/SeedDemoDataCommand.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Instanceof between App\\Entity\\Organization and App\\Entity\\Organization will always evaluate to true.",
+          "line": 55,
+          "ignorable": true,
+          "identifier": "instanceof.alwaysTrue"
+        }
+      ]
+    },
+    {
+      "file": "src/Compliance/CTLS/OfficialTemplate/CtlsTemplateProvider.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Strict comparison using === between non-empty-list<string|null> and array{} will always evaluate to false.",
+          "line": 36,
+          "ignorable": true,
+          "identifier": "identical.alwaysFalse"
+        }
+      ]
+    },
+    {
+      "file": "src/Controller/DashboardController.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Strict comparison using === between App\\Entity\\Organization and null will always evaluate to false.",
+          "line": 40,
+          "ignorable": true,
+          "identifier": "identical.alwaysFalse"
+        }
+      ]
+    },
+    {
+      "file": "src/Controller/KybController.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Dead catch - JsonException is never thrown in the try block.",
+          "line": 49,
+          "ignorable": true,
+          "identifier": "catch.neverThrown"
+        }
+      ]
+    },
+    {
+      "file": "src/Controller/ReportingController.php",
+      "errors": 2,
+      "messages": [
+        {
+          "message": "Property App\\Controller\\ReportingController::$entityManager is never read, only written.",
+          "line": 26,
+          "ignorable": true,
+          "tip": "See: https://phpstan.org/developing-extensions/always-read-written-properties",
+          "identifier": "property.onlyWritten"
+        },
+        {
+          "message": "Strict comparison using === between App\\Entity\\Organization and null will always evaluate to false.",
+          "line": 94,
+          "ignorable": true,
+          "identifier": "identical.alwaysFalse"
+        }
+      ]
+    },
+    {
+      "file": "src/Entity/OrganizationInvitation.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Property App\\Entity\\OrganizationInvitation::$id (int|null) is never assigned int so it can be removed from the property type.",
+          "line": 21,
+          "ignorable": true,
+          "identifier": "property.unusedType"
+        }
+      ]
+    },
+    {
+      "file": "src/Entity/Plant.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Property App\\Entity\\Plant::$harvestRecord (App\\Entity\\HarvestRecord|null) is never assigned App\\Entity\\HarvestRecord so it can be removed from the property type.",
+          "line": 108,
+          "ignorable": true,
+          "identifier": "property.unusedType"
+        }
+      ]
+    },
+    {
+      "file": "src/Entity/RefreshToken.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Property App\\Entity\\RefreshToken::$id (int|null) is never assigned int so it can be removed from the property type.",
+          "line": 20,
+          "ignorable": true,
+          "identifier": "property.unusedType"
+        }
+      ]
+    },
+    {
+      "file": "src/Entity/User.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Property App\\Entity\\User::$id (int|null) is never assigned int so it can be removed from the property type.",
+          "line": 20,
+          "ignorable": true,
+          "identifier": "property.unusedType"
+        }
+      ]
+    },
+    {
+      "file": "src/Infrastructure/Catalog/Humboldt/HumboldtSeedCatalogProvider.php",
+      "errors": 7,
+      "messages": [
+        {
+          "message": "Strict comparison using !== between array{} and array{california: 'Named strain…', canada: 'Named strain…'} will always evaluate to true.",
+          "line": 145,
+          "ignorable": true,
+          "identifier": "notIdentical.alwaysTrue"
+        },
+        {
+          "message": "Offset 1 on array{list<string>, list<non-falsy-string>} on left side of ?? always exists and is not nullable.",
+          "line": 160,
+          "ignorable": true,
+          "identifier": "nullCoalesce.offset"
+        },
+        {
+          "message": "Right side of && is always true.",
+          "line": 277,
+          "ignorable": true,
+          "tip": "Because the type is coming from a PHPDoc, you can turn off this check by setting treatPhpDocTypesAsCertain: false in your %configurationFile%.",
+          "identifier": "booleanAnd.rightAlwaysTrue"
+        },
+        {
+          "message": "Strict comparison using === between false and DOMNodeList<DOMElement> will always evaluate to false.",
+          "line": 329,
+          "ignorable": true,
+          "tip": "Because the type is coming from a PHPDoc, you can turn off this check by setting treatPhpDocTypesAsCertain: false in your %configurationFile%.",
+          "identifier": "identical.alwaysFalse"
+        },
+        {
+          "message": "Using nullsafe property access \"?->textContent\" on left side of ?? is unnecessary. Use -> instead.",
+          "line": 333,
+          "ignorable": true,
+          "identifier": "nullsafe.neverNull"
+        },
+        {
+          "message": "Strict comparison using === between false and DOMNodeList<DOMElement> will always evaluate to false.",
+          "line": 341,
+          "ignorable": true,
+          "tip": "Because the type is coming from a PHPDoc, you can turn off this check by setting treatPhpDocTypesAsCertain: false in your %configurationFile%.",
+          "identifier": "identical.alwaysFalse"
+        },
+        {
+          "message": "Using nullsafe property access \"?->textContent\" on left side of ?? is unnecessary. Use -> instead.",
+          "line": 345,
+          "ignorable": true,
+          "identifier": "nullsafe.neverNull"
+        }
+      ]
+    },
+    {
+      "file": "src/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriber.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Using nullsafe method call on non-nullable type DateTimeImmutable. Use -> instead.",
+          "line": 86,
+          "ignorable": true,
+          "identifier": "nullsafe.neverNull"
+        }
+      ]
+    },
+    {
+      "file": "src/Infrastructure/Persistence/Doctrine/EventSubscriber/CropTenantSubscriber.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Strict comparison using === between null and App\\Entity\\Organization will always evaluate to false.",
+          "line": 79,
+          "ignorable": true,
+          "identifier": "identical.alwaysFalse"
+        }
+      ]
+    },
+    {
+      "file": "src/Security/Voter/PlantVoter.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Using nullsafe method call on non-nullable type App\\Entity\\Organization. Use -> instead.",
+          "line": 31,
+          "ignorable": true,
+          "identifier": "nullsafe.neverNull"
+        }
+      ]
+    },
+    {
+      "file": "src/Service/KybService.php",
+      "errors": 2,
+      "messages": [
+        {
+          "message": "Property App\\Service\\KybService::$appEnv is never read, only written.",
+          "line": 36,
+          "ignorable": true,
+          "tip": "See: https://phpstan.org/developing-extensions/always-read-written-properties",
+          "identifier": "property.onlyWritten"
+        },
+        {
+          "message": "Offset 0 on non-empty-list<string> on left side of ?? always exists and is not nullable.",
+          "line": 367,
+          "ignorable": true,
+          "identifier": "nullCoalesce.offset"
+        }
+      ]
+    },
+    {
+      "file": "src/Service/StripeService.php",
+      "errors": 4,
+      "messages": [
+        {
+          "message": "Access to an undefined property Stripe\\StripeObject::$customer.",
+          "line": 244,
+          "ignorable": true,
+          "tip": "Learn more: https://phpstan.org/blog/solving-phpstan-access-to-undefined-property",
+          "identifier": "property.notFound"
+        },
+        {
+          "message": "Access to an undefined property Stripe\\StripeObject::$customer.",
+          "line": 250,
+          "ignorable": true,
+          "tip": "Learn more: https://phpstan.org/blog/solving-phpstan-access-to-undefined-property",
+          "identifier": "property.notFound"
+        },
+        {
+          "message": "Access to an undefined property Stripe\\StripeObject::$customer.",
+          "line": 274,
+          "ignorable": true,
+          "tip": "Learn more: https://phpstan.org/blog/solving-phpstan-access-to-undefined-property",
+          "identifier": "property.notFound"
+        },
+        {
+          "message": "Access to an undefined property Stripe\\StripeObject::$customer.",
+          "line": 299,
+          "ignorable": true,
+          "tip": "Learn more: https://phpstan.org/blog/solving-phpstan-access-to-undefined-property",
+          "identifier": "property.notFound"
+        }
+      ]
+    },
+    {
+      "file": "src/State/FarmStateProcessor.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Call to an undefined method ApiPlatform\\Metadata\\Operation::getMethod().",
+          "line": 77,
+          "ignorable": true,
+          "identifier": "method.notFound"
+        }
+      ]
+    },
+    {
+      "file": "src/State/InputRecordStateProcessor.php",
+      "errors": 1,
+      "messages": [
+        {
+          "message": "Call to an undefined method ApiPlatform\\Metadata\\Operation::getMethod().",
+          "line": 67,
+          "ignorable": true,
+          "identifier": "method.notFound"
+        }
+      ]
+    },
+    {
+      "file": "src/State/StrainStateProcessor.php",
+      "errors": 2,
+      "messages": [
+        {
+          "message": "Call to an undefined method ApiPlatform\\Metadata\\Operation::getMethod().",
+          "line": 58,
+          "ignorable": true,
+          "identifier": "method.notFound"
+        },
+        {
+          "message": "Call to an undefined method ApiPlatform\\Metadata\\Operation::getMethod().",
+          "line": 72,
+          "ignorable": true,
+          "identifier": "method.notFound"
+        }
+      ]
+    }
+  ]
+}

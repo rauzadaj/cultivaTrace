@@ -6,7 +6,7 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
-        "php": ">=8.4",
+        "php": ">=8.4.1",
         "ext-ctype": "*",
         "ext-iconv": "*",
         "api-platform/doctrine-orm": "^4.2",
@@ -14,39 +14,40 @@
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/doctrine-migrations-bundle": "^3.7",
         "doctrine/orm": "^3.6",
+        "dragonmantank/cron-expression": "^3.6",
         "lexik/jwt-authentication-bundle": "^3.0",
         "sensiolabs/gotenberg-bundle": "^1.2",
         "sentry/sentry-symfony": "^5.6",
         "stripe/stripe-php": "^19.4",
-        "symfony/asset": "8.0.*",
-        "symfony/clock": "8.0.*",
-        "symfony/console": "8.0.*",
-        "symfony/doctrine-bridge": "8.0.*",
-        "symfony/dotenv": "8.0.*",
-        "symfony/expression-language": "8.0.*",
+        "symfony/asset": "8.1.*",
+        "symfony/clock": "8.1.*",
+        "symfony/console": "8.1.*",
+        "symfony/doctrine-bridge": "8.1.*",
+        "symfony/dotenv": "8.1.*",
+        "symfony/expression-language": "8.1.*",
         "symfony/flex": "^2",
-        "symfony/framework-bundle": "8.0.*",
-        "symfony/http-client": "8.0.*",
-        "symfony/mailer": "8.0.*",
+        "symfony/framework-bundle": "8.1.*",
+        "symfony/http-client": "8.1.*",
+        "symfony/mailer": "8.1.*",
         "symfony/mercure-bundle": "^0.4.2",
-        "symfony/messenger": "8.0.*",
-        "symfony/password-hasher": "8.0.*",
-        "symfony/property-info": "8.0.*",
-        "symfony/rate-limiter": "8.0.*",
-        "symfony/runtime": "8.0.*",
-        "symfony/scheduler": "8.0.*",
-        "symfony/security-bundle": "8.0.*",
-        "symfony/security-core": "8.0.*",
-        "symfony/security-csrf": "8.0.*",
-        "symfony/security-http": "8.0.*",
-        "symfony/serializer": "8.0.*",
-        "symfony/stopwatch": "8.0.*",
-        "symfony/twig-bundle": "8.0.*",
-        "symfony/uid": "8.0.*",
-        "symfony/validator": "8.0.*",
-        "symfony/web-link": "8.0.*",
-        "symfony/workflow": "8.0.*",
-        "symfony/yaml": "8.0.*"
+        "symfony/messenger": "8.1.*",
+        "symfony/password-hasher": "8.1.*",
+        "symfony/property-info": "8.1.*",
+        "symfony/rate-limiter": "8.1.*",
+        "symfony/runtime": "8.1.*",
+        "symfony/scheduler": "8.1.*",
+        "symfony/security-bundle": "8.1.*",
+        "symfony/security-core": "8.1.*",
+        "symfony/security-csrf": "8.1.*",
+        "symfony/security-http": "8.1.*",
+        "symfony/serializer": "8.1.*",
+        "symfony/stopwatch": "8.1.*",
+        "symfony/twig-bundle": "8.1.*",
+        "symfony/uid": "8.1.*",
+        "symfony/validator": "8.1.*",
+        "symfony/web-link": "8.1.*",
+        "symfony/workflow": "8.1.*",
+        "symfony/yaml": "8.1.*"
     },
     "config": {
         "allow-plugins": {
@@ -55,7 +56,7 @@
             "symfony/runtime": true
         },
         "platform": {
-            "php": "8.4.0"
+            "php": "8.4.1"
         },
         "sort-packages": true
     },
@@ -76,8 +77,9 @@
         "phpstan/phpstan-doctrine": "*",
         "phpstan/phpstan-symfony": "*",
         "phpunit/phpunit": "^10.5",
-        "symfony/browser-kit": "8.0.*",
-        "symfony/phpunit-bridge": "8.0.*"
+        "symfony/browser-kit": "8.1.*",
+        "symfony/phpunit-bridge": "8.1.*",
+        "symfony/process": "8.1.*"
     },
     "replace": {
         "symfony/polyfill-ctype": "*",
@@ -99,7 +101,9 @@
         "post-update-cmd": [
             "@auto-scripts"
         ],
-        "phpstan": "phpstan analyse --no-progress"
+        "phpstan": "phpstan analyse --no-progress --memory-limit=512M",
+        "phpstan:p0": "phpstan analyse -c phpstan.p0.neon --memory-limit=512M",
+        "test:postgresql": "@php bin/test-postgresql.php"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -107,7 +111,7 @@
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "8.0.*"
+            "require": "8.1.*"
         }
     }
 }

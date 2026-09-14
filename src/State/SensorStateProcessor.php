@@ -22,6 +22,7 @@ final class SensorStateProcessor implements ProcessorInterface
 {
     /**
      * @param ProcessorInterface<Sensor, Sensor|null> $persistProcessor
+     * @param ProcessorInterface<Sensor, null> $removeProcessor
      */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
