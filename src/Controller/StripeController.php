@@ -168,18 +168,20 @@ class StripeController extends AbstractController
 
         try {
             $this->stripe->handleWebhook($payload, $signature);
-        } catch (\InvalidArgumentException $exception) {
+        } catch (\Stripe\Exception\SignatureVerificationException|\UnexpectedValueException|\InvalidArgumentException $exception) {
             $this->logger->warning('[Stripe] Invalid webhook signature', [
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('Unauthorized', Response::HTTP_UNAUTHORIZED);
+            // Acknowledge delivery only. The invalid event has not been processed.
+            return new Response('OK', Response::HTTP_OK);
         } catch (\Throwable $exception) {
             $this->logger->error('[Stripe] Webhook handling failed', [
                 'error' => $exception->getMessage(),
             ]);
 
-            return new Response('Internal Server Error', Response::HTTP_INTERNAL_SERVER_ERROR);
+            // Project contract: errors are monitored/replayed operationally, without HTTP retries.
+            return new Response('OK', Response::HTTP_OK);
         }
 
         return new Response('OK', Response::HTTP_OK);

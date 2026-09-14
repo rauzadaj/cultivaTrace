@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\State;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Sensor;
@@ -27,6 +28,8 @@ final class SensorStateProcessor implements ProcessorInterface
         private readonly ProcessorInterface $persistProcessor,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly LicenseGuard $licenseGuard,
+        #[Autowire(service: 'api_platform.doctrine.orm.state.remove_processor')]
+        private readonly ProcessorInterface $removeProcessor,
     ) {
     }
 
@@ -46,9 +49,7 @@ final class SensorStateProcessor implements ProcessorInterface
 
             $organization = $user->getOrganization();
 
-            if (!isset($context['previous_data'])) {
-                $this->licenseGuard->assertLicenseApproved($organization);
-            }
+            $this->licenseGuard->assertLicenseApproved($organization);
 
             if (isset($context['previous_data']) && $context['previous_data'] instanceof Sensor) {
                 if ($context['previous_data']->getTenantId() != $organization->getId()) {
@@ -63,6 +64,8 @@ final class SensorStateProcessor implements ProcessorInterface
             $data->setTenantId($organization->getId());
         }
 
-        return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+        $processor = $operation instanceof Delete ? $this->removeProcessor : $this->persistProcessor;
+
+        return $processor->process($data, $operation, $uriVariables, $context);
     }
 }
