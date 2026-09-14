@@ -13,13 +13,16 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.4.1', '8.4']
     env:
       DATABASE_URL: sqlite:///%kernel.project_dir%/var/ci_build.sqlite
 
     steps:
     - uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.4'
+        php-version: ${{ matrix.php }}
         extensions: sodium, pdo_sqlite, sqlite3
         tools: composer:v2
         coverage: none
@@ -40,8 +43,8 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
 
-    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
-    # Docs: https://getcomposer.org/doc/articles/scripts.md
+    - name: Audit locked dependencies
+      run: composer audit --locked
 
-    # - name: Run test suite
-    #   run: composer run-script test
+    - name: Analyse the PlantEvent code changed in P0-06
+      run: composer phpstan -- src/Repository/PlantEventRepository.php src/Service/HashChainService.php src/Infrastructure/Persistence/Doctrine/EventListener/PlantEventAppendOnlyListener.php bin/test-postgresql.php tests/PostgreSQL tests/Service/HashChainVerificationTest.php

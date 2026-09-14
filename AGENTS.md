@@ -4,7 +4,7 @@
 
 ## Stack (définitif)
 
-- Backend : Symfony 8.0 + API Platform 4.2
+- Backend : Symfony 8.1 + API Platform 4.2
 - Frontend : Vue 3 + Quasar Framework
 - DB : PostgreSQL 16 + TimescaleDB (sensor_reading)
 - Auth : LexikJWTAuthenticationBundle

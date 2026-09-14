@@ -36,7 +36,9 @@ jobs:
         ports:
           - 3000:3000
     env:
-      DATABASE_URL: postgresql://cultiva@127.0.0.1:5432/cultivatrace?serverVersion=16&charset=utf8
+      APP_ENV: test
+      DATABASE_URL: sqlite:///%kernel.project_dir%/var/ci_fast.sqlite
+      POSTGRES_TEST_ADMIN_URL: postgresql://cultiva@127.0.0.1:5432/postgres
       GOTENBERG_DSN: http://127.0.0.1:3000
       GOTENBERG_URL: http://127.0.0.1:3000
       JWT_PASSPHRASE: change-me-in-local-and-prod
@@ -44,7 +46,7 @@ jobs:
     - uses: shivammathur/setup-php@v2
       with:
         php-version: '8.4'
-        extensions: sodium, pdo_pgsql, pgsql
+        extensions: sodium, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, fileinfo
         tools: composer:v2
         coverage: none
     - uses: actions/checkout@v4
@@ -75,8 +77,13 @@ jobs:
         until curl -fsS http://127.0.0.1:3000/version >/dev/null; do
           sleep 1
         done
-    - name: Create test database
-      run: |
-        php -r '$pdo = new PDO("pgsql:host=127.0.0.1;port=5432;dbname=postgres", "cultiva", ""); $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = '\''cultivatrace_test'\''"); if ($stmt->fetchColumn() === false) { $pdo->exec("CREATE DATABASE cultivatrace_test"); }'
-    - name: Execute tests (Unit and Feature tests) via PHPUnit
+    - name: Fast tests (SQLite, independent of migration tests)
       run: vendor/bin/phpunit
+    - name: PostgreSQL 16 integration (create, migrate, test, drop)
+      run: composer test:postgresql
+    - name: Preserve PlantEvent evidence (including a failing integrity gate)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: plant-event-postgresql-evidence
+        path: var/plant-event-evidence/
