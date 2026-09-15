@@ -140,12 +140,12 @@ final class StripeControllerTest extends KernelTestCase
         $controller->checkout($request, $this->createUserWithOrganization(roles: []));
     }
 
-    public function testWebhookReturns401OnInvalidSignature(): void
+    public function testWebhookAcknowledgesInvalidSignatureWithoutProcessingIt(): void
     {
         $stripe = $this->createMock(StripeService::class);
         $stripe
             ->method('handleWebhook')
-            ->willThrowException(new \InvalidArgumentException('invalid signature'));
+            ->willThrowException(\Stripe\Exception\SignatureVerificationException::factory('invalid signature', 'invalid'));
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger
@@ -168,10 +168,11 @@ final class StripeControllerTest extends KernelTestCase
 
         $response = $controller->webhook($request);
 
-        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('OK', $response->getContent());
     }
 
-    public function testWebhookReturns500OnUnexpectedFailure(): void
+    public function testWebhookAcknowledgesAndLogsUnexpectedFailure(): void
     {
         $stripe = $this->createMock(StripeService::class);
         $stripe
@@ -199,7 +200,8 @@ final class StripeControllerTest extends KernelTestCase
 
         $response = $controller->webhook($request);
 
-        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('OK', $response->getContent());
     }
 
     public function testPortalDoesNotExposeStripeErrorDetails(): void

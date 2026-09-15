@@ -1,0 +1,10 @@
+parameters:
+    level: 5
+    paths:
+        - src/Repository/PlantEventRepository.php
+        - src/Service/HashChainService.php
+        - src/EventSubscriber/AppendOnlyPlantEventSubscriber.php
+        - bin/test-postgresql.php
+        - tests/PostgreSQL
+        - tests/Service/HashChainVerificationTest.php
+    tmpDir: var/phpstan-p0

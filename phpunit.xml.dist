@@ -26,6 +26,7 @@
     <testsuites>
         <testsuite name="Project Test Suite">
             <directory>tests</directory>
+            <exclude>tests/PostgreSQL</exclude>
         </testsuite>
     </testsuites>
 </phpunit>
