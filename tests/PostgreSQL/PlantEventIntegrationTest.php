@@ -8,6 +8,8 @@ use App\Entity\{Farm, Organization, Plant, PlantEvent, Room, User};
 use App\Enum\RoomType;
 use App\Repository\PlantEventRepository;
 use App\Service\HashChainService;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -133,8 +135,138 @@ final class PlantEventIntegrationTest extends KernelTestCase
             'hash_obtained_recomputed' => $this->chain()->computeHash($reloaded, str_repeat('0', 64)),
             'verification' => $result,
         ]);
-        // Intentionally a release gate: do not skip or normalize historical payloads to make it green.
-        self::assertTrue($result['valid'], 'P0-06 BLOCKED: JSONB reload changes the historical hash input. See var/plant-event-evidence/jsonb-'.$length.'.json');
+        // Keep the original release gate: only new writes may prepare their JSON before hashing.
+        self::assertTrue($result['valid'], 'P0-06: a new JSONB event must verify after reload. See var/plant-event-evidence/jsonb-'.$length.'.json');
+    }
+
+    public static function jsonbValues(): iterable
+    {
+        yield 'SQL null and null photos' => [null, null];
+        yield 'empty arrays' => [[], []];
+        $photos = ['https://example.test/é.jpg', 'https://example.test/a.jpg', 'https://example.test/é.jpg'];
+        yield 'nested objects and ordered lists' => [
+            ['long_key' => ['zz' => 1, 'a' => 2], 'b' => [['beta' => 3, 'a' => 4], ['value' => 'second'], ['beta' => 3, 'a' => 4]]],
+            $photos,
+        ];
+        yield 'Unicode and escaping' => [['échantillon' => '🌱/é', 'a' => "line\nbreak", 'quote' => '"\\|'], $photos];
+        yield 'negative zero' => [['reading' => -0.0], $photos];
+        yield 'floating point limits and exponents' => [
+            ['x' => 1.0, 'y' => 1.0e16, 'z' => 1.0e20, 'tiny' => 1.0e-7, 'min' => PHP_FLOAT_MIN, 'max' => PHP_FLOAT_MAX],
+            $photos,
+        ];
+        yield 'integer limits' => [['max' => PHP_INT_MAX, 'min' => PHP_INT_MIN], $photos];
+        yield 'sparse numeric object keys' => [['value' => [10 => 'ten', 2 => 'two']], $photos];
+        yield 'distinct scalar values' => [['yes' => true, 'no' => false, 'nil' => null, 'empty' => '', 'zero' => 0, 'string_zero' => '0'], $photos];
+    }
+
+    /**
+     * @param array<string, mixed>|null $payload
+     * @param list<string>|null $photos
+     */
+    #[DataProvider('jsonbValues')]
+    public function testNewJsonbValuesPreserveMeaningAndVerifyAfterReload(?array $payload, ?array $photos): void
+    {
+        [$plant, $user] = $this->fixture();
+        $db = $this->em->getConnection();
+        $originalJson = Type::getType(Types::JSON)->convertToDatabaseValue($payload, $db->getDatabasePlatform());
+        $event = $this->repository()->appendEvent($plant, 'note', $user, $payload, "échantillon|note\n", $photos);
+        $id = $event->getId();
+        $preparedPayload = $event->getPayload();
+        $storedHash = $event->getHashSelf();
+        self::assertSame(1, (int) $db->fetchOne(
+            'SELECT CASE WHEN payload IS NOT DISTINCT FROM CAST(:original AS jsonb) THEN 1 ELSE 0 END FROM plant_event WHERE id = :id',
+            ['original' => $originalJson, 'id' => (string) $id],
+        ), 'Preparing the hash input must preserve the original JSONB value.');
+        $this->em->clear();
+        $reloaded = $this->em->find(PlantEvent::class, $id);
+        self::assertInstanceOf(PlantEvent::class, $reloaded);
+        self::assertSame($preparedPayload, $reloaded->getPayload(), 'The prepared PHP value must survive Doctrine hydration.');
+        self::assertSame($photos, $reloaded->getPhotoUrls(), 'Photo order and SQL null versus an empty list must survive.');
+        self::assertSame("échantillon|note\n", $reloaded->getNotes());
+        self::assertSame($storedHash, $this->chain()->computeHash($reloaded, $reloaded->getHashPrevious()));
+        self::assertSame(['valid' => true, 'broken_at' => null, 'checked' => 1], $this->chain()->verify($plant->getId()));
+    }
+
+    public static function lossyJsonbValues(): iterable
+    {
+        yield 'nested empty object must not become a list' => [['value' => new \stdClass()]];
+        yield 'numeric object keys must not become a list' => [['value' => (object) ['1' => 'b', '0' => 'a']]];
+    }
+
+    /** @param array<string, mixed> $payload */
+    #[DataProvider('lossyJsonbValues')]
+    public function testLossyJsonbConversionRejectsAppendAndRollsBackPendingBusinessState(array $payload): void
+    {
+        [$plant, $user] = $this->fixture();
+        $db = $this->em->getConnection();
+        $id = (string) $plant->getId();
+        $plant->setRfidTag('must not commit');
+        try {
+            $this->repository()->appendEvent($plant, 'note', $user, $payload);
+            self::fail('An append must reject a JSON object that Doctrine would change into a JSON list.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('JSON structure or values', $e->getMessage());
+            self::assertFalse($this->em->isOpen(), 'Rejected pending changes must not be flushable later.');
+        }
+        self::assertFalse($db->isTransactionActive());
+        self::assertNull($db->fetchOne('SELECT rfid_tag FROM plant WHERE id = ?', [$id]));
+        self::assertSame(0, (int) $db->fetchOne('SELECT count(*) FROM plant_event WHERE plant_id = ?', [$id]));
+    }
+
+    public static function historicalPayloads(): iterable
+    {
+        yield 'valid legacy event remains valid' => [['message' => 'legacy'], true];
+        yield 'invalid legacy event remains invalid' => [
+            ['quantity' => 10, 'unit' => 'g', 'metadata' => ['source' => 'manual', 'operator' => 'test']],
+            false,
+        ];
+    }
+
+    /** @param array<string, mixed> $payload */
+    #[DataProvider('historicalPayloads')]
+    public function testNewAppendDoesNotRewriteOrRepairHistoricalEvents(array $payload, bool $valid): void
+    {
+        [$plant, $user] = $this->fixture();
+        // Build a legacy fixture with its original pre-JSONB hash input. This bypasses
+        // appendEvent only to reproduce an already-stored historical row, never to update it.
+        $legacy = (new PlantEvent())
+            ->setPlant($plant)->setUser($user)->setTenantId($plant->getTenantId())
+            ->setEventType('note')->setPayload($payload)->setNotes('legacy|échantillon')
+            ->setPhotoUrls(['https://example.test/legacy.jpg'])
+            ->setOccurredAt(new \DateTimeImmutable('@1770000000'))->setIpAddress('synthetic-legacy-ip')
+            ->setHashPrevious(str_repeat('0', 64));
+        $legacyHash = $this->chain()->computeHash($legacy, $legacy->getHashPrevious());
+        $legacy->setHashSelf($legacyHash);
+        $this->em->persist($legacy);
+        $this->em->flush();
+        $legacyId = (string) $legacy->getId();
+        $plantId = $plant->getId();
+        $userId = $user->getId();
+        $db = $this->em->getConnection();
+        $before = $db->fetchAssociative('SELECT * FROM plant_event WHERE id = ?', [$legacyId]);
+        $this->em->clear();
+        self::assertSame(
+            ['valid' => $valid, 'broken_at' => $valid ? null : $legacyId, 'checked' => $valid ? 1 : 0],
+            $this->chain()->verify($plantId),
+            'The unchanged verifier must characterize the legacy row before any new append.',
+        );
+        $plant = $this->em->find(Plant::class, $plantId);
+        $user = $this->em->find(User::class, $userId);
+        self::assertInstanceOf(Plant::class, $plant);
+        self::assertInstanceOf(User::class, $user);
+        $new = $this->repository()->appendEvent($plant, 'note', $user, ['quantity' => 1, 'unit' => 'g', 'metadata' => ['source' => 'new', 'operator' => 'test']]);
+        $newId = $new->getId();
+        self::assertSame($legacyHash, $new->getHashPrevious());
+        $this->em->clear();
+        $new = $this->em->find(PlantEvent::class, $newId);
+        self::assertInstanceOf(PlantEvent::class, $new);
+        self::assertSame($new->getHashSelf(), $this->chain()->computeHash($new, $legacyHash));
+        self::assertSame($before, $db->fetchAssociative('SELECT * FROM plant_event WHERE id = ?', [$legacyId]), 'Every stored historical column must remain byte-for-byte unchanged.');
+        self::assertSame(
+            ['valid' => $valid, 'broken_at' => $valid ? null : $legacyId, 'checked' => $valid ? 2 : 0],
+            $this->chain()->verify($plantId),
+            'A valid new event must not make the verifier forgive an invalid historical hash.',
+        );
     }
 
     public static function predecessorCases(): iterable
@@ -172,7 +304,7 @@ final class PlantEventIntegrationTest extends KernelTestCase
             self::assertIsArray($ready, $worker->getErrorOutput());
             self::assertNotSame($pidA, $ready['pid']);
             self::assertSame($h0, $ready['read_previous']);
-            $a = $this->repository()->appendEvent($plant, 'note', $user, ['message' => 'A']);
+            $a = $this->repository()->appendEvent($plant, 'note', $user, ['message' => 'A', 'unit' => 'g', 'metadata' => ['source' => 'concurrent', 'operator' => 'A']]);
             $input->write("append\n");
             $input->close();
             $deadline = microtime(true) + 10;
@@ -213,7 +345,7 @@ final class PlantEventIntegrationTest extends KernelTestCase
         $db = $this->em->getConnection();
         $db->beginTransaction();
         $plant->setRfidTag('uncommitted');
-        $this->repository()->appendEvent($plant, 'note', $user, ['message' => 'rolled back']);
+        $this->repository()->appendEvent($plant, 'note', $user, ['message' => 'rolled back', 'unit' => 'g', 'metadata' => ['source' => 'rollback', 'operator' => 'test']]);
         self::assertTrue($db->isTransactionActive(), 'appendEvent must not commit the caller transaction.');
         $db->rollBack();
         $this->em->clear();
@@ -237,7 +369,7 @@ final class PlantEventIntegrationTest extends KernelTestCase
         try {
             $this->repository()->appendEvent($plant, $sqlFailure ? str_repeat('x', 101) : 'note', $user, $sqlFailure ? null : ['invalid' => NAN]);
             self::fail('Append was expected to fail.');
-        } catch (\JsonException|\Doctrine\DBAL\Exception\DriverException $e) {
+        } catch (\InvalidArgumentException|\Doctrine\DBAL\Exception\DriverException $e) {
             self::assertFalse($this->em->isOpen(), 'Failed pending changes must not be flushable later.');
         }
         self::assertFalse($db->isTransactionActive());

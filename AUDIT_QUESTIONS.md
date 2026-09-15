@@ -1,5 +1,22 @@
 # AUDIT QUESTIONS
 
+## Correction JSONB autorisée — 15 septembre 2026
+
+- **P0-06 PARTIAL ; nouvelles écritures JSONB DONE** : validation explicite reçue
+  pour préparer uniquement les nouveaux payloads/photos avant leur HMAC. Le
+  repository utilise la représentation réellement rechargée par PostgreSQL et
+  Doctrine, contrôle son contenu et sa stabilité, et refuse les conversions
+  altérant le document. Aucune modification du HMAC ni du vérificateur.
+- PostgreSQL 16 réel : **28 tests / 195 assertions réussis**, dont les deux cas
+  initialement rouges, les refus avec rollback et les historiques valides ou
+  invalides qui conservent leur statut. Aucune migration ou donnée historique
+  réécrite. [Décision et qualification](docs/plant-event-jsonb-fix.md).
+- **TRACE-02 historique reste ouvert** : aucune inspection de production ni
+  réparation des anciennes chaînes invalides. Un format durable indépendant
+  des versions PostgreSQL/PHP et leur éventuelle remédiation nécessitent un
+  chantier distinct. Les résultats BLOCKED datés ci-dessous restent les preuves
+  de la découverte initiale, pas le statut du correctif autorisé.
+
 ## Portage de la PR sur main `869e592`
 
 Les sections du 14 septembre ci-dessous décrivent la base locale initiale `58081ea`.
@@ -8,7 +25,7 @@ La PR porte les corrections utiles sur `869e592` en conservant son HMAC-SHA256,
 ses restrictions d'accès, son listener append-only, PHPStan niveau 6 et sa baseline
 préexistante inchangée. L'analyse supplémentaire `composer phpstan:p0` n'utilise
 aucune baseline. Les nouveaux résultats et limites sont dans
-[docs/pr-integration.md](docs/pr-integration.md). P0-06 reste BLOCKED : le reload
+[docs/pr-integration.md](docs/pr-integration.md). Au portage initial, P0-06 était BLOCKED : le reload
 JSONB échoue aussi avec le HMAC actuel de main. Aucune donnée historique réécrite.
 
 ## Lot P0-05 / P0-06 — résultats du 14 septembre 2026

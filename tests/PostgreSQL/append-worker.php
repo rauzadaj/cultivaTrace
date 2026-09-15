@@ -21,7 +21,7 @@ flush();
 if (trim((string) fgets(STDIN)) !== 'append') {
     throw new RuntimeException('The parent did not release the append barrier.');
 }
-$event = $repo->appendEvent($plant, 'note', $user, ['message' => 'B']);
+$event = $repo->appendEvent($plant, 'note', $user, ['message' => 'B', 'unit' => 'g', 'metadata' => ['source' => 'concurrent', 'operator' => 'B']]);
 $db->commit();
 echo json_encode(['previous' => $event->getHashPrevious(), 'self' => $event->getHashSelf()], JSON_THROW_ON_ERROR)."\n";
 $em->close();
