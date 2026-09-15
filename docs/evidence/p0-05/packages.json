@@ -1,0 +1,357 @@
+[
+  {
+    "name": "doctrine/persistence",
+    "before": "4.1.1",
+    "after": "4.2.0"
+  },
+  {
+    "name": "dragonmantank/cron-expression",
+    "before": null,
+    "after": "v3.6.0"
+  },
+  {
+    "name": "guzzlehttp/psr7",
+    "before": "2.9.0",
+    "after": "2.13.1"
+  },
+  {
+    "name": "symfony/asset",
+    "before": "v8.0.6",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/cache",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/cache-contracts",
+    "before": "v3.6.0",
+    "after": "v3.7.1"
+  },
+  {
+    "name": "symfony/clock",
+    "before": "v8.0.0",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/config",
+    "before": "v8.0.8",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/console",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/dependency-injection",
+    "before": "v8.0.8",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/deprecation-contracts",
+    "before": "v3.6.0",
+    "after": "v3.7.1"
+  },
+  {
+    "name": "symfony/doctrine-bridge",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/dotenv",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/error-handler",
+    "before": "v8.0.8",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/event-dispatcher",
+    "before": "v8.0.8",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/event-dispatcher-contracts",
+    "before": "v3.6.0",
+    "after": "v3.7.1"
+  },
+  {
+    "name": "symfony/expression-language",
+    "before": "v8.0.4",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/filesystem",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/finder",
+    "before": "v8.0.6",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/flex",
+    "before": "v2.10.0",
+    "after": "v2.11.0"
+  },
+  {
+    "name": "symfony/framework-bundle",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/http-client",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/http-client-contracts",
+    "before": "v3.6.0",
+    "after": "v3.7.3"
+  },
+  {
+    "name": "symfony/http-foundation",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/http-kernel",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/mailer",
+    "before": "v8.0.6",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/mercure-bundle",
+    "before": "v0.4.2",
+    "after": "v0.4.3"
+  },
+  {
+    "name": "symfony/messenger",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/mime",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/options-resolver",
+    "before": "v8.0.8",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/password-hasher",
+    "before": "v8.0.6",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/polyfill-deepclone",
+    "before": null,
+    "after": "v1.42.0"
+  },
+  {
+    "name": "symfony/polyfill-intl-grapheme",
+    "before": "v1.37.0",
+    "after": "v1.41.0"
+  },
+  {
+    "name": "symfony/polyfill-intl-idn",
+    "before": "v1.37.0",
+    "after": "v1.42.0"
+  },
+  {
+    "name": "symfony/polyfill-intl-normalizer",
+    "before": "v1.37.0",
+    "after": "v1.42.0"
+  },
+  {
+    "name": "symfony/polyfill-mbstring",
+    "before": "v1.37.0",
+    "after": "v1.38.2"
+  },
+  {
+    "name": "symfony/polyfill-php84",
+    "before": "v1.33.0",
+    "after": "v1.38.1"
+  },
+  {
+    "name": "symfony/polyfill-php85",
+    "before": "v1.37.0",
+    "after": "v1.41.0"
+  },
+  {
+    "name": "symfony/polyfill-uuid",
+    "before": "v1.33.0",
+    "after": "v1.37.0"
+  },
+  {
+    "name": "symfony/property-access",
+    "before": "v8.0.4",
+    "after": "v8.1.4"
+  },
+  {
+    "name": "symfony/property-info",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/psr-http-message-bridge",
+    "before": "v8.0.8",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/rate-limiter",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/routing",
+    "before": "v8.0.6",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/runtime",
+    "before": "v8.0.8",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/scheduler",
+    "before": "v8.0.4",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/security-bundle",
+    "before": "v8.0.6",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/security-core",
+    "before": "v8.0.4",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/security-csrf",
+    "before": "v8.0.6",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/security-http",
+    "before": "v8.0.6",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/serializer",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/service-contracts",
+    "before": "v3.6.1",
+    "after": "v3.7.3"
+  },
+  {
+    "name": "symfony/stopwatch",
+    "before": "v8.0.0",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/string",
+    "before": "v8.0.8",
+    "after": "v8.1.2"
+  },
+  {
+    "name": "symfony/translation-contracts",
+    "before": "v3.6.1",
+    "after": "v3.7.1"
+  },
+  {
+    "name": "symfony/twig-bridge",
+    "before": "v8.0.7",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/twig-bundle",
+    "before": "v8.0.4",
+    "after": "v8.1.2"
+  },
+  {
+    "name": "symfony/type-info",
+    "before": "v8.0.7",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/uid",
+    "before": "v8.0.4",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/validator",
+    "before": "v8.0.7",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/var-dumper",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/var-exporter",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/web-link",
+    "before": "v8.0.4",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/workflow",
+    "before": "v8.0.6",
+    "after": "v8.1.0"
+  },
+  {
+    "name": "symfony/yaml",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "twig/twig",
+    "before": "v3.24.0",
+    "after": "v3.28.0"
+  },
+  {
+    "name": "phpstan/phpstan",
+    "before": null,
+    "after": "2.1.0"
+  },
+  {
+    "name": "symfony/browser-kit",
+    "before": "v8.0.4",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/dom-crawler",
+    "before": "v8.0.6",
+    "after": "v8.1.5"
+  },
+  {
+    "name": "symfony/phpunit-bridge",
+    "before": "v8.0.8",
+    "after": "v8.1.6"
+  },
+  {
+    "name": "symfony/process",
+    "before": null,
+    "after": "v8.1.6"
+  }
+]

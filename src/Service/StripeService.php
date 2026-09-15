@@ -204,7 +204,9 @@ class StripeService
      * Handles a Stripe webhook.
      * Verifies the signature before processing the event.
      *
-     * @throws \InvalidArgumentException if the signature is invalid
+     * @throws \InvalidArgumentException if business processing rejects the event
+     * @throws \Stripe\Exception\SignatureVerificationException if the Stripe signature is invalid
+     * @throws \UnexpectedValueException if the Stripe payload is invalid
      */
     public function handleWebhook(string $payload, string $signature): void
     {

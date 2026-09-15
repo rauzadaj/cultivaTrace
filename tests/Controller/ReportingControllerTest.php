@@ -111,6 +111,38 @@ final class ReportingControllerTest extends ApiTestCase
         self::assertStringContainsString('attachment;', $this->client->getResponse()->headers->get('content-disposition', ''));
     }
 
+    public function testAuditCsvEscapesFormulasAndCannotBeDownloadedByAnotherTenant(): void
+    {
+        [$admin, , $room, $plant] = $this->createReportingFixture('csv-a@test.local');
+        $room->setName('@SUM(1,2)');
+        $plant->setRfidTag('-1+1');
+        $this->entityManager->flush();
+        /** @var \App\Repository\PlantEventRepository $events */
+        $events = $this->entityManager->getRepository(PlantEvent::class);
+        $event = $events->appendEvent($plant, 'note', $admin, notes: '=1+1');
+        $date = $event->getOccurredAt()->format('Y-m-d');
+        [$otherAdmin, , , $otherPlant] = $this->createReportingFixture('csv-b@test.local');
+        $events->appendEvent($otherPlant, 'note', $otherAdmin, notes: 'SECRET-TENANT-B');
+
+        $this->authorizeClient($admin);
+        $this->apiJsonRequest('POST', '/api/reporting/audit-export', [
+            'dateFrom' => $date, 'dateTo' => $date, 'format' => 'csv',
+        ]);
+        $this->assertStatusCode(Response::HTTP_CREATED);
+        $payload = json_decode($this->client->getResponse()->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        $this->client->request('GET', $payload['downloadUrl']);
+        $this->assertStatusCode(Response::HTTP_OK);
+        $csv = $this->client->getInternalResponse()->getContent();
+        self::assertStringContainsString("'=1+1", $csv);
+        self::assertStringContainsString("'@SUM(1,2)", $csv);
+        self::assertStringContainsString("'-1+1", $csv);
+        self::assertStringNotContainsString('SECRET-TENANT-B', $csv);
+
+        $this->authorizeClient($otherAdmin);
+        $this->client->request('GET', $payload['downloadUrl']);
+        $this->assertStatusCode(Response::HTTP_NOT_FOUND);
+    }
+
     /**
      * @return array{0: User, 1: Farm, 2: Room, 3: Plant}
      */

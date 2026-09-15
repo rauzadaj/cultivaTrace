@@ -1,0 +1,33 @@
+{
+    "event_id": "0025d16f-786b-4b9c-9db4-ff7ce3cb2c55",
+    "length": 1,
+    "algorithm": "HMAC-SHA256 (main 869e592)",
+    "notes": null,
+    "photo_urls": null,
+    "ip_address": "15d405e17899e0bafd0fa1fdae944bf7542726ba35919817a37fdb35d13eafd8",
+    "occurred_at_unix": "1789382553",
+    "hash_previous": "0000000000000000000000000000000000000000000000000000000000000000",
+    "payload_original": {
+        "quantity": 10,
+        "unit": "g",
+        "metadata": {
+            "source": "manual",
+            "operator": "test"
+        }
+    },
+    "payload_reloaded": {
+        "unit": "g",
+        "metadata": {
+            "source": "manual",
+            "operator": "test"
+        },
+        "quantity": 10
+    },
+    "hash_expected_stored": "7da07d663bd8369b8ca105d250d624094c6aad66f94ffad474983da1e417ca84",
+    "hash_obtained_recomputed": "fa0ac9320b58ff98b31c0c48ea1cbdd777d22597d6c5877163139269f2e7c6ed",
+    "verification": {
+        "valid": false,
+        "broken_at": "0025d16f-786b-4b9c-9db4-ff7ce3cb2c55",
+        "checked": 0
+    }
+}

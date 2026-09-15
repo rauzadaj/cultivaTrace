@@ -1,0 +1,20 @@
+PostgreSQL 160015; created cultivatrace_it_356c9c2b23aafa30_test
+[notice] Migrating up to DoctrineMigrations\Version20260602000000
+[warning] Migration DoctrineMigrations\Version20260427100000 was executed but did not result in any SQL statements.
+[warning] Migration DoctrineMigrations\Version20260427101000 was executed but did not result in any SQL statements.
+[notice] finished in 499.1ms, used 26M memory, 37 migrations executed, 177 sql queries
+
+ [OK] Successfully migrated to version: DoctrineMigrations\Version20260602000000
+
+
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.11
+Configuration: C:\Users\Jonathan\Projects\cultivaTrace-p0-pr\phpunit.postgresql.xml.dist
+
+............................                                      28 / 28 (100%)
+
+Time: 00:03.468, Memory: 38.00 MB
+
+OK (28 tests, 195 assertions)
+Dropped cultivatrace_it_356c9c2b23aafa30_test

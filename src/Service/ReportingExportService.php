@@ -9,6 +9,7 @@ use App\Entity\ReportExport;
 use App\Entity\User;
 use App\Service\Pdf\SimplePdfGenerator;
 use App\Service\Storage\ArtifactStorage;
+use App\Service\Export\SpreadsheetCell;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
 use Sensiolabs\GotenbergBundle\Processor\FileProcessor;
@@ -183,12 +184,12 @@ final class ReportingExportService
         foreach ($rows as $row) {
             fputcsv($handle, [
                 substr((string) $row['eventId'], 0, 8),
-                (string) $row['eventType'],
-                trim((string) ($row['rfidTag'] ?? '')) !== '' ? (string) $row['rfidTag'] : substr((string) $row['plantId'], 0, 8),
-                (string) $row['roomName'],
-                (string) $row['userEmail'],
+                SpreadsheetCell::text((string) $row['eventType']),
+                SpreadsheetCell::text(trim((string) ($row['rfidTag'] ?? '')) !== '' ? (string) $row['rfidTag'] : substr((string) $row['plantId'], 0, 8)),
+                SpreadsheetCell::text((string) $row['roomName']),
+                SpreadsheetCell::text((string) $row['userEmail']),
                 $row['occurredAt'] instanceof \DateTimeInterface ? $row['occurredAt']->format(\DateTimeInterface::ATOM) : (string) $row['occurredAt'],
-                (string) ($row['notes'] ?? ''),
+                SpreadsheetCell::text((string) ($row['notes'] ?? '')),
             ], escape: '');
         }
         fclose($handle);
