@@ -56,6 +56,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
     ),
     new Delete(
+        processor: SensorStateProcessor::class,
         security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)"
     ),
 ])]

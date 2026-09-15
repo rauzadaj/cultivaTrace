@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Service\Export\SpreadsheetCell;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -45,7 +46,7 @@ class CTSReportController extends AbstractController
 
         $month = $request->query->get('month', date('Y-m'));
 
-        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        if (!preg_match('/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/D', $month)) {
             return $this->json(
                 ['error' => 'Invalid format. Use YYYY-MM'],
                 Response::HTTP_BAD_REQUEST
@@ -124,12 +125,12 @@ class CTSReportController extends AbstractController
             $rows[]  = [
                 $period,
                 substr((string) $plant->getId(), 0, 8),
-                $plant->getStrain()?->getName() ?? 'N/A',
-                $plant->getStrain()?->getCannabisType() ?? 'marijuana',
+                SpreadsheetCell::text($plant->getStrain()?->getName() ?? 'N/A'),
+                SpreadsheetCell::text($plant->getStrain()?->getCannabisType() ?? 'marijuana'),
                 $plant->getStage()->value,
                 $plant->getStatus()->value,
                 $plant->getGerminatedAt()->format('Y-m-d'),
-                $plant->getRoom()->getName(),
+                SpreadsheetCell::text($plant->getRoom()->getName()),
                 $harvest?->getHarvestedAt()->format('Y-m-d') ?? '',
                 $harvest?->getGrossWeightG() ?? '',
                 $harvest?->getNetWeightG() ?? '',
