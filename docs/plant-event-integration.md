@@ -1,5 +1,10 @@
 # PlantEvent — PostgreSQL 16 et qualification P0-06
 
+> **Suivi du 15 septembre 2026 :** les nouvelles écritures JSONB sont corrigées
+> après validation explicite ; 28 tests PostgreSQL passent. Voir
+> [le correctif et ses limites historiques](plant-event-jsonb-fix.md). Le résultat
+> BLOCKED et les preuves ci-dessous restent l'instantané antérieur au correctif.
+
 > Rapport de qualification initiale sur `58081ea` (SHA-256). La PR a ensuite été
 > portée sur `869e592`, qui utilise HMAC-SHA256 : cet algorithme existant est conservé.
 > Voir [le rapport du portage](pr-integration.md) pour les résultats à jour, les

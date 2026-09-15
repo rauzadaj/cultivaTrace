@@ -8,7 +8,11 @@
 
 Audit du 14 septembre 2026, référence initiale `58081ea` (branche locale `main`). Le code et le lock Composer priment sur les descriptions historiques. Audit des sources, configurations, migrations, tests et parcours frontend ; aucune inspection des données de production ni certification réglementaire. Les éléments non suivis présents au départ (`.claude/`, `fixtures/FarmScaleFixtures.php`, `frontend/test-results/`) sont hors périmètre.
 
-**État après le deuxième lot : P0-05 DONE, P0-06 BLOCKED (JSONB démontré).** Les constats initiaux ci-dessous restent l'instantané de l'audit ; les résultats actualisés sont dans « Exécution du deuxième lot » en fin de document. Aucun nouvel audit général n'a été réalisé.
+**Suivi du 15 septembre 2026 : P0-05 DONE, P0-06 PARTIAL.** Le correctif autorisé
+des nouvelles écritures JSONB passe les 28 tests PostgreSQL ; aucun historique
+n'est réécrit et la remédiation des anciennes chaînes reste ouverte. Voir
+[la correction JSONB](plant-event-jsonb-fix.md). L'état BLOCKED du deuxième lot
+ci-dessous conserve la preuve initiale ; aucun nouvel audit général n'a été réalisé.
 
 ## 1. Current architecture
 
