@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use App\Entity\Plant;
 use App\Entity\PlantEvent;
 use App\Service\HashChainService;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\Types\Exception\SerializationFailed;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -74,10 +78,64 @@ class PlantEventRepository extends ServiceEntityRepository
                 if ($lockedId === false) {
                     throw new \LogicException('PlantEvent requires a persisted plant in the same tenant.');
                 }
+
+                // Sign the representation Doctrine will actually reload from JSONB.
+                // Only new events pass here; historical hashes and verification stay unchanged.
+                $payload = $this->prepareJsonForStorage($payload, 'payload');
+                $photoUrls = $this->prepareJsonForStorage($photoUrls, 'photoUrls');
             }
 
             return $this->createEvent($plant, $eventType, $user, $payload, $notes, $photoUrls);
         });
+    }
+
+    /**
+     * Preserve the JSON document's meaning and require a stable storage round-trip
+     * before signing. In particular, associative decoding must not turn {} into [].
+     *
+     * @template T of array
+     * @param T|null $value
+     * @return T|null
+     */
+    private function prepareJsonForStorage(?array $value, string $field): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $connection = $this->getEntityManager()->getConnection();
+        $platform = $connection->getDatabasePlatform();
+        $type = Type::getType(Types::JSON);
+        try {
+            $originalJson = $type->convertToDatabaseValue($value, $platform);
+        } catch (SerializationFailed $e) {
+            throw new InvalidArgumentException('PlantEvent '.$field.' must contain JSON-serializable values.', 0, $e);
+        }
+
+        $storedJson = $connection->fetchOne(
+            'SELECT CAST(CAST(:value AS jsonb) AS text)',
+            ['value' => $originalJson],
+        );
+        $prepared = $type->convertToPHPValue($storedJson, $platform);
+        if (!is_array($prepared)) {
+            throw new InvalidArgumentException('PlantEvent '.$field.' must remain an array after storage.');
+        }
+        $preparedJson = $type->convertToDatabaseValue($prepared, $platform);
+        $check = $connection->fetchAssociative(
+            'SELECT CASE WHEN CAST(:original AS jsonb) IS NOT DISTINCT FROM CAST(:prepared AS jsonb) THEN 1 ELSE 0 END AS same_document,
+                    CAST(CAST(:prepared AS jsonb) AS text) AS reloaded',
+            ['original' => $originalJson, 'prepared' => $preparedJson],
+        );
+        if ($check === false || (int) $check['same_document'] !== 1) {
+            throw new InvalidArgumentException('PlantEvent '.$field.' cannot be stored without changing its JSON structure or values.');
+        }
+        if ($preparedJson !== $type->convertToDatabaseValue($type->convertToPHPValue($check['reloaded'], $platform), $platform)) {
+            throw new InvalidArgumentException('PlantEvent '.$field.' has no stable JSON representation after storage.');
+        }
+
+        // The semantic comparison above guards the shape of the caller's document.
+        /** @var T $prepared */
+        return $prepared;
     }
 
     /**

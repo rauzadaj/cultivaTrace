@@ -9,6 +9,31 @@ Les deux lots y sont portés avec résolution explicite des conflits. Aucun merg
 artificiel d'historiques, retour en arrière de main ou écrasement de ses fichiers
 métier n'est utilisé.
 
+## Correctif JSONB autorisé le 15 septembre 2026
+
+**P0-06 PARTIAL : les nouvelles écritures JSONB sont corrigées et qualifiées.**
+Après validation explicite, l'append prépare ses nouvelles valeurs JSON dans
+la représentation PostgreSQL/Doctrine avant le HMAC historique. Il refuse toute
+conversion qui modifierait le document ou ne serait pas stable. Le calcul du
+HMAC et le vérificateur restent inchangés ; aucune migration ni réécriture
+historique. [Décision, comportement et limites](plant-event-jsonb-fix.md).
+
+La nouvelle qualification PostgreSQL est verte : **28 tests, 195 assertions**,
+37 migrations et 177 requêtes de migration, base de test supprimée. Les deux
+tests JSONB initialement rouges restent obligatoires et passent. PHPUnit rapide :
+**317 tests, 845 assertions, 1 skip** PDF/Gotenberg. Les preuves sont conservées
+dans `docs/evidence/p0-06-jsonb-fix/` ; celles de l'échec initial restent dans
+`docs/evidence/pr-main/`.
+
+`composer phpstan` (niveau 6, baseline de main inchangée) et
+`composer phpstan:p0` (sans baseline) réussissent après le correctif. Aucun
+changement frontend ou de dépendance n'a été nécessaire pour cette correction.
+
+Les événements historiques valides restent vérifiables ; les historiques déjà
+invalides restent détectés sans modification de leurs colonnes. Leur remédiation
+et la qualification de la production restent ouvertes. Aucun déploiement ni
+fusion de la PR ne fait partie de ce correctif.
+
 ## Évolutions récentes conservées
 
 - `HashChainService::computeHash()` conserve exactement le **HMAC-SHA256** de main
@@ -33,7 +58,7 @@ métier n'est utilisé.
 - Le type-check frontend de main reste en place. Les caches GitHub Actions v4 et
   le contrôle PHPStan global de la CI sont conservés.
 
-## Qualification effectuée sur la base portée
+## Qualification initiale sur la base portée — 14 septembre 2026
 
 | Contrôle | Résultat |
 | --- | --- |
@@ -52,7 +77,7 @@ aussi bien sur un que sur trois événements. Les deux tests restent bloquants d
 la CI. INSERT, interdictions SQL/ORM UPDATE/DELETE, concurrence avec/sans premier
 événement, rollback et refus d'isolation incompatible passent.
 
-**P0-06 reste BLOCKED** jusqu'à décision et validation de la compatibilité JSONB.
+À cette date, **P0-06 était BLOCKED** jusqu'à décision et validation JSONB.
 Aucun hash, payload ou timestamp historique n'a été réécrit. Les rapports initiaux
 `architecture-evolution.md`, `plant-event-integration.md` et les preuves p0-05/p0-06
 sont conservés comme instantanés de `58081ea` ; leurs anciennes versions/chiffres
