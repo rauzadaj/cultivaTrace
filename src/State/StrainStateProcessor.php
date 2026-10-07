@@ -16,8 +16,14 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * @implements ProcessorInterface<Strain, Strain|null>
+ */
 final class StrainStateProcessor implements ProcessorInterface
 {
+    /**
+     * @param ProcessorInterface<Strain, Strain|null> $persistProcessor
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,

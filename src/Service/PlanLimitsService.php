@@ -145,6 +145,8 @@ class PlanLimitsService
 
     /**
      * Returns the current limits for the organization.
+     *
+     * @return array<string, mixed>
      */
     public function getLimits(Organization $org): array
     {

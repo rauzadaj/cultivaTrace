@@ -41,10 +41,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'sensor')]
 #[ApiResource(operations: [
     new GetCollection(
-        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')"
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API') or is_granted('ROLE_VIEWER')"
     ),
     new Get(
-        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API')) and is_granted('TENANT_ACCESS', object)"
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_API') or is_granted('ROLE_VIEWER')) and is_granted('TENANT_ACCESS', object)"
     ),
     new Post(
         processor: SensorStateProcessor::class,
@@ -56,6 +56,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         securityPostDenormalize: "is_granted('ROLE_SUPER_ADMIN') or is_granted('TENANT_ACCESS', object)"
     ),
     new Delete(
+        processor: SensorStateProcessor::class,
         security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN')) and is_granted('TENANT_ACCESS', object)"
     ),
 ])]
@@ -110,6 +111,7 @@ class Sensor
     /**
      * Seuils d'alerte — voir format dans le docblock de la classe
      */
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $thresholds = null;
 
@@ -149,6 +151,8 @@ class Sensor
     public function setStatus(string $s): self { $this->status = $s; return $this; }
     public function getLastSeen(): ?\DateTimeImmutable { return $this->lastSeen; }
     public function setLastSeen(?\DateTimeImmutable $d): self { $this->lastSeen = $d; return $this; }
+    /** @return array<string, mixed>|null */
     public function getThresholds(): ?array { return $this->thresholds; }
+    /** @param array<string, mixed>|null $t */
     public function setThresholds(?array $t): self { $this->thresholds = $t; return $this; }
 }

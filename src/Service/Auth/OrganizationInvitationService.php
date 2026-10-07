@@ -29,6 +29,9 @@ final readonly class OrganizationInvitationService
     ) {
     }
 
+    /**
+     * @param list<string> $roles
+     */
     public function issueInvitation(
         Organization $organization,
         User $invitedBy,

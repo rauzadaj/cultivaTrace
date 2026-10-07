@@ -21,6 +21,17 @@ Recommended action:
 
 ### P1 - Legacy API resources are still exposed
 
+> **✅ Resolved (2026-05-29).** `Plot` and `CropActivity` no longer exist: the
+> entity classes are gone from `src/Entity`, no `#[ApiResource]` references them,
+> and no code, test, fixture or frontend call targets `/api/plots` or
+> `/api/crop_activities`. Their tables were dropped, and migration
+> `Version20260403093000` defensively runs `DROP TABLE IF EXISTS crop_activity`
+> / `plot` so older environments converge to the same clean schema. The `Crop`
+> batch aggregate under `src/Domain/Cultivation/Model/Crop.php` is a pure domain
+> model with **no** API exposure, intentionally deferred (see
+> `src/Domain/Cultivation/DEFERRED.md`) — it is not a legacy leak. No further
+> action required; this section is retained for historical traceability.
+
 `Plot` and `CropActivity` remain exposed as API resources even though the active codebase now follows a Domain/Application/Infrastructure split elsewhere.
 
 Impact:
@@ -32,6 +43,14 @@ Recommended action:
 - Clean associated persistence and documentation drift.
 
 ### P1 - Application startup depends on an external catalog source
+
+> **✅ Resolved.** The production entrypoint (`docker-entrypoint.sh`) and the
+> dev bootstrap (`docker/app/entrypoint.sh`) only wait for the database, run
+> Doctrine migrations and (dev/test only) the idempotent demo seed — neither
+> touches the seed catalog. Catalog synchronization is an explicit, standalone
+> command (`app:sync-seed-catalog`) invoked by no startup path, and a readiness
+> endpoint (`GET /api/health`, returning `status`/`ready`/`db`) plus Docker
+> healthchecks gate traffic on schema/DB readiness, not on catalog availability.
 
 Local bootstrap still relies on vendor catalog synchronization during environment preparation.
 
@@ -45,7 +64,20 @@ Recommended action:
 
 ### P2 - External seed catalog and internal genetics are conflated
 
-Vendor catalog entries are synchronized directly into the internal `Genetic` repository.
+> **Mostly addressed (structural split done; mapping workflow dormant).** The
+> bounded contexts now exist: `app:sync-seed-catalog` writes only to
+> `ExternalCatalogEntry` (supplier snapshot: source provider/URL, raw metadata,
+> ingestion timestamps) — never to `Genetic` — and a data migration
+> (`Version20260403160000`) evacuated legacy supplier rows out of `genetic`.
+> `Genetic` is unexposed (`operations: []`) so supplier data can no longer be
+> edited as internal master data, and `GeneticCatalogMapping` (status + reviewer
+> metadata) is defined with admin-only writes. The mapping layer is now driven
+> by `CatalogMappingService` (`app:catalog:propose-mappings`): it proposes
+> `pending` links by normalized code/name match — never mutating `Genetic` — and
+> exposes `approve()` / `reject()` review actions that record reviewer +
+> timestamp, covered by integration tests. **Remaining gap (UI only):** no
+> admin review screen in the Vue frontend yet; reviewers act via the API /
+> command. Deferred to a dedicated frontend PR.
 
 Impact:
 - Internal and external reference data share the same CRUD surface.
@@ -63,6 +95,16 @@ Target architecture:
 
 ### P2 - Frontend refresh strategy is not scalable
 
+> **Largely addressed.** The dashboard now loads from a single aggregated
+> endpoint (`GET /api/dashboard`, `DashboardController`) instead of fetching and
+> joining raw collections client-side, and there is no timed full-refresh
+> polling on it (real-time room data uses Mercure SSE, not polling). Collections
+> expose search/order filters and accept pagination params, and API Platform now
+> enforces a hard `pagination_maximum_items_per_page: 100` cap so no client can
+> request an unbounded result set. Remaining nice-to-haves: parameterising the
+> dashboard's hard-coded spotlight/recent-event limits and trimming the
+> post-mutation full refetch — tracked but low impact.
+
 The dashboard still refreshes broad data sets on a timer rather than using targeted loading strategies.
 
 Impact:
@@ -75,7 +117,18 @@ Recommended action:
 
 ### P2 - Test coverage does not protect critical flows
 
-There are useful unit tests, but there is still no meaningful end-to-end safety net for authentication, routing, CRUD workflows, and dashboard runtime integrity.
+> **Largely addressed.** The pyramid now exists at every level: ~233 backend
+> tests across Controller/Service/Domain/Infrastructure/Security cover auth &
+> brute-force lockout, API-Platform CRUD, workflow transitions, RFC-7807 error
+> envelopes, tenant isolation and RBAC (incl. `ViewerRoleAccessTest`); the Vue
+> frontend has vitest unit tests for route guards, stores, the API 401-refresh
+> interceptor and the dashboard view; Playwright drives an E2E login →
+> navigation → plant-creation smoke plus KYB / plan-limit / billing journeys;
+> and CI (`symfony.yml`, `frontend-testing.yml`) runs all three tiers. The lone
+> placeholder assertion in `UserCheckerTest` has been replaced with an explicit
+> no-throw expectation. **Remaining (breadth, not safety-net):** more frontend
+> component tests (forms/detail views) and a few more E2E journeys
+> (harvest/destruction/journal).
 
 Impact:
 - Regressions can reach production undetected.
@@ -87,6 +140,17 @@ Recommended action:
 - Add Playwright smoke coverage for the main product journey.
 
 ### P2 - Authentication and onboarding remain demo-oriented
+
+> **Largely addressed.** Login is rate-limited (`api_auth_login`, 10/15min) and
+> backed by per-account lockout (`LoginAttemptService`); registration is
+> rate-limited (`api_register`, 5/15min) with a strong password policy
+> (`PasswordPolicy`: ≥12 chars, upper/digit/special) and mandatory email
+> verification enforced by `UserChecker`. Demo data is confined to dev/test
+> (`SeedDemoDataCommand` env guard) and the frontend login carries no prefilled
+> demo credentials. The one missing control — rate limiting on the invitation
+> acceptance endpoint (token enumeration / password brute-force) — is now closed
+> via the `api_register_invitation` limiter (5/15min) on
+> `AcceptOrganizationInvitationController`, with a regression test.
 
 The project still carries demo-centric authentication behaviors and lacks production-grade anti-abuse controls.
 
@@ -112,14 +176,18 @@ Recommended action:
 
 ## Roadmap
 
-1. Secure the API with RBAC and operation-level authorization.
-2. Remove or migrate legacy API resources.
-3. Decouple runtime bootstrap from external catalog synchronization.
-4. Split external catalog data from internal genetics.
-5. Rework dashboard data loading and scalability.
-6. Build a full testing pyramid.
-7. Harden authentication and onboarding.
-8. Rewrite project documentation as a contractual source.
+> **Status as of 2026-05-29** — items 1, 2, 3, 7 are resolved; 5, 6 are largely
+> addressed with only breadth/polish left; 4 has its structural split done but a
+> dormant mapping workflow; 8 is in progress (this pass).
+
+1. ✅ **Done** — Secure the API with RBAC and operation-level authorization (per-operation `security`, voters, custom controllers, read-only `ROLE_VIEWER`, permission matrix in README).
+2. ✅ **Done** — Remove or migrate legacy API resources (`Plot`/`CropActivity` gone from code and schema via `Version20260403093000`; `Crop` deferred and unexposed).
+3. ✅ **Done** — Decouple runtime bootstrap from external catalog synchronization (standalone `app:sync-seed-catalog`; `GET /api/health` readiness probe; Docker healthchecks).
+4. 🟢 **Largely done** — Split external catalog data from internal genetics (bounded contexts + data migration + `CatalogMappingService` propose/approve/reject done; only the admin review UI remains).
+5. 🟢 **Largely done** — Rework dashboard data loading and scalability (aggregated `/api/dashboard`, no timed polling, `pagination_maximum_items_per_page` cap).
+6. 🟢 **Largely done** — Build a full testing pyramid (backend + vitest + Playwright + CI; only frontend component/E2E breadth remains).
+7. ✅ **Done** — Harden authentication and onboarding (login/register/invitation rate limiting, password policy, mandatory email verification, demo isolated to dev/test).
+8. 🔄 **In progress** — Rewrite project documentation as a contractual source.
 
 ## Execution Prompts
 
@@ -141,6 +209,12 @@ Acceptance criteria:
 - The project documentation includes a role/permission matrix.
 
 ### 2. Legacy API cleanup
+
+> **✅ Completed.** All acceptance criteria below are met: `Plot` and
+> `CropActivity` are fully removed from the exposed API surface and the schema,
+> no dead API Platform resource remains under `src/Entity`, the documented
+> resource list (README) reflects only supported resources, and the table
+> teardown is enforced idempotently by migration `Version20260403093000`.
 
 ```text
 Audit the remaining legacy ApiResource entities in src/Entity and remove or migrate them into the current DDD architecture. Specifically assess Plot and CropActivity, remove dead endpoints, update persistence if needed, and align the public API documentation with the remaining supported resources.
@@ -234,8 +308,8 @@ Acceptance criteria:
 
 The roadmap items above are intended to map one-to-one to GitHub issues:
 
-1. Security: implement RBAC strategy on API Platform
-2. Remove legacy API surface (Plot and CropActivity)
+1. Security: implement RBAC strategy on API Platform *(in progress)*
+2. ~~Remove legacy API surface (Plot and CropActivity)~~ ✅ **Done**
 3. Decouple Docker bootstrap from seed catalog synchronization
 4. Separate external seed catalog from internal Genetic repository
 5. Optimize frontend dashboard refresh strategy

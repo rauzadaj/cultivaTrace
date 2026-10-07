@@ -157,6 +157,9 @@ class SensorReadingController extends AbstractController
         $this->licenseGuard->assertLicenseApproved($user->getOrganization());
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     private function computeVpdForRoom(Sensor $sensor, float $currentValue): ?array
     {
         $roomId   = (string) $sensor->getRoom()->getId();

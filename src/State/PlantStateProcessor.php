@@ -18,8 +18,14 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
+/**
+ * @implements ProcessorInterface<Plant, Plant|null>
+ */
 final class PlantStateProcessor implements ProcessorInterface
 {
+    /**
+     * @param ProcessorInterface<Plant, Plant|null> $persistProcessor
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,
@@ -52,11 +58,12 @@ final class PlantStateProcessor implements ProcessorInterface
 
             $organization = $user->getOrganization();
 
+            $this->licenseGuard->assertLicenseApproved($organization);
+
             $data->setTenantId($organization->getId());
 
             if (!isset($context['previous_data']) || !$context['previous_data'] instanceof Plant) {
                 $isCreate = true;
-                $this->licenseGuard->assertLicenseApproved($organization);
                 try {
                     $this->planLimits->checkPlantLimit($organization);
                 } catch (PlanLimitExceededException $exception) {
