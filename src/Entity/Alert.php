@@ -21,10 +21,10 @@ use Symfony\Component\Uid\Uuid;
 #[ApiResource(
     operations: [
         new GetCollection(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_VIEWER')"
         ),
         new Get(
-            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_VIEWER')) and is_granted('TENANT_ACCESS', object)"
         ),
     ],
     normalizationContext: ['groups' => ['alert:read']],
@@ -62,6 +62,7 @@ class Alert
     #[Groups(['alert:read'])]
     private ?string $context = null;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     #[Groups(['alert:read'])]
     private ?array $metadata = null;
@@ -97,7 +98,9 @@ class Alert
     public function setMessage(string $message): self { $this->message = $message; return $this; }
     public function getContext(): ?string { return $this->context; }
     public function setContext(?string $context): self { $this->context = $context; return $this; }
+    /** @return array<string, mixed>|null */
     public function getMetadata(): ?array { return $this->metadata; }
+    /** @param array<string, mixed>|null $metadata */
     public function setMetadata(?array $metadata): self { $this->metadata = $metadata; return $this; }
     public function getSensor(): ?Sensor { return $this->sensor; }
     public function setSensor(?Sensor $sensor): self { $this->sensor = $sensor; return $this; }

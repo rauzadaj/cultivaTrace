@@ -8,6 +8,9 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 
+/**
+ * @extends Voter<string, Plant|null>
+ */
 class PlantVoter extends Voter
 {
     public const VIEW    = 'PLANT_VIEW';
@@ -28,10 +31,10 @@ class PlantVoter extends Voter
     {
         $user = $token->getUser();
         if (!$user instanceof User) return false;
-        if ($user->getOrganization()?->isSuspended()) return false;
+        if ($user->hasOrganization() && $user->getOrganization()->isSuspended()) return false;
 
         return match ($attribute) {
-            self::VIEW    => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
+            self::VIEW    => $this->hasAnyRole($user, ['ROLE_VIEWER', 'ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             self::CREATE  => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             self::EDIT    => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
             self::HARVEST => $this->hasAnyRole($user, ['ROLE_ORG_USER', 'ROLE_ORG_ADMIN', 'ROLE_SUPER_ADMIN']),
@@ -40,6 +43,9 @@ class PlantVoter extends Voter
         };
     }
 
+    /**
+     * @param list<string> $roles
+     */
     private function hasAnyRole(User $user, array $roles): bool
     {
         foreach ($roles as $role) {

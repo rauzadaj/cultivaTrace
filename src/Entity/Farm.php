@@ -25,10 +25,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new GetCollection(
-            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+            security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_VIEWER')"
         ),
         new Get(
-            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+            security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_VIEWER')) and is_granted('TENANT_ACCESS', object)"
         ),
         new Post(
             processor: FarmStateProcessor::class,
@@ -87,6 +87,7 @@ class Farm
     #[Groups(['farm:read'])]
     private ?\DateTimeImmutable $archivedAt = null;
 
+    /** @var Collection<int, Room> */
     #[ORM\OneToMany(targetEntity: Room::class, mappedBy: 'farm')]
     private Collection $rooms;
 
@@ -110,5 +111,6 @@ class Farm
     public function getArchivedAt(): ?\DateTimeImmutable { return $this->archivedAt; }
     public function setArchivedAt(?\DateTimeImmutable $archivedAt): self { $this->archivedAt = $archivedAt; return $this; }
     public function isArchived(): bool { return $this->archivedAt !== null; }
+    /** @return Collection<int, Room> */
     public function getRooms(): Collection { return $this->rooms; }
 }

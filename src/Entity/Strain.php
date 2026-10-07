@@ -20,10 +20,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'strain')]
 #[ApiResource(operations: [
     new GetCollection(
-        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')"
+        security: "is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_VIEWER')"
     ),
     new Get(
-        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER')) and is_granted('TENANT_ACCESS', object)"
+        security: "(is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_ORG_ADMIN') or is_granted('ROLE_ORG_USER') or is_granted('ROLE_VIEWER')) and is_granted('TENANT_ACCESS', object)"
     ),
     new Post(
         processor: StrainStateProcessor::class,
@@ -88,6 +88,7 @@ class Strain
      *   "vpd_flower_min": 1.0, "vpd_flower_max": 1.5
      * }
      */
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $growParams = null;
 
@@ -112,7 +113,9 @@ class Strain
     public function setThcPercentage(?float $p): self { $this->thcPercentage = $p; return $this; }
     public function getFloweringDays(): ?int { return $this->floweringDays; }
     public function setFloweringDays(?int $d): self { $this->floweringDays = $d; return $this; }
+    /** @return array<string, mixed>|null */
     public function getGrowParams(): ?array { return $this->growParams; }
+    /** @param array<string, mixed>|null $p */
     public function setGrowParams(?array $p): self { $this->growParams = $p; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $n): self { $this->notes = $n; return $this; }

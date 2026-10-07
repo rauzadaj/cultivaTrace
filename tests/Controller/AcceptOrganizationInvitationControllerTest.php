@@ -53,4 +53,37 @@ final class AcceptOrganizationInvitationControllerTest extends ApiTestCase
         self::assertSame(['ROLE_ORG_USER'], $invitedUser->getRoles());
         self::assertNotNull($invitedUser->getEmailVerifiedAt());
     }
+
+    public function testInvitationAcceptanceIsRateLimited(): void
+    {
+        // Keep the same kernel across requests so the in-memory limiter storage
+        // (app.test.rate_limiter.storage) persists between attempts.
+        $this->client->disableReboot();
+
+        // The api_register_invitation limiter allows 5 attempts per window.
+        // Attempts with a bad token are rejected at the token stage (422) but
+        // still consume the limiter, so the 6th attempt must be throttled (429).
+        for ($attempt = 1; $attempt <= 5; ++$attempt) {
+            $this->client->jsonRequest('POST', '/api/register/invitation/accept', [
+                'token' => 'invalid-token',
+                'password' => 'StrongPass!234',
+            ]);
+            self::assertSame(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $this->client->getResponse()->getStatusCode(),
+                (string) $this->client->getResponse()->getContent(),
+            );
+        }
+
+        $this->client->jsonRequest('POST', '/api/register/invitation/accept', [
+            'token' => 'invalid-token',
+            'password' => 'StrongPass!234',
+        ]);
+
+        self::assertSame(
+            Response::HTTP_TOO_MANY_REQUESTS,
+            $this->client->getResponse()->getStatusCode(),
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
 }

@@ -1,0 +1,349 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\Console\\Application\:\:getKernel\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\Organization and App\\Entity\\Organization will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Command/SeedDemoDataCommand.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:getAttribute\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Command/SyncHealthCanadaRegistryCommand.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-list\<string\|null\> and array\{\} will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Compliance/CTLS/OfficialTemplate/CtlsTemplateProvider.php
+
+		-
+			message: '#^Parameter \#1 \$refreshToken of method App\\Service\\Auth\\RefreshTokenService\:\:revoke\(\) expects App\\Entity\\RefreshToken, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/Auth/LogoutController.php
+
+		-
+			message: '#^Instanceof between App\\Enum\\PlantStage and BackedEnum will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Controller/DashboardController.php
+
+		-
+			message: '#^Instanceof between DateTimeImmutable and DateTimeInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: src/Controller/DashboardController.php
+
+		-
+			message: '#^Dead catch \- JsonException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: src/Controller/KybController.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\:\:\$externalCode type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Catalog/Model/ExternalCatalogEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\:\:\$genetics type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Catalog/Model/ExternalCatalogEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\:\:\$imageUrl type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Catalog/Model/ExternalCatalogEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\:\:\$name type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Catalog/Model/ExternalCatalogEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\:\:\$sourceProvider type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Catalog/Model/ExternalCatalogEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\:\:\$sourceUrl type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Catalog/Model/ExternalCatalogEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\GeneticCatalogMapping\:\:\$externalCatalogEntry type mapping mismatch\: property can contain App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\|null but database expects App\\Domain\\Catalog\\Model\\ExternalCatalogEntry\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Domain/Catalog/Model/GeneticCatalogMapping.php
+
+		-
+			message: '#^Property App\\Domain\\Catalog\\Model\\GeneticCatalogMapping\:\:\$genetic type mapping mismatch\: property can contain App\\Domain\\Cultivation\\Model\\Genetic\|null but database expects App\\Domain\\Cultivation\\Model\\Genetic\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Domain/Catalog/Model/GeneticCatalogMapping.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Crop\:\:\$batchCode type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/Crop.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Crop\:\:\$displayName type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/Crop.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Crop\:\:\$genetic type mapping mismatch\: property can contain App\\Domain\\Cultivation\\Model\\Genetic\|null but database expects App\\Domain\\Cultivation\\Model\\Genetic\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Domain/Cultivation/Model/Crop.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Crop\:\:\$seededAt type mapping mismatch\: property can contain DateTimeImmutable\|null but database expects DateTimeImmutable\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/Crop.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Crop\:\:\$tenantId type mapping mismatch\: property can contain Symfony\\Component\\Uid\\Uuid\|null but database expects string\|Symfony\\Component\\Uid\\Uuid\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/Crop.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Genetic\:\:\$code type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/Genetic.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\Genetic\:\:\$name type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/Genetic.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\JournalEntry\:\:\$crop type mapping mismatch\: property can contain App\\Domain\\Cultivation\\Model\\Crop\|null but database expects App\\Domain\\Cultivation\\Model\\Crop\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Domain/Cultivation/Model/JournalEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\JournalEntry\:\:\$occurredAt type mapping mismatch\: property can contain DateTimeImmutable\|null but database expects DateTimeImmutable\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/JournalEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Cultivation\\Model\\JournalEntry\:\:\$tenantId type mapping mismatch\: property can contain Symfony\\Component\\Uid\\Uuid\|null but database expects string\|Symfony\\Component\\Uid\\Uuid\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Cultivation/Model/JournalEntry.php
+
+		-
+			message: '#^Property App\\Domain\\Operations\\Model\\OperationalService\:\:\$category type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Operations/Model/OperationalService.php
+
+		-
+			message: '#^Property App\\Domain\\Operations\\Model\\OperationalService\:\:\$description type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Operations/Model/OperationalService.php
+
+		-
+			message: '#^Property App\\Domain\\Operations\\Model\\OperationalService\:\:\$icon type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Operations/Model/OperationalService.php
+
+		-
+			message: '#^Property App\\Domain\\Operations\\Model\\OperationalService\:\:\$name type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Operations/Model/OperationalService.php
+
+		-
+			message: '#^Property App\\Domain\\Operations\\Model\\OperationalService\:\:\$statusLabel type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Domain/Operations/Model/OperationalService.php
+
+		-
+			message: '#^Property App\\Entity\\OrganizationInvitation\:\:\$invitedBy type mapping mismatch\: property can contain App\\Entity\\User\|null but database expects App\\Entity\\User\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Entity/OrganizationInvitation.php
+
+		-
+			message: '#^Property App\\Entity\\OrganizationInvitation\:\:\$organization type mapping mismatch\: property can contain App\\Entity\\Organization\|null but database expects App\\Entity\\Organization\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Entity/OrganizationInvitation.php
+
+		-
+			message: '#^Property App\\Entity\\User\:\:\$email type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Entity/User.php
+
+		-
+			message: '#^Property App\\Entity\\User\:\:\$organization type mapping mismatch\: property can contain App\\Entity\\Organization\|null but database expects App\\Entity\\Organization\.$#'
+			identifier: doctrine.associationType
+			count: 1
+			path: src/Entity/User.php
+
+		-
+			message: '#^Property App\\Entity\\User\:\:\$password type mapping mismatch\: property can contain string\|null but database expects string\.$#'
+			identifier: doctrine.columnType
+			count: 1
+			path: src/Entity/User.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-falsy\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Infrastructure/Catalog/Humboldt/HumboldtSeedCatalogProvider.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: src/Infrastructure/Catalog/Humboldt/HumboldtSeedCatalogProvider.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array\{\} and array\{california\: ''Named strain…'', canada\: ''Named strain…''\} will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Infrastructure/Catalog/Humboldt/HumboldtSeedCatalogProvider.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between false and DOMNodeList\<DOMElement\> will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: src/Infrastructure/Catalog/Humboldt/HumboldtSeedCatalogProvider.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>textContent" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Infrastructure/Catalog/Humboldt/HumboldtSeedCatalogProvider.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type DateTimeImmutable\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriber.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and App\\Entity\\Organization will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Infrastructure/Persistence/Doctrine/EventSubscriber/CropTenantSubscriber.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 5
+			path: src/Service/StripeService.php
+
+		-
+			message: '#^Call to an undefined method ApiPlatform\\Metadata\\Operation\:\:getMethod\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/State/FarmStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\Farm and App\\Entity\\Farm will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/FarmStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\HarvestRecord and App\\Entity\\HarvestRecord will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/HarvestRecordPatchProcessor.php
+
+		-
+			message: '#^Call to an undefined method ApiPlatform\\Metadata\\Operation\:\:getMethod\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/State/InputRecordStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\InputRecord and App\\Entity\\InputRecord will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/InputRecordStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\Plant and App\\Entity\\Plant will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/PlantStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\User and App\\Entity\\User will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/PlantStateProcessor.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between App\\Enum\\PlantStage and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/State/PlantStateProcessor.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/State/PlantStateProcessor.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/State/PlantStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\Room and App\\Entity\\Room will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/RoomStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\Sensor and App\\Entity\\Sensor will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/SensorStateProcessor.php
+
+		-
+			message: '#^Call to an undefined method ApiPlatform\\Metadata\\Operation\:\:getMethod\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: src/State/StrainStateProcessor.php
+
+		-
+			message: '#^Instanceof between App\\Entity\\Strain and App\\Entity\\Strain will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/State/StrainStateProcessor.php

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\User;
+use App\Service\Export\SpreadsheetCell;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,11 +34,19 @@ class CTSReportController extends AbstractController
         private readonly EntityManagerInterface $em,
     ) {}
 
-    public function __invoke(Request $request, #[CurrentUser] $user): Response
+    public function __invoke(Request $request, #[CurrentUser] ?User $user): Response
     {
+        // Compliance exports expose tenant-wide regulatory data; restrict to
+        // organization admins, consistent with /api/reporting/* and ReportExport.
+        $this->denyAccessUnlessGranted('ROLE_ORG_ADMIN');
+
+        if (!$user instanceof User || !$user->hasOrganization()) {
+            throw $this->createAccessDeniedException('Authenticated organization admin required.');
+        }
+
         $month = $request->query->get('month', date('Y-m'));
 
-        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        if (!preg_match('/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/D', $month)) {
             return $this->json(
                 ['error' => 'Invalid format. Use YYYY-MM'],
                 Response::HTTP_BAD_REQUEST
@@ -50,7 +60,7 @@ class CTSReportController extends AbstractController
 
         $plants = $this->fetchPlantsForPeriod($tenantId, $startDate, $endDate);
 
-        $response = new StreamedResponse(function () use ($plants, $month) {
+        $response = new StreamedResponse(function () use ($plants) {
             $handle = fopen('php://output', 'w');
 
             // UTF-8 BOM for Excel
@@ -88,6 +98,9 @@ class CTSReportController extends AbstractController
         return $response;
     }
 
+    /**
+     * @return list<list<float|int|string|null>>
+     */
     private function fetchPlantsForPeriod(\Symfony\Component\Uid\Uuid $tenantId, \DateTimeImmutable $start, \DateTimeImmutable $end): array
     {
         $period = $start->format('Y-m');
@@ -112,12 +125,12 @@ class CTSReportController extends AbstractController
             $rows[]  = [
                 $period,
                 substr((string) $plant->getId(), 0, 8),
-                $plant->getStrain()?->getName() ?? 'N/A',
-                $plant->getStrain()?->getCannabisType() ?? 'marijuana',
+                SpreadsheetCell::text($plant->getStrain()?->getName() ?? 'N/A'),
+                SpreadsheetCell::text($plant->getStrain()?->getCannabisType() ?? 'marijuana'),
                 $plant->getStage()->value,
                 $plant->getStatus()->value,
                 $plant->getGerminatedAt()->format('Y-m-d'),
-                $plant->getRoom()->getName(),
+                SpreadsheetCell::text($plant->getRoom()->getName()),
                 $harvest?->getHarvestedAt()->format('Y-m-d') ?? '',
                 $harvest?->getGrossWeightG() ?? '',
                 $harvest?->getNetWeightG() ?? '',

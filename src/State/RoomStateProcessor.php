@@ -16,8 +16,14 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
+/**
+ * @implements ProcessorInterface<Room, Room|null>
+ */
 final class RoomStateProcessor implements ProcessorInterface
 {
+    /**
+     * @param ProcessorInterface<Room, Room|null> $persistProcessor
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,
@@ -43,8 +49,9 @@ final class RoomStateProcessor implements ProcessorInterface
 
             $organization = $user->getOrganization();
 
+            $this->licenseGuard->assertLicenseApproved($organization);
+
             if (!isset($context['previous_data'])) {
-                $this->licenseGuard->assertLicenseApproved($organization);
                 try {
                     $this->planLimits->checkRoomLimit($organization);
                 } catch (PlanLimitExceededException $exception) {

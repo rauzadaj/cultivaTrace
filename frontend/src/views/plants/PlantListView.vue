@@ -144,7 +144,7 @@ const createPlantOpen = ref(false)
 const modeOptions = [
   { label: 'Liste', value: 'list' },
   { label: 'Grille', value: 'grid' },
-] as const
+]
 
 const stageFilters = [
   { id: 'all', label: 'Tous', value: 'all' },

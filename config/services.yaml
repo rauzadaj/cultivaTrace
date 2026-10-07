@@ -75,7 +75,6 @@ services:
 
     App\Service\KybService:
         arguments:
-            $appEnv: '%kernel.environment%'
             $metrcApiKey: '%env(KYB_METRC_API_KEY)%'
             $alertFromEmail: '%env(KYB_ALERT_FROM_EMAIL)%'
             $adminReviewEmail: '%env(KYB_ADMIN_REVIEW_EMAIL)%'
@@ -91,6 +90,10 @@ services:
     App\Infrastructure\Http\Controller\RegisterOrganizationController:
         arguments:
             $registerRateLimiter: '@limiter.api_register'
+
+    App\Infrastructure\Http\Controller\AcceptOrganizationInvitationController:
+        arguments:
+            $invitationAcceptRateLimiter: '@limiter.api_register_invitation'
 
     App\Infrastructure\Http\EventSubscriber\ApiRateLimitSubscriber:
         arguments:

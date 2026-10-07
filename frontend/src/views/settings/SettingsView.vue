@@ -193,9 +193,6 @@ async function saveSettings() {
             name: data.name,
             plan: data.plan,
             licenseStatus: data.licenseStatus,
-            contactEmail: data.contactEmail ?? undefined,
-            config: data.config,
-            country: data.country,
           },
         }
       : auth.user
