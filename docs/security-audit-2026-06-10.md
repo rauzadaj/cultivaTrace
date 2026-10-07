@@ -16,7 +16,7 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 |---|---|
 | Critique | 0 |
 | Élevée | 3 |
-| Moyenne | 9 |
+| Moyenne | 8 |
 | Faible | 7 |
 
 ---
@@ -50,13 +50,17 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 ## Sévérité moyenne
 
 ### M1 — Injection de formules CSV dans les exports
-`src/Service/ReportingExportService.php:174-194`, `src/Compliance/CTLS/Export/CtlsCsvExporter.php:19-37` — les cellules (notes, rfidTag, eventType…) ne sont pas neutralisées si elles commencent par `=`, `+`, `-`, `@`, `\t`. Préfixer ces valeurs d'une apostrophe avant `fputcsv()`.
+- **Fichiers :** `src/Service/ReportingExportService.php:174-194`, `src/Compliance/CTLS/Export/CtlsCsvExporter.php:19-37`, `src/Controller/CTSReportController.php:87-88,124-132`.
+- Les cellules contrôlées par le tenant (notes, rfidTag, eventType, noms de variétés et de salles…) ne sont pas neutralisées si elles commencent par `=`, `+`, `-`, `@`, `\t`. L'export CSV accessible via `GET /api/compliance/ctsreport` écrit notamment les noms de variétés et de salles directement dans `fputcsv()` ; il est donc lui aussi concerné.
+- **Correctif :** neutraliser ces valeurs avant `fputcsv()` dans les trois chemins d'export, avec une fonction commune préfixant les cellules dangereuses d'une apostrophe. Couvrir les trois exports par des tests de non-régression, dont des noms de variétés et de salles commençant par les préfixes dangereux dans le rapport CTS.
 
 ### M2 — `LicenseDocument` exposé sans groupes de sérialisation
 `src/Entity/LicenseDocument.php` — l'`#[ApiResource]` ne définit pas de `normalizationContext` ; tous les champs sont sérialisés, y compris `filePath` (détails d'infrastructure) et `rejectionReason` (notes internes). Ajouter des `#[Groups]` et un contexte de normalisation.
 
-### M3 — Pas de rate limiting sur l'upload KYB
-`src/Controller/KybController.php:38-96` — taille (10 Mo) et MIME validés, mais aucune limite de fréquence : épuisement disque et consommation des quotas d'API de vérification (METRC / Santé Canada) possibles. Ajouter un limiteur dédié (ex. 5 uploads/heure).
+### M3 — Constat retiré : rate limiting KYB déjà présent
+- **Fichiers :** `src/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriber.php:47-60,64-105`, `config/packages/rate_limiter.yaml:19-22,35-38`, `src/Controller/KybController.php:38-96`.
+- `POST /api/kyb/upload` est soumis au limiteur dédié `api_kyb_write` : **30 requêtes par fenêtre fixe de 15 minutes et par IP**, quota partagé avec les validations administratives KYB. Les requêtes acceptées restent soumises au limiteur global `api_global` : **300 requêtes par minute et par IP**, en fenêtre glissante. Un dépassement renvoie HTTP 429 avant l'exécution du contrôleur ; les tests existants couvrent le rejet d'un upload lorsque le quota dédié est épuisé (`tests/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriberTest.php:20-55,113-114`).
+- **Évaluation complémentaire :** avec des fichiers de 10 Mo maximum, le quota dédié autorise théoriquement jusqu'à 300 Mo téléversés par fenêtre et par IP. Évaluer ce seuil au regard du stockage disponible et des quotas des services de vérification, puis envisager un seuil plus bas ou des quotas par organisation/volume si nécessaire. Cette évaluation ne constitue pas une vulnérabilité confirmée ; M3 est retiré du décompte des constats de sévérité moyenne.
 
 ### M4 — Comparaisons d'UUID non strictes dans les state processors
 `src/State/FarmStateProcessor.php:62,87`, `SensorStateProcessor.php:54`, `StrainStateProcessor.php:57`, `InputRecordStateProcessor.php:53,58` — usage de `!=` sur des objets Uuid. Fonctionnel aujourd'hui, mais fragile ; utiliser `->equals()` ou comparer les chaînes avec `!==`.
@@ -96,7 +100,7 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 - **Tokens** : `random_bytes(32)` (256 bits), hachage SHA-256 + `hash_equals`, rotation des refresh tokens avec invalidation du cache, révocation de toutes les sessions au changement de mot de passe, TTL JWT 15 min, clés RSA 4096 protégées par passphrase et jamais commitées.
 - **Anti-brute force** : verrouillage 5 échecs / 15 min par e-mail + rate limiter sur `/api/auth/login` ; messages d'erreur de login génériques.
 - **Injections** : 100 % du SQL paramétré (aucune concaténation trouvée), aucun `unserialize()`/`eval`, pas de `|raw` Twig sur données utilisateur, Gotenberg n'accepte jamais d'URL utilisateur (pas de SSRF).
-- **Uploads KYB** : MIME vérifié par `finfo` (contenu réel), 10 Mo max, anti path-traversal par `realpath()` + détection de symlinks dans `ArtifactStorage`.
+- **Uploads KYB** : MIME vérifié par `finfo` (contenu réel), 10 Mo max, anti path-traversal par `realpath()` + détection de symlinks dans `ArtifactStorage`, limiteur dédié `api_kyb_write` (30 requêtes / 15 min / IP) complété par le limiteur global (300 requêtes / min / IP).
 - **Stripe** : signature de webhook vérifiée via `Webhook::constructEvent`.
 - **En-têtes de sécurité** (côté Symfony) : CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, HSTS 1 an, `Permissions-Policy` restrictive — avec tests.
 - **Divers** : pagination plafonnée à 100, erreurs 500 génériques en prod, validation des variables d'environnement requises au démarrage en prod, dépendances de sécurité à jour (lexik/jwt 3.2, stripe-php 19.4).
@@ -110,10 +114,10 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 | 1 | Ajouter `userId` au JWT d'inscription + rendre `JwtDecodedSubscriber` fail-closed | H1 |
 | 1 | Supprimer le `LogoutController` mort de `src/Controller/Auth/` | H2 |
 | 1 | Message générique sur l'acceptation d'invitation | H3 |
-| 2 | Neutraliser les formules dans les exports CSV | M1 |
+| 2 | Neutraliser les formules dans les trois exports CSV : `ReportingExportService`, `CtlsCsvExporter` et `CTSReportController` (`/api/compliance/ctsreport`) | M1 |
 | 2 | `#[Groups]` sur `LicenseDocument` | M2 |
-| 2 | Rate limiting sur l'upload KYB | M3 |
 | 2 | Rejeter les secrets placeholder au démarrage prod | M6 |
+| 3 | Évaluer le seuil KYB existant (30 requêtes / 15 min / IP) selon le stockage et les quotas externes ; ajuster si nécessaire | M3 (durcissement à évaluer) |
 | 3 | Comparaisons UUID strictes, filtre d'archives sur les items, durcissements divers | M4, M5, M7-M9, F1-F7 |
 
 Avant ouverture publique : vérifier `KYB_ENABLE_DEV_SIMULATION=0` en production (défaut sain confirmé dans `.env.example`), et envisager un test d'intrusion externe ciblant l'isolation tenant et les flux d'authentification.
