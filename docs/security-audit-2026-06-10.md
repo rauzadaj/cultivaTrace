@@ -1,21 +1,21 @@
 # Audit de sécurité — CultivaTrace
 
-**Date :** 10 juin 2026
-**Périmètre :** backend Symfony 8 / API Platform 4 (PHP 8.4), frontend Vue/Quasar, configuration Docker/Railway, CI.
-**Méthode :** revue de code statique complète sur 4 axes — authentification & sessions, autorisation & isolation multi-tenant, injections & gestion de fichiers, secrets & infrastructure. Chaque constat majeur a été vérifié manuellement dans le code.
+**Date initiale :** 10 juin 2026. **Actualisation ciblée :** 13 octobre 2026, sur `main` à `7a03f298`.
+**Périmètre :** backend Symfony 8 / API Platform 4, frontend Vue/Quasar et configuration Docker/Railway. Les constats ci-dessous sont issus d'une revue statique ; les comportements de déploiement et les garanties réglementaires demandent une validation distincte.
+**Méthode :** revue des chemins de code cités sur quatre axes — authentification et sessions, autorisation et isolation multi-tenant, injections et gestion de fichiers, secrets et infrastructure. L'actualisation du 13 octobre vérifie les assertions et le plan d'action contre le code de `main` ; ce document ne constitue pas un test d'intrusion.
 
 ---
 
 ## Synthèse
 
-Le socle de sécurité est **solide** : isolation multi-tenant au niveau ORM, tokens correctement hachés et tournés, SQL systématiquement paramétré, uploads validés par contenu réel, en-têtes de sécurité stricts, webhook Stripe signé. Aucune vulnérabilité critique exploitable à distance n'a été identifiée.
+La revue statique confirme plusieurs protections : filtre tenant au niveau ORM, hachage et rotation des refresh tokens, contrôles des uploads KYB, en-têtes de sécurité et vérification de la signature du webhook Stripe. Aucun constat de sévérité critique n'a été établi dans le périmètre examiné.
 
-Trois constats de **sévérité élevée** méritent une correction rapide : un bypass du contrôle de révocation pour les JWT émis à l'inscription, une route de logout dupliquée masquant un contrôleur cassé, et une énumération de comptes via le flux d'invitation.
+Deux constats de **sévérité élevée** méritent une correction rapide : des JWT émis à l'inscription et au renouvellement qui échappent au contrôle de révocation du subscriber, et une différence de réponse dans le flux d'acceptation d'invitation. La route de logout résout aujourd'hui le bon contrôleur ; sa définition dupliquée expose à une régression future.
 
 | Sévérité | Nombre |
 |---|---|
 | Critique | 0 |
-| Élevée | 3 |
+| Élevée | 2 |
 | Moyenne | 8 |
 | Faible | 7 |
 
@@ -23,26 +23,19 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 
 ## Sévérité élevée
 
-### H1 — Les JWT émis à l'inscription échappent au contrôle de révocation
+### H1 — Les JWT d'inscription et de renouvellement échappent au contrôle de révocation
 
-- **Fichiers :** `src/Infrastructure/Http/Controller/RegisterOrganizationController.php:99-104`, `src/Security/JwtDecodedSubscriber.php:35-37`
-- Le JWT créé lors de l'inscription d'une organisation contient `tenantId`, `roles`, `sid`, `iat` mais **pas `userId`**, contrairement à celui émis au login (`AuthenticationSuccessHandler.php:48-54`).
-- `JwtDecodedSubscriber` est **fail-open** : si `sid`, `userId` ou `tenantId` manquent dans le payload, il `return` sans appeler `markAsInvalid()`. Les tokens d'inscription contournent donc la vérification « refresh token actif / utilisateur actif / organisation non suspendue » pendant leurs 15 minutes de validité.
+- **Fichiers :** `src/Infrastructure/Http/Controller/RegisterOrganizationController.php:99-104`, `src/Infrastructure/Http/Controller/RefreshTokenController.php:56-61`, `src/Security/JwtDecodedSubscriber.php:35-37`.
+- Les JWT créés lors de l'inscription d'une organisation **et du renouvellement** contiennent `tenantId`, `roles`, `sid`, `iat` mais pas `userId`, contrairement à celui émis au login (`AuthenticationSuccessHandler.php:48-54`).
+- `JwtDecodedSubscriber` est **fail-open** : si `sid`, `userId` ou `tenantId` manquent dans le payload, il `return` sans appeler `markAsInvalid()`. Ces JWT contournent donc son contrôle du refresh token actif pendant leurs 15 minutes de validité. `UserChecker` contrôle séparément le statut actif de l'utilisateur et la suspension de son organisation à l'authentification ; ne pas présenter ces deux contrôles comme totalement absents.
 - **Correctifs :**
-  1. Ajouter `'userId' => $user->getId()` au payload dans `RegisterOrganizationController`.
-  2. Inverser la logique du subscriber en fail-closed : si les claims attendus manquent, `markAsInvalid()` (tous les tokens légitimes les contiennent désormais).
-
-### H2 — Route `/api/auth/logout` dupliquée masquant un contrôleur cassé
-
-- **Fichiers :** `src/Controller/Auth/LogoutController.php:35`, `src/Infrastructure/Http/Controller/LogoutController.php:21`, `config/routes.yaml`
-- Deux contrôleurs déclarent la même route et le même nom `api_auth_logout`. L'import `infrastructure_controllers` étant chargé après `controllers`, la version Infrastructure (qui révoque toutes les sessions — comportement sain) écrase l'autre.
-- Le contrôleur masqué est cassé : il passe une **chaîne** à `RefreshTokenService::revoke()` qui exige une entité `RefreshToken` (`strict_types=1` → `TypeError`, donc 500 et token non révoqué). Si l'ordre d'import des routes change un jour, le logout casse silencieusement.
-- **Correctif :** supprimer `src/Controller/Auth/LogoutController.php` (code mort dangereux).
+  1. Ajouter `'userId' => $user->getId()` aux deux payloads, dans `RegisterOrganizationController` et `RefreshTokenController`.
+  2. Rendre le subscriber fail-closed pour les claims attendus, après avoir vérifié tous les chemins d'émission de JWT.
 
 ### H3 — Énumération de comptes via l'acceptation d'invitation
 
 - **Fichiers :** `src/Service/Auth/OrganizationInvitationService.php:78-85`, `src/Infrastructure/Http/Controller/AcceptOrganizationInvitationController.php:56-59`
-- Le service lève des exceptions distinctes (« Invitation is invalid or expired. » vs « An account already exists for this email address. ») et le contrôleur renvoie le message brut au client : un attaquant peut déterminer quelles adresses e-mail possèdent un compte.
+- Le service lève des exceptions distinctes (« Invitation is invalid or expired. » vs « An account already exists for this email address. ») et le contrôleur renvoie le message brut au client. Avec un jeton d'invitation valide, cette différence révèle si l'adresse invitée possède déjà un compte ; le jeton nécessaire limite la portée du constat.
 - **Correctif :** renvoyer un message générique identique pour tous les cas d'échec côté client ; journaliser le détail côté serveur.
 
 ---
@@ -50,26 +43,25 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 ## Sévérité moyenne
 
 ### M1 — Injection de formules CSV dans les exports
-- **Fichiers :** `src/Service/ReportingExportService.php:174-194`, `src/Compliance/CTLS/Export/CtlsCsvExporter.php:19-37`, `src/Controller/CTSReportController.php:87-88,124-132`.
-- Les cellules contrôlées par le tenant (notes, rfidTag, eventType, noms de variétés et de salles…) ne sont pas neutralisées si elles commencent par `=`, `+`, `-`, `@`, `\t`. L'export CSV accessible via `GET /api/compliance/ctsreport` écrit notamment les noms de variétés et de salles directement dans `fputcsv()` ; il est donc lui aussi concerné.
-- **Correctif :** neutraliser ces valeurs avant `fputcsv()` dans les trois chemins d'export, avec une fonction commune préfixant les cellules dangereuses d'une apostrophe. Couvrir les trois exports par des tests de non-régression, dont des noms de variétés et de salles commençant par les préfixes dangereux dans le rapport CTS.
+- **Chemin restant :** `src/Compliance/CTLS/Export/CtlsCsvExporter.php` écrit les valeurs de la ligne officielle avec `fputcsv()` sans neutralisation des formules. Le champ `Licence ID` provient notamment de l'option opérateur `--licence-id` de la commande `app:export:ctls`.
+- **Chemins déjà corrigés sur `main` :** `ReportingExportService` protège les champs texte du rapport d'événements avec `SpreadsheetCell::text()` ; `CTSReportController` protège les noms de variétés et de salles du rapport `GET /api/compliance/ctsreport` avec la même fonction. Ne pas compter ces deux chemins comme vulnérables sur la révision vérifiée.
+- **Correctif :** valider ou neutraliser les entrées textuelles du CSV CTLS officiel avant `fputcsv()`, avec un test sur les préfixes de formule. Une apostrophe change la valeur exportée : vérifier l'acceptation de ce format par Health Canada avant de l'appliquer à un identifiant réglementaire.
 
 ### M2 — `LicenseDocument` exposé sans groupes de sérialisation
 `src/Entity/LicenseDocument.php` — l'`#[ApiResource]` ne définit pas de `normalizationContext` ; tous les champs sont sérialisés, y compris `filePath` (détails d'infrastructure) et `rejectionReason` (notes internes). Ajouter des `#[Groups]` et un contexte de normalisation.
 
-### M3 — Constat retiré : rate limiting KYB déjà présent
-- **Fichiers :** `src/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriber.php:47-60,64-105`, `config/packages/rate_limiter.yaml:19-22,35-38`, `src/Controller/KybController.php:38-96`.
-- `POST /api/kyb/upload` est soumis au limiteur dédié `api_kyb_write` : **30 requêtes par fenêtre fixe de 15 minutes et par IP**, quota partagé avec les validations administratives KYB. Les requêtes acceptées restent soumises au limiteur global `api_global` : **300 requêtes par minute et par IP**, en fenêtre glissante. Un dépassement renvoie HTTP 429 avant l'exécution du contrôleur ; les tests existants couvrent le rejet d'un upload lorsque le quota dédié est épuisé (`tests/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriberTest.php:20-55,113-114`).
-- **Évaluation complémentaire :** avec des fichiers de 10 Mo maximum, le quota dédié autorise théoriquement jusqu'à 300 Mo téléversés par fenêtre et par IP. Évaluer ce seuil au regard du stockage disponible et des quotas des services de vérification, puis envisager un seuil plus bas ou des quotas par organisation/volume si nécessaire. Cette évaluation ne constitue pas une vulnérabilité confirmée ; M3 est retiré du décompte des constats de sévérité moyenne.
+### M10 — Route `/api/auth/logout` dupliquée, contrôleur masqué cassé
+
+- **Fichiers :** `src/Controller/Auth/LogoutController.php:35`, `src/Infrastructure/Http/Controller/LogoutController.php:21`, `config/routes.yaml`.
+- Deux contrôleurs déclarent la même route et le même nom `api_auth_logout`. `debug:router api_auth_logout --show-controllers` sur `main` à `7a03f298` résout `App\Infrastructure\Http\Controller\LogoutController`, qui révoque toutes les sessions. Ce constat est un risque de régression, pas un échec du logout actuellement résolu.
+- Le contrôleur masqué passe une **chaîne** à `RefreshTokenService::revoke()` qui exige une entité `RefreshToken` (`strict_types=1` → `TypeError`). Si le routage change, le logout peut échouer en HTTP 500.
+- **Correctif :** supprimer le contrôleur masqué `src/Controller/Auth/LogoutController.php` et conserver un test du contrôleur résolu et de la révocation.
 
 ### M4 — Comparaisons d'UUID non strictes dans les state processors
-`src/State/FarmStateProcessor.php:62,87`, `SensorStateProcessor.php:54`, `StrainStateProcessor.php:57`, `InputRecordStateProcessor.php:53,58` — usage de `!=` sur des objets Uuid. Fonctionnel aujourd'hui, mais fragile ; utiliser `->equals()` ou comparer les chaînes avec `!==`.
-
-### M5 — Filtre d'archives absent sur les opérations item
-`src/Doctrine/Extension/ArchiveFilterExtension.php:23-46` — implémente uniquement `QueryCollectionExtensionInterface` : une ferme archivée reste lisible via `GET /api/farms/{id}` (dans son tenant). Implémenter aussi `QueryItemExtensionInterface`.
+`src/State/FarmStateProcessor.php:62,87`, `SensorStateProcessor.php:56,61`, `StrainStateProcessor.php:57`, `InputRecordStateProcessor.php:53,58` — usage de `!=` sur des objets Uuid. Fonctionnel aujourd'hui, mais fragile ; utiliser `->equals()` ou comparer les chaînes avec `!==`.
 
 ### M6 — Secrets par défaut dans la configuration
-`config/packages/mercure.yaml:4` (`CONFIGURE_MERCURE_SECRET_IN_ENV`), `docker-compose.yml` (`JWT_PASSPHRASE:-changeit`, `MERCURE_JWT_SECRET:-change-me-in-local-dev`) — si la variable d'environnement manque, un secret prévisible est utilisé. `docker-entrypoint.sh` valide la présence des variables en prod (bonne mitigation), mais il faut aussi rejeter les valeurs égales aux placeholders, et réserver les fallbacks à `when@dev`.
+`config/packages/mercure.yaml:4` (`CONFIGURE_MERCURE_SECRET_IN_ENV`), `docker-compose.yml` (`JWT_PASSPHRASE:-changeit`, `MERCURE_JWT_SECRET:-change-me-in-local-dev`) — si la variable d'environnement manque, un secret prévisible est utilisé. Vérifier les valeurs effectivement injectées au déploiement et rejeter les placeholders en production ; réserver les fallbacks au développement local.
 
 ### M7 — JWT d'accès stocké en `localStorage`
 `frontend/src/services/authSession.ts` — toute XSS permet l'exfiltration du token. Le CSP strict et l'absence de `v-html` réduisent le risque ; à terme, envisager des cookies `HttpOnly` + `SameSite` pour le refresh token. À documenter comme risque accepté sinon.
@@ -82,12 +74,24 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 
 ---
 
+## Constats écartés ou dépendants d'une décision produit
+
+### M3 — Rate limiting KYB déjà présent
+- **Fichiers :** `src/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriber.php:47-60,64-105`, `config/packages/rate_limiter.yaml:19-22,35-38`, `src/Controller/KybController.php:38-96`.
+- `POST /api/kyb/upload` est soumis au limiteur dédié `api_kyb_write` : **30 requêtes par fenêtre fixe de 15 minutes et par IP**, quota partagé avec les validations administratives KYB. Les requêtes acceptées restent soumises au limiteur global `api_global` : **300 requêtes par minute et par IP**, en fenêtre glissante. Un dépassement renvoie HTTP 429 avant l'exécution du contrôleur ; les tests existants couvrent le rejet d'un upload lorsque le quota dédié est épuisé (`tests/Infrastructure/Http/EventSubscriber/ApiRateLimitSubscriberTest.php:20-55,113-114`).
+- **Évaluation complémentaire :** avec des fichiers de 10 Mo maximum, le quota dédié autorise théoriquement jusqu'à 300 Mo téléversés par fenêtre et par IP. Évaluer ce seuil au regard du stockage disponible et des quotas des services de vérification, puis envisager un seuil plus bas ou des quotas par organisation/volume si nécessaire. Ce point n'est pas une vulnérabilité confirmée et ne figure pas dans le décompte.
+
+### M5 — Lecture directe des archives : comportement documenté
+`src/Doctrine/Extension/ArchiveFilterExtension.php` exclut les archives des collections mais documente leur accès par `GET` direct ou requête administrative. Cette lecture reste dans le tenant. Décider si une ferme archivée doit devenir inaccessible même par son identifiant ; implémenter `QueryItemExtensionInterface` seulement si cette règle est retenue. Ce point ne figure pas dans le décompte.
+
+---
+
 ## Sévérité faible
 
 - **F1** — Énumération par timing sur `GET /api/auth/verify-email` (`VerifyEmailController.php:34-38`) : messages identiques (bien), mais la requête e-mail précède la vérification du token — écart de timing mesurable.
 - **F2** — Rate limiting d'inscription keyé sur l'IP uniquement (`RegisterUserController.php:39`) : contournable via proxies, pénalise les NAT partagés.
 - **F3** — Bornes de valeurs capteurs fail-open pour les types inconnus (`SensorReadingController.php:122-138`).
-- **F4** — `PlantVoter` ne vérifie pas le tenant (couvert par `TenantAwareVoter` chaîné dans toutes les opérations, mais défense en profondeur souhaitable).
+- **F4** — `PlantVoter` ne vérifie pas le tenant lui-même. Vérifier chaque point d'appel et sa protection tenant avant de s'appuyer sur ce voter seul ; l'ajout d'un contrôle dans un voter RBAC exige une validation humaine.
 - **F5** — `DestructionController` sans assertion explicite d'appartenance avant l'appel au workflow (le TenantFilter couvre le chargement de l'entité).
 - **F6** — Pas de scrubbing PII explicite dans `SentryBeforeSend` (e-mails, numéros de licence).
 - **F7** — Conteneur démarré root avant PHP-FPM (`Dockerfile`) ; pas de filesystem read-only.
@@ -96,10 +100,10 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 
 ## Points forts confirmés
 
-- **Isolation multi-tenant au niveau ORM** : `TenantFilter` Doctrine injecté sur toutes les requêtes via `TenantListener`, doublé de voters (`TenantAwareVoter`) et d'expressions `security` explicites sur chaque opération API Platform. Aucune escalade de privilèges trouvée ; l'invitation ne permet pas d'attribuer `SUPER_ADMIN`.
-- **Tokens** : `random_bytes(32)` (256 bits), hachage SHA-256 + `hash_equals`, rotation des refresh tokens avec invalidation du cache, révocation de toutes les sessions au changement de mot de passe, TTL JWT 15 min, clés RSA 4096 protégées par passphrase et jamais commitées.
+- **Isolation multi-tenant au niveau ORM** : `TenantFilter` Doctrine et `TenantListener` fournissent le filtrage transversal ; les opérations examinées utilisent aussi des contrôles d'autorisation. Aucun franchissement de tenant n'a été établi dans les chemins revus. La coexistence entre `src/Entity` et `src/Domain/Cultivation/Model` n'a pas été modifiée ni évaluée comme une migration.
+- **Tokens** : génération aléatoire des refresh tokens, hachage SHA-256 et rotation avec invalidation du cache dans les chemins examinés. Le contrôle de révocation des JWT porte toutefois la réserve H1.
 - **Anti-brute force** : verrouillage 5 échecs / 15 min par e-mail + rate limiter sur `/api/auth/login` ; messages d'erreur de login génériques.
-- **Injections** : 100 % du SQL paramétré (aucune concaténation trouvée), aucun `unserialize()`/`eval`, pas de `|raw` Twig sur données utilisateur, Gotenberg n'accepte jamais d'URL utilisateur (pas de SSRF).
+- **Injections** : les requêtes SQL examinées utilisent des paramètres. La revue statique ne permet pas d'affirmer que tous les chemins SQL ou toutes les entrées de Gotenberg sont sûrs ; le CSV CTLS conserve la réserve M1.
 - **Uploads KYB** : MIME vérifié par `finfo` (contenu réel), 10 Mo max, anti path-traversal par `realpath()` + détection de symlinks dans `ArtifactStorage`, limiteur dédié `api_kyb_write` (30 requêtes / 15 min / IP) complété par le limiteur global (300 requêtes / min / IP).
 - **Stripe** : signature de webhook vérifiée via `Webhook::constructEvent`.
 - **En-têtes de sécurité** (côté Symfony) : CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, HSTS 1 an, `Permissions-Policy` restrictive — avec tests.
@@ -111,13 +115,13 @@ Trois constats de **sévérité élevée** méritent une correction rapide : un 
 
 | Priorité | Action | Réf. |
 |---|---|---|
-| 1 | Ajouter `userId` au JWT d'inscription + rendre `JwtDecodedSubscriber` fail-closed | H1 |
-| 1 | Supprimer le `LogoutController` mort de `src/Controller/Auth/` | H2 |
+| 1 | Ajouter `userId` aux JWT d'inscription et de renouvellement, puis rendre `JwtDecodedSubscriber` fail-closed | H1 |
 | 1 | Message générique sur l'acceptation d'invitation | H3 |
-| 2 | Neutraliser les formules dans les trois exports CSV : `ReportingExportService`, `CtlsCsvExporter` et `CTSReportController` (`/api/compliance/ctsreport`) | M1 |
+| 2 | Supprimer le contrôleur de logout masqué et tester le routage et la révocation | M10 |
+| 2 | Sécuriser la sortie de `CtlsCsvExporter` et valider la compatibilité du CSV officiel avec Health Canada ; maintenir les tests des deux autres exports déjà protégés | M1 |
 | 2 | `#[Groups]` sur `LicenseDocument` | M2 |
 | 2 | Rejeter les secrets placeholder au démarrage prod | M6 |
 | 3 | Évaluer le seuil KYB existant (30 requêtes / 15 min / IP) selon le stockage et les quotas externes ; ajuster si nécessaire | M3 (durcissement à évaluer) |
-| 3 | Comparaisons UUID strictes, filtre d'archives sur les items, durcissements divers | M4, M5, M7-M9, F1-F7 |
+| 3 | Comparaisons UUID strictes et durcissements divers ; statuer sur l'accès direct aux archives avant tout changement | M4, M5 (à décider), M7-M9, F1-F7 |
 
 Avant ouverture publique : vérifier `KYB_ENABLE_DEV_SIMULATION=0` en production (défaut sain confirmé dans `.env.example`), et envisager un test d'intrusion externe ciblant l'isolation tenant et les flux d'authentification.
