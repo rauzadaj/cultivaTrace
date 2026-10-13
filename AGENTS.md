@@ -132,3 +132,16 @@ Format : feat(TICKET-ID): description courte
   avec les headers `Access-Control-Allow-*` et gestion des requêtes `OPTIONS`.
 - `nelmio/cors-bundle` n'est pas requis tant que ce reverse-proxy reste la couche
   d'exposition en environnement cible.
+
+## Orchestration Codex
+
+Pour une fonctionnalité transversale ou sensible, utiliser les agents projet
+dans cet ordre : `cultivatrace_ddd_architect`,
+`cultivatrace_symfony_developer`, puis `cultivatrace_qa` et
+`cultivatrace_security` pour les vérifications. L'agent principal tranche les
+constats et vérifie le résultat avant de conclure.
+
+Utiliser le MCP `cultivatrace` lorsqu'il est disponible pour vérifier les
+routes, mappings et workflows Symfony runtime. L'outil PHPUnit demande une
+approbation ; les opérations sensibles restent soumises aux règles ci-dessus.
+Voir `docs/codex-orchestration.md` pour la configuration et les commandes.
