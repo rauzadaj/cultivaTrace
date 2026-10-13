@@ -1,0 +1,32 @@
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+
+[mcp_servers.cultivatrace]
+command = "node"
+args = ["tools/mcp/dist/index.js"]
+cwd = "."
+startup_timeout_sec = 10
+tool_timeout_sec = 360
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_project_info]
+approval_mode = "approve"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_audit_questions]
+approval_mode = "approve"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_symfony_routes]
+approval_mode = "approve"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_doctrine_mapping]
+approval_mode = "approve"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_doctrine_entity]
+approval_mode = "approve"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_symfony_workflows]
+approval_mode = "approve"
+
+[mcp_servers.cultivatrace.tools.cultivatrace_phpstan]
+approval_mode = "approve"
