@@ -10,13 +10,13 @@
 
 La revue statique confirme plusieurs protections : filtre tenant au niveau ORM, hachage et rotation des refresh tokens, contrôles des uploads KYB, en-têtes de sécurité et vérification de la signature du webhook Stripe. Aucun constat de sévérité critique n'a été établi dans le périmètre examiné.
 
-Deux constats de **sévérité élevée** méritent une correction rapide : des JWT émis à l'inscription et au renouvellement qui échappent au contrôle de révocation du subscriber, et une différence de réponse dans le flux d'acceptation d'invitation. La route de logout résout aujourd'hui le bon contrôleur ; sa définition dupliquée expose à une régression future.
+Un constat de **sévérité élevée** mérite une correction rapide : des JWT émis à l'inscription et au renouvellement échappent au contrôle de révocation du subscriber. L'acceptation d'invitation révèle une différence de réponse après présentation d'un jeton valide ; la route de logout résout aujourd'hui le bon contrôleur, mais sa définition dupliquée expose à une régression future.
 
 | Sévérité | Nombre |
 |---|---|
 | Critique | 0 |
-| Élevée | 2 |
-| Moyenne | 8 |
+| Élevée | 1 |
+| Moyenne | 9 |
 | Faible | 7 |
 
 ---
@@ -32,12 +32,6 @@ Deux constats de **sévérité élevée** méritent une correction rapide : des 
   1. Ajouter `'userId' => $user->getId()` aux deux payloads, dans `RegisterOrganizationController` et `RefreshTokenController`.
   2. Rendre le subscriber fail-closed pour les claims attendus, après avoir vérifié tous les chemins d'émission de JWT.
 
-### H3 — Énumération de comptes via l'acceptation d'invitation
-
-- **Fichiers :** `src/Service/Auth/OrganizationInvitationService.php:78-85`, `src/Infrastructure/Http/Controller/AcceptOrganizationInvitationController.php:56-59`
-- Le service lève des exceptions distinctes (« Invitation is invalid or expired. » vs « An account already exists for this email address. ») et le contrôleur renvoie le message brut au client. Avec un jeton d'invitation valide, cette différence révèle si l'adresse invitée possède déjà un compte ; le jeton nécessaire limite la portée du constat.
-- **Correctif :** renvoyer un message générique identique pour tous les cas d'échec côté client ; journaliser le détail côté serveur.
-
 ---
 
 ## Sévérité moyenne
@@ -49,6 +43,12 @@ Deux constats de **sévérité élevée** méritent une correction rapide : des 
 
 ### M2 — `LicenseDocument` exposé sans groupes de sérialisation
 `src/Entity/LicenseDocument.php` — l'`#[ApiResource]` ne définit pas de `normalizationContext` ; tous les champs sont sérialisés, y compris `filePath` (détails d'infrastructure) et `rejectionReason` (notes internes). Ajouter des `#[Groups]` et un contexte de normalisation.
+
+### M11 — Réponses distinctes lors de l'acceptation d'invitation
+
+- **Fichiers :** `src/Service/Auth/OrganizationInvitationService.php:78-85`, `src/Infrastructure/Http/Controller/AcceptOrganizationInvitationController.php:56-59`.
+- Le service lève des exceptions distinctes (« Invitation is invalid or expired. » vs « An account already exists for this email address. ») et le contrôleur renvoie leur message au client. Pour observer la seconde réponse, il faut posséder un jeton d'invitation valide, généré avec `random_bytes(32)` et envoyé à l'adresse invitée. Cette différence révèle alors si cette adresse possède déjà un compte ; aucune fuite du jeton n'a été démontrée dans cette revue.
+- **Correctif :** renvoyer un message générique identique pour les échecs côté client ; journaliser le détail côté serveur.
 
 ### M10 — Route `/api/auth/logout` dupliquée, contrôleur masqué cassé
 
@@ -116,7 +116,7 @@ Deux constats de **sévérité élevée** méritent une correction rapide : des 
 | Priorité | Action | Réf. |
 |---|---|---|
 | 1 | Ajouter `userId` aux JWT d'inscription et de renouvellement, puis rendre `JwtDecodedSubscriber` fail-closed | H1 |
-| 1 | Message générique sur l'acceptation d'invitation | H3 |
+| 2 | Message générique sur l'acceptation d'invitation | M11 |
 | 2 | Supprimer le contrôleur de logout masqué et tester le routage et la révocation | M10 |
 | 2 | Sécuriser la sortie de `CtlsCsvExporter` et valider la compatibilité du CSV officiel avec Health Canada ; maintenir les tests des deux autres exports déjà protégés | M1 |
 | 2 | `#[Groups]` sur `LicenseDocument` | M2 |
