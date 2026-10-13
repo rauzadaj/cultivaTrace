@@ -1,0 +1,16 @@
+title = "CultivaTrace secret detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "cultivatrace-local-env"
+description = "Local environment files must never be committed"
+path = '''(^|/)\.env(?:$|\.local$|\.[^/]+\.local$)'''
+regex = '''(?m)^.+$'''
+
+[[rules]]
+id = "cultivatrace-generated-secret"
+description = "Generated Symfony secrets and JWT passphrases must stay outside Git"
+regex = '''(?i)\b(?:APP_SECRET|JWT_PASSPHRASE)\b[^\r\n]{0,32}?["'=:\s]([a-f0-9]{32,})\b'''
+secretGroup = 1
