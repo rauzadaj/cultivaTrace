@@ -10,13 +10,13 @@
 
 La revue statique confirme plusieurs protections : filtre tenant au niveau ORM, hachage et rotation des refresh tokens, contrôles des uploads KYB, en-têtes de sécurité et vérification de la signature du webhook Stripe. Aucun constat de sévérité critique n'a été établi dans le périmètre examiné.
 
-Un constat de **sévérité élevée** mérite une correction rapide : des JWT émis à l'inscription et au renouvellement échappent au contrôle de révocation du subscriber. L'acceptation d'invitation révèle une différence de réponse après présentation d'un jeton valide ; la route de logout résout aujourd'hui le bon contrôleur, mais sa définition dupliquée expose à une régression future.
+Deux constats de **sévérité élevée** méritent une correction rapide : des JWT émis à l'inscription et au renouvellement échappent au contrôle de révocation du subscriber ; les événements Stripe modifient le statut de licence KYB, avec un risque de réactivation d'une suspension réglementaire et de blocage de la régularisation du paiement. L'acceptation d'invitation révèle une différence de réponse après présentation d'un jeton valide ; la route de logout résout aujourd'hui le bon contrôleur, mais sa définition dupliquée expose à une régression future.
 
 | Sévérité | Nombre |
 |---|---|
 | Critique | 0 |
-| Élevée | 1 |
-| Moyenne | 9 |
+| Élevée | 2 |
+| Moyenne | 8 |
 | Faible | 7 |
 
 ---
@@ -31,6 +31,17 @@ Un constat de **sévérité élevée** mérite une correction rapide : des JWT �
 - **Correctifs :**
   1. Ajouter `'userId' => $user->getId()` aux deux payloads, dans `RegisterOrganizationController` et `RefreshTokenController`.
   2. Rendre le subscriber fail-closed pour les claims attendus, après avoir vérifié tous les chemins d'émission de JWT.
+
+---
+
+### H2 — Les événements Stripe confondent suspension de facturation et suspension KYB
+
+- **Fichiers :** `src/Service/StripeService.php:272-347`, `src/Security/UserChecker.php:26-27`, `config/packages/security.yaml`.
+- `customer.subscription.deleted` passe `licenseStatus` à `SUSPENDED`. `UserChecker` rejette ensuite l'authentification d'un utilisateur dont l'organisation est suspendue ; les routes de facturation authentifiées peuvent ainsi devenir inaccessibles pour régulariser le paiement.
+- À l'inverse, `invoice.payment_succeeded` remet une organisation `SUSPENDED` à `ACTIVE` après synchronisation, sans distinguer le motif réglementaire du motif de facturation. Un paiement peut donc lever une suspension KYB sans décision de conformité.
+- **Correctif à définir dans [#262](https://github.com/rauzadaj/cultivaTrace/issues/262) :** consigner dans `AUDIT_QUESTIONS.md` la séparation entre état de facturation et état de licence, puis définir une récupération de paiement qui respecte les restrictions KYB. Un paiement ne doit jamais approuver une licence ou lever une suspension réglementaire. Conserver la vérification de signature, la réponse HTTP 200 du webhook et les limites serveur.
+- **Qualification attendue :** couvrir annulation et paiement réussi dans les deux ordres, doublons et échecs intermédiaires ; une licence suspendue pour conformité reste suspendue après paiement et la régularisation de facturation reste accessible par le parcours autorisé.
+- **Origine :** [retour P1 après fusion de la PR #291](https://github.com/rauzadaj/cultivaTrace/pull/291#discussion_r4253901683), vérifié contre les chemins ci-dessus.
 
 ---
 
@@ -66,9 +77,6 @@ Un constat de **sévérité élevée** mérite une correction rapide : des JWT �
 ### M7 — JWT d'accès stocké en `localStorage`
 `frontend/src/services/authSession.ts` — toute XSS permet l'exfiltration du token. Le CSP strict et l'absence de `v-html` réduisent le risque ; à terme, envisager des cookies `HttpOnly` + `SameSite` pour le refresh token. À documenter comme risque accepté sinon.
 
-### M8 — Topics Mercure scopés au tenant, pas au rôle
-`src/Service/MercureService.php:60-80`, `src/Controller/MercureTokenController.php:37-39` — l'abonnement couvre `/tenants/{id}/*` : un `ROLE_VIEWER` reçoit les évènements temps réel de tout le tenant, sans granularité salle/plante. Contenu dans le tenant, mais à affiner si des restrictions par rôle sont attendues.
-
 ### M9 — CSP nginx avec `style-src 'unsafe-inline'`
 `docker/nginx/default.conf:11`, `docker/nginx/railway.conf.template:16` — affaiblit la CSP côté frontend. Passer à des nonces ou des feuilles externes. Vérifier aussi `trusted_proxies` (`config/packages/framework.yaml:6`) en déploiement derrière proxy.
 
@@ -83,6 +91,16 @@ Un constat de **sévérité élevée** mérite une correction rapide : des JWT �
 
 ### M5 — Lecture directe des archives : comportement documenté
 `src/Doctrine/Extension/ArchiveFilterExtension.php` exclut les archives des collections mais documente leur accès par `GET` direct ou requête administrative. Cette lecture reste dans le tenant. Décider si une ferme archivée doit devenir inaccessible même par son identifiant ; implémenter `QueryItemExtensionInterface` seulement si cette règle est retenue. Ce point ne figure pas dans le décompte.
+
+---
+
+### M8 — Granularité Mercure par salle ou plante : décision produit
+
+- **Fichiers :** `config/packages/security.yaml:3-8`, `src/Service/MercureService.php`, `src/Controller/MercureTokenController.php:37-39`.
+- L'abonnement couvre `/tenants/{id}/*`, où l'identifiant provient de l'organisation de l'utilisateur authentifié. La hiérarchie actuelle définit `ROLE_VIEWER` comme le niveau de lecture de l'ensemble du tenant ; aucun périmètre de rôle par salle ou plante n'est défini par ce modèle.
+- Cette granularité est conforme au modèle actuel et ne constitue pas une vulnérabilité confirmée. Elle est exclue du décompte. Une restriction future par salle ou plante demande une décision produit et une validation des changements RBAC.
+- Maintenir séparément les tests d'isolation entre tenants prévus dans [#260](https://github.com/rauzadaj/cultivaTrace/issues/260) : l'accès aux topics d'un autre tenant doit être refusé.
+- **Origine :** [retour P2 après fusion de la PR #291](https://github.com/rauzadaj/cultivaTrace/pull/291#discussion_r4253901686).
 
 ---
 
@@ -105,7 +123,7 @@ Un constat de **sévérité élevée** mérite une correction rapide : des JWT �
 - **Anti-brute force** : verrouillage 5 échecs / 15 min par e-mail + rate limiter sur `/api/auth/login` ; messages d'erreur de login génériques.
 - **Injections** : les requêtes SQL examinées utilisent des paramètres. La revue statique ne permet pas d'affirmer que tous les chemins SQL ou toutes les entrées de Gotenberg sont sûrs ; le CSV CTLS conserve la réserve M1.
 - **Uploads KYB** : MIME vérifié par `finfo` (contenu réel), 10 Mo max, anti path-traversal par `realpath()` + détection de symlinks dans `ArtifactStorage`, limiteur dédié `api_kyb_write` (30 requêtes / 15 min / IP) complété par le limiteur global (300 requêtes / min / IP).
-- **Stripe** : signature de webhook vérifiée via `Webhook::constructEvent`.
+- **Stripe** : signature de webhook vérifiée via `Webhook::constructEvent`. La séparation entre facturation et licence KYB conserve la réserve H2.
 - **En-têtes de sécurité** (côté Symfony) : CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, HSTS 1 an, `Permissions-Policy` restrictive — avec tests.
 - **Divers** : pagination plafonnée à 100, erreurs 500 génériques en prod, validation des variables d'environnement requises au démarrage en prod, dépendances de sécurité à jour (lexik/jwt 3.2, stripe-php 19.4).
 
@@ -116,12 +134,13 @@ Un constat de **sévérité élevée** mérite une correction rapide : des JWT �
 | Priorité | Action | Réf. |
 |---|---|---|
 | 1 | Ajouter `userId` aux JWT d'inscription et de renouvellement, puis rendre `JwtDecodedSubscriber` fail-closed | H1 |
+| 1 | Documenter puis corriger la collision facturation/KYB dans #262 ; préserver la suspension réglementaire et le parcours autorisé de régularisation | H2 |
 | 2 | Message générique sur l'acceptation d'invitation | M11 |
 | 2 | Supprimer le contrôleur de logout masqué et tester le routage et la révocation | M10 |
 | 2 | Sécuriser la sortie de `CtlsCsvExporter` et valider la compatibilité du CSV officiel avec Health Canada ; maintenir les tests des deux autres exports déjà protégés | M1 |
 | 2 | `#[Groups]` sur `LicenseDocument` | M2 |
 | 2 | Rejeter les secrets placeholder au démarrage prod | M6 |
 | 3 | Évaluer le seuil KYB existant (30 requêtes / 15 min / IP) selon le stockage et les quotas externes ; ajuster si nécessaire | M3 (durcissement à évaluer) |
-| 3 | Comparaisons UUID strictes et durcissements divers ; statuer sur l'accès direct aux archives avant tout changement | M4, M5 (à décider), M7-M9, F1-F7 |
+| 3 | Comparaisons UUID strictes et durcissements divers ; statuer sur l'accès direct aux archives et une éventuelle granularité Mercure avant tout changement | M4, M5 et M8 (à décider), M7, M9, F1-F7 |
 
 Avant ouverture publique : vérifier `KYB_ENABLE_DEV_SIMULATION=0` en production (défaut sain confirmé dans `.env.example`), et envisager un test d'intrusion externe ciblant l'isolation tenant et les flux d'authentification.
