@@ -23,6 +23,10 @@
         </div>
       </section>
     </nav>
+    <button v-if="!mobile" type="button" class="shell-navigation__collapse" :aria-label="compact ? 'Développer le menu' : 'Réduire le menu'" @click="$emit('toggle-collapse')">
+      <q-icon :name="compact ? 'mdi-chevron-right' : 'mdi-chevron-left'" size="16px" aria-hidden="true" />
+      <span v-if="!compact">Réduire le menu</span>
+    </button>
     <div class="shell-navigation__footer">
       <div v-if="mobile" class="shell-navigation__user">
         <strong>{{ userDisplayName }}</strong>
@@ -58,7 +62,7 @@ const props = withDefaults(defineProps<{
   userIdentity: string
 }>(), { compact: false, mobile: false, plan: '' })
 
-defineEmits<{ navigate: []; logout: [] }>()
+defineEmits<{ navigate: []; logout: []; 'toggle-collapse': [] }>()
 
 const governanceRoutes = new Set(['/compliance', '/billing', '/settings', '/more'])
 const groups = computed(() => [
@@ -71,6 +75,7 @@ const labels: Record<string, string> = {
   '/plants': 'Gestion des plants',
   '/rooms': 'Salles de culture',
   '/sensors': 'Capteurs & monitoring',
+  '/journal': 'Journal de Culture',
   '/reporting': 'Reporting & exports',
   '/compliance': 'Conformité',
   '/settings': 'Paramètres',
@@ -103,6 +108,9 @@ const iconAsset = (route: string) => assets[route] ? `/design/executive/1-3052/$
 .shell-navigation__icon { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
 .shell-navigation__current-dot { display: none; width: 6px; height: 6px; margin-left: auto; flex: 0 0 auto; border-radius: 50%; background: var(--ct-mint); opacity: 0.6; }
 .shell-navigation__link--active .shell-navigation__current-dot { display: block; }
+.shell-navigation__collapse { display: flex; align-items: center; justify-content: flex-start; gap: var(--ct-space-2); min-height: 40px; margin: 0 var(--ct-space-2) var(--ct-space-2); padding: 0 var(--ct-space-2); border: 0; border-radius: var(--ct-radius-md); background: transparent; color: var(--ct-muted); font: 11px/16px var(--ct-font-sans); cursor: pointer; }
+.shell-navigation__collapse:hover { background: var(--ct-surface); color: var(--ct-text); }
+.shell-navigation--compact .shell-navigation__collapse { justify-content: center; padding-inline: 0; }
 .shell-navigation__footer { padding: var(--ct-space-2) var(--ct-space-2) calc(var(--ct-space-2) + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--ct-surface) 60%, transparent); border-top: 1px solid var(--ct-border); }
 .shell-navigation__connection { display: flex; align-items: center; gap: var(--ct-space-2); padding: 9px; min-height: 44px; border: 1px solid var(--ct-border); border-radius: var(--ct-radius-md); background: var(--ct-nav); }
 .shell-navigation__status-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--ct-mint); }
