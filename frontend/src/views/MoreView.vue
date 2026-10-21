@@ -4,6 +4,7 @@
       <p class="more-view__eyebrow">Plus</p>
       <h1>Outils complementaires</h1>
       <p>Ce panneau regroupera les actions secondaires, exports et preferences operateur.</p>
+      <q-btn class="more-view__journal" flat no-caps icon="mdi-notebook-check-outline" label="Ouvrir le Journal de Culture" to="/journal" />
     </c-card>
   </div>
 </template>
@@ -18,6 +19,7 @@ import CCard from '../components/ui/CCard.vue'
 .more-view {
   min-width: 0;
 }
+.more-view__journal { margin-top: 16px; }
 
 .more-view__eyebrow {
   margin: 0 0 6px;
