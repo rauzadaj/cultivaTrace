@@ -93,6 +93,12 @@ const router = createRouter({
           meta: { roles: ORG_USER_ROLES },
         },
         {
+          path: 'journal',
+          name: 'culture-journal',
+          component: () => import('../views/JournalView.vue'),
+          meta: { roles: ORG_USER_ROLES },
+        },
+        {
           path: 'more',
           name: 'more',
           component: MoreView,
