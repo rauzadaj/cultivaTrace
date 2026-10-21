@@ -1,161 +1,49 @@
 <template>
-  <div class="dashboard-view">
-    <header class="dashboard-view__header">
-      <div>
-        <p class="dashboard-view__eyebrow">Overview</p>
-        <h1>Hello {{ firstName }}</h1>
-        <p class="dashboard-view__date">{{ todayLabel }}</p>
+  <div class="dashboard-view" :aria-busy="loading">
+    <header class="dashboard-header">
+      <div class="dashboard-header__copy">
+        <div class="dashboard-header__context">
+          <span class="dashboard-header__organization">{{ organizationName }}</span>
+          <span v-if="overview && !loadError" class="dashboard-header__snapshot">
+            <q-icon name="mdi-clock-outline" size="12px" />
+            Aperçu du {{ snapshotLabel }}
+          </span>
+        </div>
+        <h1>Tableau de bord exécutif</h1>
+        <p class="dashboard-header__description">Suivi des plants, des salles et des dernières opérations.</p>
+        <p class="dashboard-header__greeting">Bonjour {{ firstName }} <span aria-hidden="true">·</span> {{ todayLabel }}</p>
       </div>
-
-      <q-btn
-        color="primary"
-        icon="mdi-home-plus-outline"
-        label="New farm"
-        class="dashboard-view__farm-btn"
-        no-caps
-        @click="farmDialogOpen = true"
-      />
+      <div class="dashboard-header__actions">
+        <q-btn flat no-caps icon="mdi-refresh" label="Actualiser" class="dashboard-refresh" :loading="loading" @click="fetchOverview" />
+        <q-btn unelevated no-caps icon="mdi-plus" label="Nouvelle ferme" class="dashboard-farm-btn" @click="farmDialogOpen = true" />
+      </div>
     </header>
 
-    <div v-if="loading" class="dashboard-skeleton">
-      <q-skeleton v-for="index in 6" :key="index" height="132px" class="dashboard-skeleton__item" />
+    <div v-if="loadError" class="dashboard-error" role="alert">
+      <q-icon name="mdi-alert-circle-outline" size="20px" />
+      <div>
+        <strong>{{ overview ? 'Actualisation impossible' : 'Tableau de bord indisponible' }}</strong>
+        <p>{{ loadError }}</p>
+        <p v-if="overview">Les dernières données reçues sont conservées. Aperçu du {{ snapshotLabel }}.</p>
+      </div>
+      <q-btn flat no-caps label="Réessayer" :loading="loading" @click="fetchOverview" />
     </div>
 
-    <template v-else>
-      <q-pull-to-refresh v-if="isMobile" @refresh="refreshDashboard">
-        <div class="dashboard-mobile">
-          <div class="stats-scroll">
-            <div v-for="chip in statChips" :key="chip.id" class="stats-scroll__item" :class="`stats-scroll__item--${chip.tone}`">
-              <strong>{{ chip.value }}</strong>
-              <span>{{ chip.label }}</span>
-            </div>
-          </div>
-
-          <c-card>
-            <div class="section-head">
-              <div>
-                <p class="section-head__eyebrow">Active alerts</p>
-                <h2>Priority field actions</h2>
-              </div>
-            </div>
-
-            <div v-if="alerts.length" class="alert-stack">
-              <article v-for="alert in alerts" :key="alert.id" class="alert-card" :class="`alert-card--${alert.severity}`">
-                <alert-badge :severity="alert.severity">{{ alert.title }}</alert-badge>
-                <p>{{ alert.message }}</p>
-                <small v-if="alert.context">{{ alert.context }}</small>
-              </article>
-            </div>
-
-            <div v-else class="empty-state empty-state--positive">
-              <q-icon name="mdi-check-circle-outline" size="28px" />
-              <strong>No active alerts</strong>
-              <span>All monitored rooms and plants are in a stable zone.</span>
-            </div>
-          </c-card>
-
-          <section>
-            <div class="section-head">
-              <div>
-                <p class="section-head__eyebrow">Plants to watch</p>
-                <h2>Shift priorities</h2>
-              </div>
-            </div>
-
-            <div class="plant-carousel">
-              <c-card v-for="plant in spotlightPlants" :key="plant.id" class="plant-card">
-                <div class="plant-card__head">
-                  <plant-stage-chip :stage="plant.stage" />
-                  <span>{{ plant.ageInDays }} j</span>
-                </div>
-                <strong>{{ plant.name }}</strong>
-                <p>{{ plant.strain }}</p>
-                <small>{{ plant.room }}</small>
-              </c-card>
-            </div>
-          </section>
-        </div>
-      </q-pull-to-refresh>
-
-      <div v-else class="dashboard-desktop">
-        <section class="desktop-grid">
-          <c-card>
-            <div class="section-head">
-              <div>
-                <p class="section-head__eyebrow">KPIs</p>
-                <h2>Shift overview</h2>
-              </div>
-            </div>
-            <div class="kpi-grid">
-              <div v-for="chip in statChips" :key="chip.id" class="kpi-item">
-                <strong>{{ chip.value }}</strong>
-                <span>{{ chip.label }}</span>
-              </div>
-            </div>
-          </c-card>
-
-          <c-card>
-            <div class="section-head">
-              <div>
-                <p class="section-head__eyebrow">Plants by stage</p>
-                <h2>Active distribution</h2>
-              </div>
-            </div>
-            <div class="stage-chart">
-              <div v-for="bar in stageBars" :key="bar.id" class="stage-chart__row">
-                <div class="stage-chart__label">
-                  <plant-stage-chip :stage="bar.stage" />
-                  <span>{{ bar.count }}</span>
-                </div>
-                <div class="stage-chart__track">
-                  <div class="stage-chart__fill" :style="{ width: `${bar.width}%` }" />
-                </div>
-              </div>
-            </div>
-          </c-card>
-
-          <c-card>
-            <div class="section-head">
-              <div>
-                <p class="section-head__eyebrow">Alerts</p>
-                <h2>Sensors and field</h2>
-              </div>
-            </div>
-            <div v-if="alerts.length" class="alert-stack">
-              <article v-for="alert in alerts.slice(0, 4)" :key="alert.id" class="alert-card" :class="`alert-card--${alert.severity}`">
-                <alert-badge :severity="alert.severity">{{ alert.title }}</alert-badge>
-                <p>{{ alert.message }}</p>
-              </article>
-            </div>
-            <div v-else class="empty-state empty-state--positive">
-              <q-icon name="mdi-check-circle-outline" size="28px" />
-              <strong>No active alerts</strong>
-            </div>
-          </c-card>
-        </section>
-
-        <c-card class="q-mt-md">
-          <div class="section-head">
-            <div>
-              <p class="section-head__eyebrow">Recent actions</p>
-              <h2>Activity log</h2>
-            </div>
-          </div>
-          <div class="action-table">
-            <header class="action-table__head">
-              <span>Type</span>
-              <span>Context</span>
-              <span>Date</span>
-            </header>
-            <article v-for="entry in recentEvents" :key="entry.id" class="action-table__row">
-              <span>{{ entry.eventType }}</span>
-              <span>{{ entry.notes || eventContext(entry) }}</span>
-              <span>{{ formatDateTime(entry.occurredAt) }}</span>
-            </article>
-          </div>
-        </c-card>
+    <div v-if="loading && !overview" class="dashboard-skeleton" role="status" aria-label="Chargement du tableau de bord">
+      <div class="dashboard-skeleton__metrics">
+        <q-skeleton v-for="index in 4" :key="index" height="190px" class="dashboard-skeleton__item" />
       </div>
+      <q-skeleton height="180px" class="dashboard-skeleton__item" />
+      <q-skeleton height="240px" class="dashboard-skeleton__item" />
+    </div>
+
+    <template v-else-if="overview">
+      <q-pull-to-refresh v-if="isMobile" class="dashboard-mobile" @refresh="refreshDashboard">
+        <dashboard-overview-content :overview="overview" mobile />
+      </q-pull-to-refresh>
+      <dashboard-overview-content v-else :overview="overview" />
     </template>
+
     <farm-form v-model="farmDialogOpen" @created="handleFarmCreated" />
   </div>
 </template>
@@ -163,133 +51,49 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { dashboardApi } from '@/services/api'
-import type {
-  DashboardAlert,
-  DashboardOverviewResponse,
-  DashboardRecentEvent,
-  DashboardSpotlightPlant,
-  PlantStage,
-} from '@/types/api'
+import type { DashboardOverviewResponse } from '@/types/api'
 import FarmForm from '@/components/farms/FarmForm.vue'
-import AlertBadge from '../components/ui/AlertBadge.vue'
-import CCard from '../components/ui/CCard.vue'
-import PlantStageChip from '../components/ui/PlantStageChip.vue'
-import { useDisplay } from '../composables/useDisplay'
-import { useAuthStore } from '../stores/auth'
-import type { DashboardStatChip } from '../types/api'
+import DashboardOverviewContent from '@/components/dashboard/DashboardOverviewContent.vue'
+import { useDisplay } from '@/composables/useDisplay'
+import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const { xs } = useDisplay()
-
+const isMobile = computed(() => xs.value)
 const farmDialogOpen = ref(false)
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 const overview = ref<DashboardOverviewResponse | null>(null)
-const isMobile = computed(() => xs.value)
-const firstName = computed(() => {
-  const identity = authStore.user?.email || 'operator'
-
-  return identity.split(/[\s@._-]+/)[0] ?? 'operator'
+const organizationName = computed(() => overview.value?.organization.name || authStore.organization?.name || 'Vue d’ensemble')
+const firstName = computed(() => (authStore.user?.email || 'opérateur').split(/[\s@._-]+/)[0] || 'opérateur')
+const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
+const snapshotLabel = computed(() => {
+  if (!overview.value?.generatedAt) return 'date indisponible'
+  const date = new Date(overview.value.generatedAt)
+  if (Number.isNaN(date.getTime())) return 'date indisponible'
+  return date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 })
-const todayLabel = computed(() => new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' }))
-
-const alerts = computed<DashboardAlert[]>(() => {
-  const items: DashboardAlert[] = []
-
-  if (loadError.value) {
-    items.push({
-      id: 'dashboard-error',
-      title: 'Sync error',
-      message: loadError.value,
-      severity: 'critical',
-      context: 'Check connectivity and backend',
-    })
-  }
-
-  if (overview.value?.alerts.items.length) {
-    items.push(...overview.value.alerts.items)
-  }
-
-  return items
-})
-
-const statChips = computed<DashboardStatChip[]>(() => [
-  { id: 'active', label: 'Active plants', value: String(overview.value?.plants.total ?? 0), tone: 'positive' },
-  { id: 'rooms', label: 'Rooms', value: String(overview.value?.rooms.total ?? 0), tone: 'default' },
-  { id: 'alerts', label: 'Alerts', value: String(alerts.value.length), tone: alerts.value.length ? 'warning' : 'default' },
-])
-
-const spotlightPlants = computed<DashboardSpotlightPlant[]>(() => overview.value?.overview.spotlightPlants ?? [])
-const recentEvents = computed<DashboardRecentEvent[]>(() => overview.value?.overview.recentEvents ?? [])
-
-const stageBars = computed(() => {
-  const stages: Array<{ id: PlantStage; stage: PlantStage }> = [
-    { id: 'germination', stage: 'germination' },
-    { id: 'vegetation', stage: 'vegetation' },
-    { id: 'flowering', stage: 'flowering' },
-    { id: 'harvest', stage: 'harvest' },
-  ]
-  const counts = stages.map((item) => ({
-    ...item,
-    count: overview.value?.plants.byStage[item.stage] ?? 0,
-  }))
-  const maxCount = Math.max(...counts.map((item) => item.count), 1)
-
-  return counts.map((item) => ({
-    ...item,
-    width: Math.max((item.count / maxCount) * 100, item.count ? 14 : 0),
-  }))
-})
-
-function eventContext(entry: DashboardRecentEvent) {
-  if (entry.eventType === 'stage_change' && entry.payload && 'to' in entry.payload) {
-    return `Stage change to ${String(entry.payload.to)}`
-  }
-
-  if (entry.eventType === 'germination') {
-    return 'Plant started'
-  }
-
-  return 'Field event'
-}
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('en-US', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 async function fetchOverview(): Promise<void> {
   loading.value = true
   loadError.value = null
-
   try {
     const { data } = await dashboardApi.overview()
     overview.value = data
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : 'Failed to load dashboard.'
-    throw error
+    loadError.value = error instanceof Error ? error.message : 'Impossible de charger le tableau de bord.'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
-  try {
-    await fetchOverview()
-  } catch (error) {
-    console.error('Dashboard overview failed', error)
-  }
-})
+onMounted(fetchOverview)
 
-async function handleFarmCreated() {
+async function handleFarmCreated(): Promise<void> {
   await fetchOverview()
 }
 
-async function refreshDashboard(done: () => void) {
+async function refreshDashboard(done: () => void): Promise<void> {
   try {
     await fetchOverview()
   } finally {
@@ -298,63 +102,41 @@ async function refreshDashboard(done: () => void) {
 }
 </script>
 
-<style scoped lang="scss">
-@use '../css/breakpoints.sass' as bp;
-
-.dashboard-view { display: grid; gap: 20px; }
-.dashboard-view__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.dashboard-view__farm-btn { min-height: 44px; border-radius: 8px; }
-
-.dashboard-mobile { display: grid; gap: 16px; padding-bottom: 120px; min-width: 0; }
-.dashboard-view__header h1 { margin: 0; font-size: 1.875rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.035em; color: var(--ct-text-1); }
-.dashboard-view__eyebrow, .section-head__eyebrow { margin: 0 0 4px; color: var(--ct-accent); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
-.dashboard-view__date { margin: 6px 0 0; color: var(--ct-text-2); font-size: 0.875rem; }
-.dashboard-skeleton { display: grid; gap: 14px; }
-.dashboard-skeleton__item { border-radius: 14px; background: #FFFFFF; }
-.stats-scroll { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.stats-scroll__item { display: grid; gap: 6px; padding: 18px; border-radius: 14px; background: #FFFFFF; border: 1px solid var(--ct-border); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-.stats-scroll__item strong { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.04em; color: var(--ct-text-1); line-height: 1; }
-.stats-scroll__item span { font-size: 0.75rem; color: var(--ct-text-2); font-weight: 500; }
-.stats-scroll__item--warning { background: var(--ct-warning-light); border-color: #FDE68A; }
-.stats-scroll__item--warning strong { color: #92400E; }
-.section-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; margin-bottom: 16px; }
-.section-head h2 { margin: 0; font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.025em; color: var(--ct-text-1); }
-.alert-stack { display: grid; gap: 10px; }
-.alert-card { display: grid; gap: 8px; padding: 14px; border-radius: 12px; border: 1px solid; }
-.alert-card p, .alert-card small { margin: 0; }
-.alert-card p { color: var(--ct-text-2); font-size: 0.875rem; line-height: 1.5; }
-.alert-card small { color: var(--ct-text-3); font-size: 0.8rem; }
-.alert-card--warning { background: var(--ct-warning-light); border-color: #FDE68A; }
-.alert-card--critical { background: var(--ct-danger-light); border-color: #FECACA; }
-.empty-state { display: grid; justify-items: start; gap: 8px; padding: 8px 0; }
-.empty-state--positive { color: var(--ct-accent); }
-.empty-state strong { color: var(--ct-text-1); font-size: 0.9375rem; }
-.empty-state span { color: var(--ct-text-2); font-size: 0.875rem; }
-.plant-carousel { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.plant-card { display: grid; gap: 10px; }
-.plant-card strong, .plant-card p, .plant-card small { margin: 0; }
-.plant-card strong { font-size: 0.9375rem; letter-spacing: -0.015em; color: var(--ct-text-1); font-weight: 600; }
-.plant-card p, .plant-card small { color: var(--ct-text-2); font-size: 0.8125rem; }
-.plant-card__head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.plant-card__head span { color: var(--ct-text-3); font-size: 0.8125rem; }
-.dashboard-desktop { display: grid; gap: 16px; }
-.desktop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.kpi-grid { display: grid; gap: 12px; }
-.kpi-item { display: grid; gap: 6px; padding: 20px; border-radius: 12px; background: var(--ct-surface-2); border: 1px solid var(--ct-border); }
-.kpi-item strong { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.045em; color: var(--ct-text-1); line-height: 1; }
-.kpi-item span { font-size: 0.7rem; color: var(--ct-text-2); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
-.stage-chart { display: grid; gap: 16px; }
-.stage-chart__row { display: grid; gap: 8px; }
-.stage-chart__label { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.stage-chart__label span { color: var(--ct-text-3); font-size: 0.8125rem; font-weight: 500; }
-.stage-chart__track { overflow: hidden; height: 6px; border-radius: 999px; background: var(--ct-surface-3); }
-.stage-chart__fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #15803D, #22C55E); }
-.action-table { display: grid; gap: 0; }
-.action-table__head, .action-table__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 10px 0; }
-.action-table__head { color: var(--ct-text-3); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; border-bottom: 1px solid var(--ct-border); }
-.action-table__row { border-bottom: 1px solid var(--ct-border); font-size: 0.875rem; color: var(--ct-text-1); }
-.action-table__row:last-child { border-bottom: none; }
-@include bp.mobile-wide { .stats-scroll, .plant-carousel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@include bp.mobile { .dashboard-view__header h1 { font-size: 1.75rem; } }
-@include bp.desktop { .dashboard-view__header h1 { font-size: 2.25rem; } }
+<style scoped>
+.dashboard-view { display: grid; gap: var(--ct-space-6); min-width: 0; font-family: var(--ct-font-sans); color: var(--ct-text); }
+.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--ct-space-4); padding-bottom: var(--ct-space-4); }
+.dashboard-header__copy { min-width: 0; }
+.dashboard-header__context { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ct-space-2); margin-bottom: var(--ct-space-1); font-family: var(--ct-font-serif); font-size: var(--ct-text-sm); line-height: var(--ct-line-xs); }
+.dashboard-header__organization { color: var(--ct-muted); text-transform: uppercase; letter-spacing: 0.55px; overflow-wrap: anywhere; }
+.dashboard-header__snapshot { display: inline-flex; align-items: center; gap: 6px; padding: 2px var(--ct-space-2); background: var(--ct-raised); color: var(--ct-secondary); border-radius: var(--ct-radius-md); }
+.dashboard-header h1 { margin: 0; font-size: var(--ct-text-heading); font-weight: 600; line-height: var(--ct-line-heading); letter-spacing: -0.8px; }
+.dashboard-header__description { margin: var(--ct-space-1) 0 0; color: var(--ct-secondary); font-size: var(--ct-text-body); line-height: var(--ct-line-body); }
+.dashboard-header__greeting { margin: var(--ct-space-1) 0 0; color: var(--ct-muted); font-family: var(--ct-font-serif); font-size: var(--ct-text-sm); line-height: var(--ct-line-xs); }
+.dashboard-header__actions { display: flex; gap: var(--ct-space-2); align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+.dashboard-header__actions :deep(.q-btn) { min-height: 36px; border-radius: var(--ct-radius-md); font-family: var(--ct-font-sans); font-size: var(--ct-text-md); line-height: var(--ct-line-sm); padding: var(--ct-space-2) var(--ct-space-3); }
+.dashboard-header__actions :deep(.q-icon) { font-size: 16px; }
+.dashboard-refresh { color: var(--ct-text); background: var(--ct-raised); }
+.dashboard-farm-btn { background: var(--ct-primary); color: var(--ct-on-primary); font-weight: 600; }
+.dashboard-error { display: flex; align-items: flex-start; gap: var(--ct-space-3); padding: var(--ct-space-4); background: var(--ct-danger-soft); color: var(--ct-danger); border: 1px solid var(--ct-danger); border-radius: var(--ct-radius-lg); font-size: var(--ct-text-body); }
+.dashboard-error > div { flex: 1; min-width: 0; }
+.dashboard-error p { margin: var(--ct-space-1) 0 0; line-height: var(--ct-line-body); overflow-wrap: anywhere; }
+.dashboard-error :deep(.q-btn) { flex-shrink: 0; min-height: 36px; font-size: var(--ct-text-md); }
+.dashboard-skeleton { display: grid; gap: var(--ct-space-6); }
+.dashboard-skeleton__metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ct-space-4); }
+.dashboard-skeleton__item { background: var(--ct-surface); border-radius: var(--ct-radius-lg); }
+@media (max-width: 1279px) {
+  .dashboard-header { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 1199px) {
+  .dashboard-skeleton__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .dashboard-view { gap: var(--ct-space-4); }
+  .dashboard-header { padding-bottom: 0; }
+  .dashboard-header h1 { font-size: 26px; line-height: 34px; }
+  .dashboard-header__actions :deep(.q-btn), .dashboard-error :deep(.q-btn) { min-height: 44px; }
+  .dashboard-error { flex-wrap: wrap; }
+  .dashboard-error > div { min-width: 180px; }
+  .dashboard-skeleton__metrics { gap: var(--ct-space-3); }
+}
 </style>
