@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="app-shell" :class="{ 'ct-theme app-shell--executive': isExecutiveDashboard }">
+  <q-layout view="lHh Lpr lFf" class="app-shell" :class="{ 'ct-theme app-shell--executive': usesExecutiveTheme }">
     <template v-if="restrictedToKyb">
       <q-page-container class="app-page-container">
         <q-page class="app-page">
@@ -77,7 +77,7 @@
 
     <q-page-container class="app-page-container">
       <q-page class="app-page">
-        <div class="app-page__inner">
+        <div class="app-page__inner" :class="{ 'app-page__inner--journal': route.name === 'culture-journal' }">
           <RouterView />
         </div>
       </q-page>
@@ -281,7 +281,7 @@ const isMobile = computed(() => $q.screen.width < 768)
 const isTablet = computed(() => $q.screen.width >= 768 && $q.screen.width < 1024)
 const isDesktop = computed(() => $q.screen.width >= 1024)
 const isPortrait = computed(() => $q.screen.height > $q.screen.width)
-const isExecutiveDashboard = computed(() => route.name === 'dashboard-overview')
+const usesExecutiveTheme = computed(() => route.name === 'dashboard-overview' || route.name === 'culture-journal')
 const showMobileFooter = computed(() => isMobile.value && isPortrait.value)
 const showFab = computed(() => route.name === 'plants-list' || route.name === 'plant-detail')
 const drawerMini = computed(() => isTablet.value && isPortrait.value)
@@ -370,6 +370,7 @@ const mobileNavigation: readonly RoleScopedNavigationItem[] = [
 
 const desktopNavigation: readonly RoleScopedNavigationItem[] = [
   ...mobileNavigation.slice(0, 4),
+  { label: 'Journal de Culture', icon: 'mdi-notebook-check-outline', to: '/journal', roles: ORG_USER_ROLES },
   { label: 'Reporting', icon: 'mdi-file-chart-outline', to: '/reporting', roles: ORG_ADMIN_ROLES },
   { label: 'Conformite', icon: 'mdi-shield-check-outline', to: '/compliance', roles: ORG_ADMIN_ROLES },
   { label: 'Facturation', icon: 'mdi-credit-card-outline', to: '/billing', roles: ORG_ADMIN_ROLES },
@@ -385,6 +386,7 @@ const headerTitle = computed(() => {
   if (route.name === 'plant-detail') return 'Plant detail'
   if (route.name === 'rooms-dashboard') return 'Rooms'
   if (route.name === 'sensors-dashboard') return 'Sensors'
+  if (route.name === 'culture-journal') return 'Journal de Culture'
   if (route.name === 'kyb') return 'KYB'
   if (route.name === 'compliance') return 'Compliance'
   if (route.name === 'reporting') return 'Reporting'
@@ -399,6 +401,7 @@ const breadcrumb = computed(() => {
   if (route.name === 'plant-detail') return 'Plants / Detail'
   if (route.name === 'rooms-dashboard') return 'Operations / Rooms'
   if (route.name === 'sensors-dashboard') return 'Operations / Sensors'
+  if (route.name === 'culture-journal') return 'Supervision / Journal de Culture'
   if (route.name === 'kyb') return 'Compliance / KYB'
   if (route.name === 'compliance') return 'Compliance / CTS'
   if (route.name === 'reporting') return 'Reporting / Exports'
@@ -673,6 +676,10 @@ async function runConfirmedAction() {
   padding: var(--ct-space-6) var(--ct-space-6) var(--ct-space-8);
 }
 
+.app-shell--executive .app-page__inner--journal {
+  padding-top: 0;
+}
+
 .notifications-panel,
 .action-dialog {
   width: 100vw;
@@ -844,6 +851,10 @@ async function runConfirmedAction() {
 @include bp.mobile {
   .app-shell--executive .app-page__inner {
     padding: var(--ct-space-4) var(--ct-space-4) calc(var(--ct-space-8) + env(safe-area-inset-bottom));
+  }
+
+  .app-shell--executive .app-page__inner--journal {
+    padding: 0 var(--ct-space-4) calc(112px + env(safe-area-inset-bottom));
   }
 }
 </style>

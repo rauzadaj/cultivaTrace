@@ -71,6 +71,7 @@ const labels: Record<string, string> = {
   '/plants': 'Gestion des plants',
   '/rooms': 'Salles de culture',
   '/sensors': 'Capteurs & monitoring',
+  '/journal': 'Journal de Culture',
   '/reporting': 'Reporting & exports',
   '/compliance': 'Conformité',
   '/settings': 'Paramètres',
