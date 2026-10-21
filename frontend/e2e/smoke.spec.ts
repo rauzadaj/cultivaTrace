@@ -176,7 +176,7 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page).toHaveURL(/\/dashboard\/overview/)
-  await expect(page.getByText('Shift overview')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tableau de bord exécutif' })).toBeVisible()
 
   await page.getByRole('link', { name: /Plants/i }).click()
   await expect(page).toHaveURL(/\/plants/)
