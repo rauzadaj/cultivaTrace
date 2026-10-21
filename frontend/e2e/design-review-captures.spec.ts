@@ -80,7 +80,7 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
   await page.goto('/dashboard/overview')
   await expect(page).toHaveURL(/\/auth/)
   await page.getByLabel('Email').fill('demo@cultivatrace.local')
-  await page.getByLabel('Mot de passe').fill('TEST_ONLY_DEMO_PASSWORD')
+  await page.locator('input[type="password"]').fill('TEST_ONLY_DEMO_PASSWORD')
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await expect(page).toHaveURL(/\/dashboard\/overview/)
   await expect(page.locator('.dashboard-view')).toBeVisible()
