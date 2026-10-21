@@ -1,0 +1,245 @@
+/* CultivaTrace executive dashboard — Figma E97wbqzL4uMKlrrkTFWIzT, 1:2348.
+ * Keep tokens and theme adapters inside .ct-theme. Do not attach this class
+ * to AppLayout's root: other pages and teleported dialogs retain their theme.
+ * Font binaries and their OFL licences are served locally from public/fonts.
+ */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Italic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-BoldItalic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+.ct-theme {
+  --ct-bg: #101417;
+  --ct-nav: #0b0f12;
+  --ct-surface: #1c2023;
+  --ct-inset: #181c1f;
+  --ct-raised: #262a2e;
+  --ct-text: #e0e3e7;
+  --ct-secondary: #bbcabf;
+  --ct-muted: #86948a;
+  --ct-primary: #10b981;
+  --ct-on-primary: #00422b;
+  --ct-mint: #4edea3;
+  --ct-blue: #4aaaef;
+  --ct-info: #93ccff;
+  --ct-danger: #ffb4ab;
+  --ct-neutral: #bfc7d5;
+  --ct-border: rgb(60 74 66 / 30%);
+  --ct-border-strong: #3c4a42;
+  --ct-mint-soft: rgb(78 222 163 / 10%);
+  --ct-primary-soft: rgb(16 185 129 / 20%);
+  --ct-info-soft: rgb(147 204 255 / 10%);
+  --ct-danger-soft: rgb(147 0 10 / 40%);
+  --ct-neutral-soft: rgb(66 74 85 / 30%);
+  /* Warning is an existing product state absent from the Figma sample. */
+  --ct-warning: #e7c46b;
+  --ct-warning-soft: rgb(231 196 107 / 12%);
+
+  /* API lifecycle stages are retained; the palette follows Figma. */
+  --ct-stage-germination: var(--ct-blue);
+  --ct-stage-vegetation: var(--ct-primary);
+  --ct-stage-flowering: var(--ct-mint);
+  --ct-stage-harvest: #424a55;
+  --ct-stage-archived: var(--ct-muted);
+
+  --ct-font-sans: 'Geist', sans-serif;
+  --ct-font-serif: 'Liberation Serif', serif;
+  --ct-text-xs: 10px;
+  --ct-text-sm: 11px;
+  --ct-text-md: 12px;
+  --ct-text-body: 13px;
+  --ct-text-lg: 14px;
+  --ct-text-xl: 16px;
+  --ct-text-title: 18px;
+  --ct-text-heading: 32px;
+  --ct-line-xs: 14px;
+  --ct-line-sm: 16px;
+  --ct-line-body: 20px;
+  --ct-line-lg: 24px;
+  --ct-line-heading: 40px;
+  --ct-weight-normal: 400;
+  --ct-weight-medium: 500;
+  --ct-weight-semibold: 600;
+  --ct-weight-bold: 700;
+  --ct-tracking-label: 0.05em;
+  --ct-tracking-heading: -0.025em;
+
+  --ct-space-half: 2px;
+  --ct-space-1: 4px;
+  --ct-space-1-5: 6px;
+  --ct-space-2: 8px;
+  --ct-space-3: 12px;
+  --ct-space-4: 16px;
+  --ct-space-5: 20px;
+  --ct-space-6: 24px;
+  --ct-space-8: 32px;
+  --ct-space-10: 40px;
+  --ct-space-12: 48px;
+  --ct-radius-sm: 2px;
+  --ct-radius-md: 4px;
+  --ct-radius-lg: 8px;
+  --ct-radius-pill: 999px;
+  --ct-sidebar-width: 256px;
+  --ct-header-height: 56px;
+  --ct-nav-item-height: 40px;
+  --ct-control-height: 32px;
+  --ct-touch-target: 48px;
+  --ct-icon-size: 20px;
+  --ct-icon-tile-size: 36px;
+  --ct-shadow-card: 0 1px 2px rgb(0 0 0 / 5%);
+  --ct-shadow-action: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  --ct-focus-ring: 0 0 0 2px var(--ct-nav), 0 0 0 4px var(--ct-mint);
+
+  /* Quasar reads these inherited variables without changing global branding. */
+  --q-primary: var(--ct-primary);
+  --q-secondary: var(--ct-secondary);
+  --q-positive: var(--ct-mint);
+  --q-negative: var(--ct-danger);
+  --q-info: var(--ct-info);
+  --q-warning: var(--ct-warning);
+
+  color: var(--ct-text);
+  font-family: var(--ct-font-sans);
+  font-size: var(--ct-text-body);
+  line-height: var(--ct-line-body);
+  font-synthesis: none;
+  color-scheme: dark;
+}
+
+/* Existing UI components retain their props, slots, events and default styles.
+ * Only their appearance changes when they are inside an explicit theme scope.
+ */
+.ct-theme .c-card {
+  color: var(--ct-text);
+  background: var(--ct-surface);
+  border-radius: var(--ct-radius-lg);
+  padding: var(--ct-space-4);
+  box-shadow: var(--ct-shadow-card);
+}
+
+.ct-theme .c-btn {
+  min-height: var(--ct-control-height);
+  padding: var(--ct-space-2) var(--ct-space-3);
+  border-radius: var(--ct-radius-md);
+  font-family: var(--ct-font-sans);
+  font-size: var(--ct-text-md);
+  font-weight: var(--ct-weight-semibold);
+  line-height: var(--ct-line-sm);
+}
+
+.ct-theme .c-btn--primary {
+  color: var(--ct-on-primary) !important;
+  background: var(--ct-primary) !important;
+  box-shadow: var(--ct-shadow-action);
+}
+
+.ct-theme .c-btn--secondary {
+  color: var(--ct-text) !important;
+  background: var(--ct-raised) !important;
+  border-color: var(--ct-border);
+}
+
+.ct-theme .c-btn--secondary::before {
+  border-color: var(--ct-border);
+}
+
+.ct-theme .c-btn--ghost {
+  color: var(--ct-mint) !important;
+  background: transparent !important;
+}
+
+.ct-theme .c-btn--danger {
+  color: var(--ct-danger) !important;
+  background: var(--ct-danger-soft) !important;
+}
+
+.ct-theme .alert-badge {
+  gap: var(--ct-space-1-5);
+  padding: var(--ct-space-1) var(--ct-space-2);
+  border-radius: var(--ct-radius-md);
+  font-size: var(--ct-text-sm);
+  line-height: var(--ct-line-xs);
+}
+
+.ct-theme .alert-badge--healthy {
+  color: var(--ct-mint);
+  background: var(--ct-mint-soft);
+}
+
+.ct-theme .alert-badge--warning {
+  color: var(--ct-warning);
+  background: var(--ct-warning-soft);
+}
+
+.ct-theme .alert-badge--critical {
+  color: var(--ct-danger);
+  background: var(--ct-danger-soft);
+}
+
+.ct-theme .stage-chip {
+  min-height: var(--ct-line-lg);
+  padding: var(--ct-space-half) var(--ct-space-2);
+  border-radius: var(--ct-radius-md);
+  font-size: var(--ct-text-sm);
+  font-weight: var(--ct-weight-medium);
+  background: var(--ct-inset);
+}
+
+.ct-theme .stage-chip--germination { color: var(--ct-stage-germination); }
+.ct-theme .stage-chip--vegetation { color: var(--ct-stage-vegetation); }
+.ct-theme .stage-chip--flowering { color: var(--ct-stage-flowering); }
+.ct-theme .stage-chip--harvest { color: var(--ct-neutral); }
+.ct-theme .stage-chip--archived { color: var(--ct-stage-archived); }
+
+.ct-theme .q-btn:focus-visible,
+.ct-theme a:focus-visible {
+  outline: none;
+  box-shadow: var(--ct-focus-ring);
+}
+
+@media (max-width: 767px) {
+  .ct-theme .c-btn {
+    min-height: var(--ct-touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ct-theme .alert-badge--critical {
+    animation: none;
+  }
+}

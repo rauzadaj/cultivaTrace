@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="hHh Lpr lFf" class="app-shell">
+  <q-layout view="lHh Lpr lFf" class="app-shell" :class="{ 'ct-theme app-shell--executive': isExecutiveDashboard }">
     <template v-if="restrictedToKyb">
       <q-page-container class="app-page-container">
         <q-page class="app-page">
@@ -11,8 +11,8 @@
     </template>
 
     <template v-else>
-    <div v-if="!offlineState.isOnline" class="offline-banner">
-      Hors ligne — {{ offlineState.pendingCount }} actions en attente de synchronisation
+    <div v-if="!offlineState.isOnline.value" class="offline-banner">
+      Hors ligne — {{ offlineState.pendingCount.value }} actions en attente de synchronisation
     </div>
 
     <q-banner v-if="showLicenseBanner" inline-actions class="license-banner">
@@ -25,98 +25,54 @@
       </template>
     </q-banner>
 
-    <q-header class="app-header">
-      <q-toolbar class="app-header__toolbar" :class="{ 'app-header__toolbar--landscape': isMobile && isLandscape }">
-        <q-btn
-          v-if="isMobile"
-          flat
-          round
-          class="app-header__menu"
-          @click="drawerOpen = !drawerOpen"
-        >
-          <q-icon name="mdi-menu" size="22px" />
-        </q-btn>
-
-        <div class="app-header__brand" :class="{ 'app-header__brand--centered': showMobileFooter }">
-          <img src="/cultivatrace.png" alt="CultivaTrace" class="app-header__logo">
-          <div class="app-header__copy">
-            <span v-if="isMobile && isPortrait" class="app-header__kicker">{{ mobileKicker }}</span>
-            <strong>{{ headerTitle }}</strong>
-            <span v-if="!isMobile">{{ breadcrumb }}</span>
-          </div>
-        </div>
-
-        <template v-if="isDesktop">
-          <c-input class="app-header__search" dense standout="bg-white text-dark" placeholder="Recherche globale">
-            <template #prepend>
-              <q-icon name="mdi-magnify" size="18px" />
-            </template>
-          </c-input>
-        </template>
-
-        <q-space />
-
-        <q-btn v-if="showFab" flat round class="app-header__action" @click="handleFab">
-          <q-icon :name="fabIcon" size="22px" />
-        </q-btn>
-
-        <q-btn flat round class="app-header__notify" @click="openNotifications">
-          <q-icon name="mdi-bell-outline" size="22px" />
-          <q-badge v-if="alertCount > 0" color="negative" floating rounded />
-        </q-btn>
-
-        <q-btn v-if="!isMobile" flat round icon="mdi-account-circle-outline">
-          <q-menu anchor="bottom right" self="top right">
-            <q-list style="min-width: 180px">
-              <q-item>
-                <q-item-section>{{ userIdentity }}</q-item-section>
-              </q-item>
-              <q-separator />
-              <q-item clickable @click="logout">
-                <q-item-section>Logout</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
-      </q-toolbar>
+    <q-header class="app-header ct-theme" :height-hint="56">
+      <ShellHeader
+        :mobile="isMobile"
+        :title="headerTitle"
+        :breadcrumb="breadcrumb"
+        :organization-name="authStore.organization?.name || ''"
+        :user-identity="userIdentity"
+        :user-display-name="userDisplayName"
+        :user-role="userRoleLabel"
+        :online="offlineState.isOnline.value"
+        :pending-count="offlineState.pendingCount.value"
+        :alert-count="alertCount"
+        :show-action="showFab"
+        :action-icon="fabIcon"
+        :action-label="route.name === 'plant-detail' ? 'Action rapide : changer le stade' : 'Action rapide : créer un plant'"
+        @toggle-drawer="drawerOpen = !drawerOpen"
+        @action="handleFab"
+        @notifications="openNotifications"
+        @logout="logout"
+      />
     </q-header>
 
     <q-drawer
       v-model="drawerOpen"
-      :mini="drawerMini"
+      :mini="drawerMini && !drawerHover"
+      :mini-to-overlay="drawerMini"
       :width="drawerWidth"
       :mini-width="60"
       :overlay="isMobile"
       :behavior="isMobile ? 'mobile' : 'desktop'"
       bordered
-      class="app-drawer"
+      class="app-drawer ct-theme"
       :show-if-above="!isMobile"
       @mouseover="drawerHover = true"
       @mouseleave="drawerHover = false"
     >
-      <div class="app-drawer__content">
-        <nav class="app-nav">
-          <RouterLink
-            v-for="item in visibleDesktopNavigation"
-            :key="item.to"
-            :to="item.to"
-            class="app-nav__item"
-            active-class="app-nav__item--active"
-            @click="handleNavigationClick"
-          >
-            <q-icon :name="item.icon" size="22px" />
-            <span v-if="showDrawerLabels">{{ item.label }}</span>
-          </RouterLink>
-        </nav>
-
-        <div v-if="isMobile" class="app-drawer__footer">
-          <div class="app-drawer__user">
-            <strong>{{ userDisplayName }}</strong>
-            <span>{{ authStore.user?.email || 'operateur@cultivatrace.local' }}</span>
-          </div>
-          <c-btn variant="ghost" class="full-width" @click="logout">Logout</c-btn>
-        </div>
-      </div>
+      <ShellNavigation
+        :items="visibleDesktopNavigation"
+        :compact="!showDrawerLabels"
+        :mobile="isMobile"
+        :plan="authStore.organization?.plan"
+        :online="offlineState.isOnline.value"
+        :pending-count="offlineState.pendingCount.value"
+        :user-identity="userIdentity"
+        :user-display-name="userDisplayName"
+        @navigate="handleNavigationClick"
+        @logout="logout"
+      />
     </q-drawer>
 
     <q-page-container class="app-page-container">
@@ -127,7 +83,7 @@
       </q-page>
     </q-page-container>
 
-    <q-footer v-if="showMobileFooter" class="app-footer">
+    <q-footer v-if="showMobileFooter" class="app-footer ct-theme">
         <q-tabs
           dense
           indicator-color="transparent"
@@ -281,10 +237,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import CBtn from '../components/ui/CBtn.vue'
 import CInput from '../components/ui/CInput.vue'
+import ShellHeader from '../components/shell/ShellHeader.vue'
+import ShellNavigation from '../components/shell/ShellNavigation.vue'
 import { useOfflineQueue } from '../composables/useOfflineQueue'
 import { useAlertsStore } from '../stores/alerts'
 import { useAuthStore } from '../stores/auth'
@@ -323,13 +281,12 @@ const isMobile = computed(() => $q.screen.width < 768)
 const isTablet = computed(() => $q.screen.width >= 768 && $q.screen.width < 1024)
 const isDesktop = computed(() => $q.screen.width >= 1024)
 const isPortrait = computed(() => $q.screen.height > $q.screen.width)
-const isLandscape = computed(() => $q.screen.width >= $q.screen.height)
+const isExecutiveDashboard = computed(() => route.name === 'dashboard-overview')
 const showMobileFooter = computed(() => isMobile.value && isPortrait.value)
 const showFab = computed(() => route.name === 'plants-list' || route.name === 'plant-detail')
 const drawerMini = computed(() => isTablet.value && isPortrait.value)
 const drawerWidth = computed(() => {
-  if (isDesktop.value) return 240
-  if (isTablet.value && isPortrait.value) return 60
+  if (isDesktop.value || drawerMini.value) return 256
   return 220
 })
 const showDrawerLabels = computed(() => {
@@ -345,6 +302,13 @@ const showLicenseBanner = computed(() => {
 })
 const userIdentity = computed(() => authStore.user?.email || 'Operateur')
 const userDisplayName = computed(() => userIdentity.value.split('@')[0] || 'Operateur')
+const userRoleLabel = computed(() => {
+  if (authStore.isSuperAdmin) return 'Super administrateur'
+  if (authStore.isOrgAdmin) return 'Administrateur'
+  if (authStore.isOrgUser) return 'Opérateur'
+  if (authStore.isApiUser) return 'Accès API'
+  return ''
+})
 const currentPlant = computed<Plant | null>(() => {
   const routeId = String(route.params.id || '')
 
@@ -442,20 +406,6 @@ const breadcrumb = computed(() => {
   if (route.name === 'settings') return 'Settings / Account'
 
   return 'Operations / Overview'
-})
-
-const mobileKicker = computed(() => {
-  if (route.name === 'plants-list') return 'Terrain'
-  if (route.name === 'plant-detail') return 'Suivi plant'
-  if (route.name === 'rooms-dashboard') return 'Monitoring'
-  if (route.name === 'sensors-dashboard') return 'Capteurs'
-  if (route.name === 'kyb') return 'Conformite'
-  if (route.name === 'compliance') return 'CTS'
-  if (route.name === 'reporting') return 'Reporting'
-  if (route.name === 'billing' || route.name === 'billing-success') return 'Abonnement'
-  if (route.name === 'settings') return 'Compte'
-
-  return 'Cultivation'
 })
 
 const fabIcon = computed(() => {
@@ -653,123 +603,15 @@ async function runConfirmedAction() {
 }
 
 .app-header {
-  background: rgba(247, 248, 250, 0.96);
-  color: #1a202c;
-  border-bottom: 1px solid #e2e8f0;
+  background: color-mix(in srgb, var(--ct-bg) 90%, transparent);
+  color: var(--ct-text);
+  border-bottom: 1px solid var(--ct-border);
   backdrop-filter: blur(12px);
 }
 
-.app-header__toolbar {
-  min-height: 56px;
-  padding: env(safe-area-inset-top) 12px 0;
-  gap: 10px;
-}
-
-.app-header__brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.app-header__copy {
-  min-width: 0;
-}
-
-.app-header__brand--centered {
-  justify-content: center;
-  text-align: center;
-}
-
-.app-header__brand strong,
-.app-header__brand span {
-  display: block;
-}
-
-.app-header__brand strong {
-  font-size: 1rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-header__brand span {
-  color: #718096;
-  font-size: 0.875rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-header__kicker {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.app-header__logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-}
-
-.app-header__search {
-  width: min(420px, 100%);
-}
-
-.app-header__notify {
-  min-width: 48px;
-  min-height: 48px;
-  flex: 0 0 auto;
-}
-
-.app-header__action {
-  min-width: 48px;
-  min-height: 48px;
-  flex: 0 0 auto;
-  color: #1b6b3a;
-}
-
-.app-header__menu {
-  min-width: 48px;
-  min-height: 48px;
-  flex: 0 0 auto;
-}
-
 .app-drawer {
-  background: #fff;
-}
-
-.app-drawer__content {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  padding: calc(16px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
-}
-
-.app-nav {
-  display: grid;
-  gap: 8px;
-  flex: 1 1 auto;
-}
-
-.app-nav__item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: #4a5568;
-  text-decoration: none;
-}
-
-.app-nav__item--active,
-.app-nav__item:hover {
-  background: #e8f5ee;
-  color: #1b6b3a;
+  background: var(--ct-nav);
+  border-color: var(--ct-border);
 }
 
 .app-page-container {
@@ -791,20 +633,20 @@ async function runConfirmedAction() {
 }
 
 .app-footer {
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid #e2e8f0;
+  background: var(--ct-nav);
+  border-top: 1px solid var(--ct-border);
   backdrop-filter: blur(12px);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bottom-tabs {
   min-height: 56px;
-  color: #718096;
+  color: var(--ct-muted);
 }
 
 .bottom-tabs :deep(.q-tab) {
   min-height: 56px;
-  color: #718096;
+  color: var(--ct-muted);
 }
 
 .bottom-tabs :deep(.q-tab__icon),
@@ -813,11 +655,22 @@ async function runConfirmedAction() {
 }
 
 .bottom-tabs :deep(.q-tab--active) {
-  color: #1b6b3a;
+  color: var(--ct-mint) !important;
 }
 
 .bottom-tabs :deep(.q-tab--inactive) {
-  color: #718096;
+  color: var(--ct-muted);
+}
+
+.app-shell--executive,
+.app-shell--executive .app-page {
+  background: var(--ct-bg);
+  color: var(--ct-text);
+}
+
+.app-shell--executive .app-page__inner {
+  width: 100%;
+  padding: var(--ct-space-6) var(--ct-space-6) var(--ct-space-8);
 }
 
 .notifications-panel,
@@ -915,31 +768,6 @@ async function runConfirmedAction() {
   margin-top: 16px;
 }
 
-.app-drawer__footer {
-  display: grid;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.app-drawer__user {
-  display: grid;
-  gap: 4px;
-}
-
-.app-drawer__user strong,
-.app-drawer__user span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-drawer__user span {
-  color: #718096;
-  font-size: 0.875rem;
-}
-
 .action-dialog__hint {
   margin: 0;
   color: #4a5568;
@@ -971,10 +799,6 @@ async function runConfirmedAction() {
 }
 
 @include bp.mobile-landscape {
-  .app-header__toolbar {
-    min-height: 48px;
-  }
-
   .app-page__inner {
     padding-bottom: 16px;
   }
@@ -986,11 +810,6 @@ async function runConfirmedAction() {
 }
 
 @include bp.tablet {
-  .app-header__toolbar {
-    min-height: 64px;
-    padding: 0 16px;
-  }
-
   .app-page__inner {
     width: min(100%, 1280px);
     padding-top: 16px;
@@ -1017,12 +836,14 @@ async function runConfirmedAction() {
 }
 
 @include bp.desktop {
-  .app-header__toolbar {
-    min-height: 64px;
-  }
-
   .app-page__inner {
     width: min(100%, 1280px);
+  }
+}
+
+@include bp.mobile {
+  .app-shell--executive .app-page__inner {
+    padding: var(--ct-space-4) var(--ct-space-4) calc(var(--ct-space-8) + env(safe-area-inset-bottom));
   }
 }
 </style>
