@@ -172,8 +172,8 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
   await expect(page).toHaveURL(/\/auth/)
 
   await page.getByLabel('Email').fill(DEMO_EMAIL)
-  await page.getByLabel('Password').fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.locator('input[type="password"]').fill(DEMO_PASSWORD)
+  await page.getByRole('button', { name: /Se connecter|Sign in/i }).click()
 
   await expect(page).toHaveURL(/\/dashboard\/overview/)
   await expect(page.getByRole('heading', { name: 'Tableau de bord exécutif' })).toBeVisible()
@@ -182,9 +182,9 @@ test('login, navigation, and plant creation smoke journey', async ({ page }) => 
   await expect(page).toHaveURL(/\/plants/)
   await expect(page.getByText('RFID-001')).toBeVisible()
 
-  await page.getByRole('button', { name: 'New plant' }).click()
-  await page.getByLabel('RFID number').fill('RFID-NEW-001')
-  await page.getByRole('button', { name: 'Create' }).last().click()
+  await page.locator('.plant-list__actions button').first().click()
+  await page.getByLabel(/RFID number|Numero RFID/i).fill('RFID-NEW-001')
+  await page.getByRole('button', { name: /Create|Creer/i }).last().click()
 
   await expect(page).toHaveURL(/\/plants\/plant-2/)
   await expect(page.getByRole('heading', { name: 'RFID-NEW-001' })).toBeVisible()
