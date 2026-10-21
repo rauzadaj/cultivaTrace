@@ -68,7 +68,7 @@ const payloadItems = computed(() => Object.entries(props.event.payload ?? {}).fi
   return true
 }))
 const payloadLabels: Record<string, string> = { from: 'Avant', to: 'Après', product: 'Produit', quantity: 'Quantité', unit: 'Unité', reason: 'Motif', planned_date: 'Date prévue', fromRoomId: 'Salle précédente', toRoomId: 'Nouvelle salle', gross_weight_g: 'Poids brut (g)', non_cannabis_ratio: 'Ratio non-cannabis' }
-function payloadLabel(key: string) { return payloadLabels[key] ?? key.replaceAll('_', ' ') }
+function payloadLabel(key: string) { return payloadLabels[key] ?? key.replace(/_/g, ' ') }
 function displayValue(value: unknown) { return typeof value === 'object' ? JSON.stringify(value) : String(value) }
 function shortHash(hash: string) { return `${hash.slice(0, 10)}…${hash.slice(-8)}` }
 </script>

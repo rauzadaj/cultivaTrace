@@ -97,8 +97,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePlantsStore } from '@/stores/plants'
-import { plantEventsApi } from '@/services/api'
-import type { HydraCollection, PlantEvent } from '@/types/api'
+import { plantEventsApi, plantsApi } from '@/services/api'
+import type { HydraCollection, Plant, PlantEvent } from '@/types/api'
 import JournalEventCard from '@/components/journal/JournalEventCard.vue'
 import JournalMetricCard from '@/components/journal/JournalMetricCard.vue'
 
@@ -108,6 +108,8 @@ const loading = ref(false)
 const error = ref('')
 const datePickerOpen = ref(false)
 const events = ref<PlantEvent[]>([])
+const resolvedPlants = ref<Record<string, Plant>>({})
+let latestLoadId = 0
 const search = ref('')
 const activeType = ref('all')
 function localDateString(date = new Date()) {
@@ -143,30 +145,52 @@ function dayBoundary(date: string, nextDay = false): string {
 
 async function loadEvents() {
   if (!selectedDate.value) return
+  const loadId = ++latestLoadId
+  const date = selectedDate.value
   loading.value = true
   error.value = ''
   try {
     const collected: PlantEvent[] = []
     let page = 1
     let total = 0
-    do {
+    let hasNext = true
+    while (hasNext) {
       const { data } = await plantEventsApi.listAll({
-        'occurredAt[after]': dayBoundary(selectedDate.value),
-        'occurredAt[before]': dayBoundary(selectedDate.value, true),
+        'occurredAt[after]': dayBoundary(date),
+        'occurredAt[before]': dayBoundary(date, true),
         'order[occurredAt]': 'desc',
         itemsPerPage: 100,
         page,
       })
-      collected.push(...collectionMembers(data))
+      const members = collectionMembers(data)
+      collected.push(...members)
       total = data['hydra:totalItems'] ?? data.totalItems ?? collected.length
+      const next = data['hydra:view']?.['hydra:next'] ?? data.view?.next
+      hasNext = Boolean(next) || collected.length < total
+      if (members.length === 0) hasNext = false
       page += 1
-    } while (collected.length < total && page <= 100)
+    }
+    if (loadId !== latestLoadId) return
     events.value = collected
     await plantsStore.ensureSupportData()
+    if (loadId !== latestLoadId) return
+
+    const plantIds = [...new Set(collected.map(plantId).filter((id): id is string => Boolean(id)))]
+    const missingPlantIds = plantIds.filter((id) => !resolvedPlants.value[id])
+    const plants = await Promise.allSettled(missingPlantIds.map(async (id) => {
+      const { data } = await plantsApi.get(id)
+      return data
+    }))
+    if (loadId !== latestLoadId) return
+    const nextResolvedPlants = { ...resolvedPlants.value }
+    plants.forEach((result) => {
+      if (result.status === 'fulfilled') nextResolvedPlants[result.value.id] = result.value
+    })
+    resolvedPlants.value = nextResolvedPlants
   } catch (caught) {
-    error.value = caught instanceof Error ? caught.message : 'Impossible de charger le registre.'
+    if (loadId === latestLoadId) error.value = caught instanceof Error ? caught.message : 'Impossible de charger le registre.'
   } finally {
-    loading.value = false
+    if (loadId === latestLoadId) loading.value = false
   }
 }
 
@@ -219,17 +243,19 @@ function plantId(event: PlantEvent): string | null {
 function plantName(event: PlantEvent): string {
   const id = plantId(event)
   if (!id) return 'Plant non renseigné'
-  const plant = plantsStore.plants.find((item) => item.id === id)
+  const plant = plantsStore.plants.find((item) => item.id === id) ?? resolvedPlants.value[id]
   return plant ? plantsStore.plantName(plant) : `Plant ${id.slice(0, 8)}`
 }
 function plantRoom(event: PlantEvent): string {
   const id = plantId(event)
-  const plant = plantsStore.plants.find((item) => item.id === id)
+  if (!id) return ''
+  const plant = plantsStore.plants.find((item) => item.id === id) ?? resolvedPlants.value[id]
   return plant ? plantsStore.roomLabel(plant) : ''
 }
 function plantStrain(event: PlantEvent): string {
   const id = plantId(event)
-  const plant = plantsStore.plants.find((item) => item.id === id)
+  if (!id) return ''
+  const plant = plantsStore.plants.find((item) => item.id === id) ?? resolvedPlants.value[id]
   return plant ? plantsStore.strainLabel(plant) : ''
 }
 function eventUser(event: PlantEvent): string {

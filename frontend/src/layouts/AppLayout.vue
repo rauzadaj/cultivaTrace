@@ -553,12 +553,14 @@ async function submitStageChange(transition: PlantStage) {
   if (!currentPlant.value) {
     return
   }
+  const plantId = currentPlant.value.id
+  const plantName = plantsStore.plantName(currentPlant.value)
 
   const executeTransition = async () => {
     actionPending.value = true
 
     try {
-      await plantsStore.changeStage(currentPlant.value.id, transition)
+      await plantsStore.changeStage(plantId, transition)
       closeConfirmDialog()
       stageDialogOpen.value = false
       $q.notify({ type: 'positive', message: 'Stage updated.', position: isMobile.value ? 'bottom' : 'top-right', timeout: 2000 })
@@ -572,7 +574,7 @@ async function submitStageChange(transition: PlantStage) {
   if (transition === 'harvest') {
     openConfirmDialog(
       'Confirmer la recolte',
-      `Le plant ${plantsStore.plantName(currentPlant.value)} va passer en recolte.`,
+      `Le plant ${plantName} va passer en recolte.`,
       executeTransition,
     )
     return
