@@ -23,7 +23,7 @@
     <section class="journal-toolbar" aria-label="Recherche et filtres du journal">
       <label class="journal-search">
         <q-icon name="mdi-magnify" size="17px" aria-hidden="true" />
-        <input v-model="search" type="search" placeholder="Rechercher un opérateur, un plant ou un événement…" aria-label="Rechercher dans le journal">
+        <input v-model="search" type="search" placeholder="Rechercher un plant ou un événement…" aria-label="Rechercher dans le journal">
         <q-btn v-if="search" flat round dense icon="mdi-close" aria-label="Effacer la recherche" @click="search = ''" />
       </label>
       <q-input :model-value="selectedDateLabel" class="journal-date" dense borderless readonly aria-label="Filtrer par date">
@@ -149,6 +149,7 @@ async function loadEvents() {
   const date = selectedDate.value
   loading.value = true
   error.value = ''
+  events.value = []
   try {
     const collected: PlantEvent[] = []
     let page = 1
@@ -176,17 +177,26 @@ async function loadEvents() {
     if (loadId !== latestLoadId) return
 
     const plantIds = [...new Set(collected.map(plantId).filter((id): id is string => Boolean(id)))]
-    const missingPlantIds = plantIds.filter((id) => !resolvedPlants.value[id])
-    const plants = await Promise.allSettled(missingPlantIds.map(async (id) => {
-      const { data } = await plantsApi.get(id)
-      return data
-    }))
-    if (loadId !== latestLoadId) return
+    const cachedPlants = plantsStore.plants
     const nextResolvedPlants = { ...resolvedPlants.value }
-    plants.forEach((result) => {
-      if (result.status === 'fulfilled') nextResolvedPlants[result.value.id] = result.value
-    })
+    for (const plant of cachedPlants) nextResolvedPlants[plant.id] = plant
     resolvedPlants.value = nextResolvedPlants
+
+    const cachedPlantIds = new Set(cachedPlants.map((plant) => plant.id))
+    const missingPlantIds = plantIds.filter((id) => !cachedPlantIds.has(id) && !resolvedPlants.value[id])
+    let nextPlantIndex = 0
+    const workerCount = Math.min(6, missingPlantIds.length)
+    await Promise.all(Array.from({ length: workerCount }, async () => {
+      while (nextPlantIndex < missingPlantIds.length) {
+        const id = missingPlantIds[nextPlantIndex++]
+        try {
+          const { data } = await plantsApi.get(id)
+          if (loadId === latestLoadId) resolvedPlants.value = { ...resolvedPlants.value, [data.id]: data }
+        } catch {
+          // Some historical plant records may no longer be available to this user.
+        }
+      }
+    }))
   } catch (caught) {
     if (loadId === latestLoadId) error.value = caught instanceof Error ? caught.message : 'Impossible de charger le registre.'
   } finally {
@@ -201,7 +211,7 @@ const filteredEvents = computed(() => {
       || (activeType.value === 'other' ? !['stage_change', 'input_record', 'note', 'harvest'].includes(event.eventType) : event.eventType === activeType.value)
     if (!matchesType) return false
     if (!query) return true
-    const searchable = [event.notes, eventTypeName(event.eventType), eventUser(event), plantName(event), JSON.stringify(event.payload ?? {})].join(' ').toLocaleLowerCase('fr')
+    const searchable = [event.notes, eventTypeName(event.eventType), plantName(event), JSON.stringify(event.payload ?? {})].join(' ').toLocaleLowerCase('fr')
     return searchable.includes(query)
   })
 })
