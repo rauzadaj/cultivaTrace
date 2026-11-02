@@ -29,7 +29,7 @@
       <q-input :model-value="selectedDateLabel" class="journal-date" dense borderless readonly aria-label="Filtrer par date">
         <template #prepend><q-icon name="mdi-calendar-month-outline" size="16px" /></template>
         <q-popup-proxy v-model="datePickerOpen" cover transition-show="scale" transition-hide="scale">
-          <q-date v-model="selectedDate" mask="YYYY-MM-DD" today-btn color="primary" />
+          <q-date v-model="selectedDate" mask="YYYY-MM-DD" today-btn no-unset color="primary" />
         </q-popup-proxy>
       </q-input>
       <div class="journal-filters" role="group" aria-label="Filtrer par type d’événement">
