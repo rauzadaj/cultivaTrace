@@ -38,6 +38,7 @@ test('journal page renders activity and filters responsively', async ({ page }) 
   })
 
   let usedStrictUpperBound = false
+  let plantEventRequests = 0
   await page.route('**/api/**', async (route) => {
     const request = route.request()
     const path = new URL(request.url()).pathname
@@ -49,6 +50,7 @@ test('journal page renders activity and filters responsively', async ({ page }) 
         organization: { id: 'test-org', name: 'CultivaTrace Test', plan: 'pro', licenseStatus: 'active' },
       } })
     } else if (request.method() === 'GET' && path === '/api/plant_events') {
+      plantEventRequests += 1
       const params = new URL(request.url()).searchParams
       const lowerBound = Date.parse(params.get('occurredAt[after]') ?? '')
       const strictUpperBound = params.get('occurredAt[strictly_before]')
@@ -88,6 +90,16 @@ test('journal page renders activity and filters responsively', async ({ page }) 
   await expect(page.getByText('BOUNDARY-EVENT-SHOULD-NOT-APPEAR')).toHaveCount(0)
   await expect(page.getByText(/Salle précédente : Salle test/)).toBeVisible()
   await expect(page.getByText(/Nouvelle salle : Salle floraison/)).toBeVisible()
+
+  const initialEventRequestCount = plantEventRequests
+  const selectedDateDisplay = startOfDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  await page.locator('.journal-date').click()
+  await expect(page.locator('.q-date')).toBeVisible()
+  await page.locator('.q-date__calendar-days .q-btn--unelevated').click()
+  await expect(page.getByRole('textbox', { name: 'Filtrer par date' })).toHaveValue(selectedDateDisplay)
+  await expect(page.getByText('TEST-PLANT-001').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Actualiser le journal' }).click()
+  await expect.poll(() => plantEventRequests).toBe(initialEventRequestCount + 1)
 
   const captures = join(process.cwd(), '..', '.tmp', 'design-review', 'journal')
   mkdirSync(captures, { recursive: true })
