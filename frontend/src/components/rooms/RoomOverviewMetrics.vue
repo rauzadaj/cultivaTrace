@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { Plant, Room, Sensor, SensorLiveReading, PlantStage } from '@/types/api'
 import { isSensorOffline } from '@/utils/sensorFreshness'
 
@@ -72,8 +72,21 @@ const stageCounts = computed(() => {
   for (const plant of props.activePlants) counts.set(plant.stage, (counts.get(plant.stage) ?? 0) + 1)
   return Array.from(counts, ([id, count]) => ({ id, count, label: stageLabels[id] ?? 'Autre' }))
 })
+const currentTime = ref(Date.now())
+let connectivityRefreshInterval: ReturnType<typeof setInterval> | undefined
+
+onMounted(() => {
+  connectivityRefreshInterval = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 30_000)
+})
+
+onUnmounted(() => {
+  if (connectivityRefreshInterval !== undefined) clearInterval(connectivityRefreshInterval)
+})
+
 const offlineSensors = computed(() => props.sensors.filter((sensor) => {
-  return isSensorOffline(sensor.lastSeen, props.liveReading(sensor.id)?.recordedAt)
+  return isSensorOffline(sensor.lastSeen, props.liveReading(sensor.id)?.recordedAt, currentTime.value)
 }).length)
 </script>
 
