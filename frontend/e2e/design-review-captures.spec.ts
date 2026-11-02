@@ -112,8 +112,12 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
   await expect(page).toHaveURL(/\/rooms/)
   await expect(page.locator('.room-dashboard.ct-theme')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Salle Veg A' })).toBeVisible()
+  await expect(page.getByText('1 plant actif chargé pour cette salle')).toBeVisible()
+  await expect(page.locator('.room-metric')).toHaveCount(3)
   await page.screenshot({ path: join(viewportPath, 'desktop-1280-rooms.png'), fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
+  await page.waitForTimeout(150)
+  await expect(page.locator('.app-footer')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: join(viewportPath, 'mobile-390-rooms.png'), fullPage: true })
 

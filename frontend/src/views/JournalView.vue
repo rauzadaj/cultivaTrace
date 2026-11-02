@@ -53,7 +53,7 @@
               <div><span class="journal-day__dot" /> <h2>{{ group.label }}</h2></div>
               <span>{{ group.events.length }} {{ group.events.length === 1 ? 'événement' : 'événements' }}</span>
             </header>
-            <journal-event-card v-for="event in group.events" :key="event.id" :event="event" :plant-name="plantName(event)" :plant-id="plantId(event)" :room-name="plantRoom(event)" :strain-name="plantStrain(event)" />
+            <journal-event-card v-for="event in group.events" :key="event.id" :event="event" :plant-name="plantName(event)" :plant-id="plantId(event)" :room-name="plantRoom(event)" :room-name-for-id="roomNameForId" :strain-name="plantStrain(event)" />
           </div>
           <div v-if="loading" class="journal-state"><q-spinner color="primary" size="24px" /> Chargement du registre…</div>
           <div v-else-if="!eventGroups.length" class="journal-state">
@@ -158,7 +158,7 @@ async function loadEvents() {
     while (hasNext) {
       const { data } = await plantEventsApi.listAll({
         'occurredAt[after]': dayBoundary(date),
-        'occurredAt[before]': dayBoundary(date, true),
+        'occurredAt[strictly_before]': dayBoundary(date, true),
         'order[occurredAt]': 'desc',
         itemsPerPage: 100,
         page,
@@ -267,6 +267,9 @@ function plantStrain(event: PlantEvent): string {
   if (!id) return ''
   const plant = plantsStore.plants.find((item) => item.id === id) ?? resolvedPlants.value[id]
   return plant ? plantsStore.strainLabel(plant) : ''
+}
+function roomNameForId(id: string): string {
+  return plantsStore.rooms.find((room) => room.id === id)?.name ?? id
 }
 function eventUser(event: PlantEvent): string {
   return typeof event.user === 'string' ? '' : event.user?.email ?? ''

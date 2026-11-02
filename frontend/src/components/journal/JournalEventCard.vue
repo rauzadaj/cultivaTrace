@@ -7,14 +7,14 @@
         <h3>{{ typeLabel }}</h3>
         <q-badge v-if="event.hashSelf" class="journal-event__hash-badge">Empreinte présente</q-badge>
       </div>
-      <span v-if="roomName" class="journal-event__type">Salle : {{ roomName }}</span>
+      <span v-if="roomName && event.eventType !== 'room_move'" class="journal-event__type">Salle : {{ roomName }}</span>
     </div>
     <div class="journal-event__context">
       <RouterLink v-if="plantId" :to="{ name: 'plant-detail', params: { id: plantId } }" class="journal-event__plant">
         <q-icon name="mdi-sprout-outline" size="14px" />
         {{ plantName }}
       </RouterLink>
-      <span v-if="roomName">· Salle {{ roomName }}</span>
+      <span v-if="roomName && event.eventType !== 'room_move'">· Salle {{ roomName }}</span>
       <span v-if="strainName">· {{ strainName }}</span>
       <span v-if="eventUser">·</span>
       <span v-if="eventUser">{{ eventUser }}</span>
@@ -26,7 +26,7 @@
       </a>
     </div>
     <div v-if="payloadItems.length" class="journal-event__payload">
-      <span v-for="([key, value]) in payloadItems" :key="key"><strong>{{ payloadLabel(key) }} :</strong> {{ displayValue(value) }}</span>
+      <span v-for="([key, value]) in payloadItems" :key="key"><strong>{{ payloadLabel(key) }} :</strong> {{ displayValue(key, value) }}</span>
     </div>
     <footer class="journal-event__footer">
       <span v-if="eventUser">{{ eventUser }}</span>
@@ -46,6 +46,7 @@ const props = defineProps<{
   plantName: string
   plantId: string | null
   roomName: string
+  roomNameForId: (id: string) => string
   strainName: string
 }>()
 
@@ -63,13 +64,20 @@ const typeLabel = computed(() => typeNames[props.event.eventType] ?? props.event
 const time = computed(() => new Date(props.event.occurredAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))
 const eventUser = computed(() => typeof props.event.user === 'string' ? '' : props.event.user?.email ?? '')
 const payloadItems = computed(() => Object.entries(props.event.payload ?? {}).filter(([key, value]) => {
-  if (value === null || value === undefined || /room_?id/i.test(key)) return false
+  if (value === null || value === undefined) return false
+  if (props.event.eventType === 'room_move' && ['fromRoomId', 'toRoomId'].includes(key)) return true
+  if (/room_?id/i.test(key)) return false
   if (props.event.eventType === 'germination' && key === 'to') return false
   return true
 }))
 const payloadLabels: Record<string, string> = { from: 'Avant', to: 'Après', product: 'Produit', quantity: 'Quantité', unit: 'Unité', reason: 'Motif', planned_date: 'Date prévue', fromRoomId: 'Salle précédente', toRoomId: 'Nouvelle salle', gross_weight_g: 'Poids brut (g)', non_cannabis_ratio: 'Ratio non-cannabis' }
 function payloadLabel(key: string) { return payloadLabels[key] ?? key.replace(/_/g, ' ') }
-function displayValue(value: unknown) { return typeof value === 'object' ? JSON.stringify(value) : String(value) }
+function displayValue(key: string, value: unknown) {
+  if (props.event.eventType === 'room_move' && ['fromRoomId', 'toRoomId'].includes(key)) {
+    return props.roomNameForId(String(value))
+  }
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
 function shortHash(hash: string) { return `${hash.slice(0, 10)}…${hash.slice(-8)}` }
 </script>
 
