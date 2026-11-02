@@ -49,6 +49,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Plant, Room, Sensor, SensorLiveReading, PlantStage } from '@/types/api'
+import { isSensorOffline } from '@/utils/sensorFreshness'
 
 const props = defineProps<{
   room: Room | null
@@ -72,8 +73,7 @@ const stageCounts = computed(() => {
   return Array.from(counts, ([id, count]) => ({ id, count, label: stageLabels[id] ?? 'Autre' }))
 })
 const offlineSensors = computed(() => props.sensors.filter((sensor) => {
-  const timestamp = sensor.lastSeen ?? props.liveReading(sensor.id)?.recordedAt
-  return !timestamp || Date.now() - new Date(timestamp).getTime() > 5 * 60 * 1000
+  return isSensorOffline(sensor.lastSeen, props.liveReading(sensor.id)?.recordedAt)
 }).length)
 </script>
 
