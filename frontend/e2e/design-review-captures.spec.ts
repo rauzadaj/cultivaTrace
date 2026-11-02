@@ -69,6 +69,11 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
       return
     }
 
+    if (request.method() === 'GET' && path === '/api/sensors') {
+      await route.fulfill({ json: { '@context': '/api/contexts/Collection', '@id': '/api/sensors', '@type': 'hydra:Collection', 'hydra:totalItems': 0, 'hydra:member': [] } })
+      return
+    }
+
     if (request.method() === 'GET' && path === '/api/alerts') {
       await route.fulfill({ json: { '@context': '/api/contexts/Collection', '@id': '/api/alerts', '@type': 'hydra:Collection', 'hydra:totalItems': 0, 'hydra:member': [] } })
       return
@@ -81,7 +86,7 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
   await expect(page).toHaveURL(/\/auth/)
   await page.getByLabel('Email').fill('demo@cultivatrace.local')
   await page.locator('input[type="password"]').fill('TEST_ONLY_DEMO_PASSWORD')
-  await page.getByRole('button', { name: 'Se connecter' }).click()
+  await page.getByRole('button', { name: /Se connecter|Sign in/i }).click()
   await expect(page).toHaveURL(/\/dashboard\/overview/)
   await expect(page.locator('.dashboard-view')).toBeVisible()
 
@@ -101,6 +106,16 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
     await page.waitForTimeout(150)
     await page.screenshot({ path: join(viewportPath, `${viewport.name}-dashboard.png`), fullPage: true })
   }
+
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.getByRole('link', { name: /Salles/i }).click()
+  await expect(page).toHaveURL(/\/rooms/)
+  await expect(page.locator('.room-dashboard.ct-theme')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Salle Veg A' })).toBeVisible()
+  await page.screenshot({ path: join(viewportPath, 'desktop-1280-rooms.png'), fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: join(viewportPath, 'mobile-390-rooms.png'), fullPage: true })
 
   await page.setViewportSize({ width: 1280, height: 1000 })
   await page.getByRole('link', { name: /Plants/i }).click()
