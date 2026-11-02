@@ -52,6 +52,15 @@
       </q-btn>
     </div>
 
+    <room-overview-metrics
+      :room="currentRoom"
+      :active-plants="roomPlants"
+      :sensors="currentRoomSensors"
+      :live-reading="readLiveSensor"
+      :loading-plants="roomPlantsLoading"
+      :plants-error="roomPlantsError"
+    />
+
     <div v-if="loading" class="room-skeleton">
       <q-skeleton v-for="index in 4" :key="index" height="220px" class="room-skeleton__item" />
     </div>
@@ -111,15 +120,17 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import RoomForm from '@/components/rooms/RoomForm.vue'
+import RoomOverviewMetrics from '@/components/rooms/RoomOverviewMetrics.vue'
 import SensorCard from '@/components/sensors/SensorCard.vue'
 import SensorForm from '@/components/sensors/SensorForm.vue'
 import SensorThresholdsForm from '@/components/sensors/SensorThresholdsForm.vue'
 import CCard from '@/components/ui/CCard.vue'
 import { useMercure } from '@/composables/useMercure'
+import { plantsApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { usePlantsStore } from '@/stores/plants'
 import { useSensorsStore } from '@/stores/sensors'
-import type { Room, Sensor, SensorVpdSnapshot } from '@/types/api'
+import type { HydraCollection, Plant, Room, Sensor, SensorLiveReading, SensorVpdSnapshot } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,6 +142,10 @@ const roomDialogOpen = ref(false)
 const sensorDialogOpen = ref(false)
 const thresholdDialogOpen = ref(false)
 const editingSensor = ref<Sensor | null>(null)
+const roomPlants = ref<Plant[]>([])
+const roomPlantsLoading = ref(false)
+const roomPlantsError = ref(false)
+let latestRoomPlantsRequest = 0
 
 const loading = computed(() => plantsStore.loading || sensorsStore.loading)
 
@@ -212,6 +227,50 @@ function inferStageFromRoom(room: Room | null): 'germination' | 'vegetation' | '
   }
 
   return 'vegetation'
+}
+
+function readLiveSensor(sensorId: string): SensorLiveReading | null {
+  return sensorsStore.getLiveReading(sensorId)
+}
+
+function collectionMembers<T>(collection: HydraCollection<T>): T[] {
+  return collection['hydra:member'] ?? collection.member ?? []
+}
+
+async function fetchRoomPlants(roomId: string): Promise<void> {
+  const requestId = ++latestRoomPlantsRequest
+  roomPlantsLoading.value = true
+  roomPlantsError.value = false
+  const collected: Plant[] = []
+  let page = 1
+  let total = 0
+
+  try {
+    let hasNext = true
+    while (hasNext) {
+      const { data } = await plantsApi.list({
+        'room.id': roomId,
+        status: 'active',
+        itemsPerPage: 100,
+        page,
+      })
+      const members = collectionMembers(data)
+      collected.push(...members)
+      total = data['hydra:totalItems'] ?? data.totalItems ?? collected.length
+      const next = data['hydra:view']?.['hydra:next'] ?? data.view?.next
+      hasNext = Boolean(next) || collected.length < total
+      if (!members.length) hasNext = false
+      page += 1
+    }
+    if (requestId === latestRoomPlantsRequest) roomPlants.value = collected
+  } catch {
+    if (requestId === latestRoomPlantsRequest) {
+      roomPlants.value = []
+      roomPlantsError.value = true
+    }
+  } finally {
+    if (requestId === latestRoomPlantsRequest) roomPlantsLoading.value = false
+  }
 }
 
 const derivedVpdReading = computed<SensorVpdSnapshot | null>(() => {
@@ -334,7 +393,10 @@ async function ensureRoomContext(): Promise<void> {
   }
 
   if (currentRoomId.value) {
-    await sensorsStore.fetchSensors(currentRoomId.value)
+    await Promise.all([
+      sensorsStore.fetchSensors(currentRoomId.value),
+      fetchRoomPlants(currentRoomId.value),
+    ])
   }
 }
 
@@ -421,7 +483,10 @@ watch(currentRoomId, async (nextRoomId, previousRoomId) => {
   }
 
   try {
-    await sensorsStore.fetchSensors(nextRoomId)
+    await Promise.all([
+      sensorsStore.fetchSensors(nextRoomId),
+      fetchRoomPlants(nextRoomId),
+    ])
   } catch (error) {
     console.error('Sensor fetch failed', error)
   }
