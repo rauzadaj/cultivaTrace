@@ -1,43 +1,53 @@
 <template>
   <main class="room-dashboard ct-theme">
-    <header class="room-dashboard__header">
-      <div>
-        <p class="section-eyebrow">IoT Room</p>
-        <h1>{{ currentRoom?.name ?? 'Dashboard temps reel' }}</h1>
-        <p class="room-dashboard__subtitle">
-          {{ currentRoom ? `Surveillance live de la salle ${currentRoom.name}` : 'Aucune salle selectionnee' }}
-        </p>
-      </div>
-      <div class="room-dashboard__header-actions">
-        <q-btn
-          v-if="route.name === 'rooms-dashboard'"
-          color="primary"
-          icon="mdi-door-plus"
-          label="Nouvelle salle"
-          no-caps
-          class="room-dashboard__action-btn"
-          @click="roomDialogOpen = true"
-        />
-        <q-btn
-          v-if="route.name === 'sensors-dashboard'"
-          color="primary"
-          icon="mdi-thermometer-plus"
-          label="Nouveau capteur"
-          no-caps
-          class="room-dashboard__action-btn"
-          @click="sensorDialogOpen = true"
-        />
-        <q-chip
-          v-if="currentRoom"
-          square
-          class="room-dashboard__room-chip"
-        >
-          {{ currentRoom.type }}
-        </q-chip>
-      </div>
-    </header>
+    <room-cultivation-overview
+      v-if="!currentRoomId"
+      :rooms="plantsStore.rooms"
+      :overview="overview"
+      :rooms-loading="plantsStore.loading"
+      :rooms-error="Boolean(plantsStore.error)"
+      :overview-loading="overviewLoading"
+      :overview-error="overviewError"
+      @create-room="roomDialogOpen = true"
+      @open-room="selectRoom"
+    />
 
-    <div v-if="roomTabs.length > 1" class="room-dashboard__switcher">
+    <template v-else>
+      <header class="room-dashboard__header">
+        <div>
+          <q-btn v-if="route.name === 'rooms-dashboard'" flat no-caps class="room-dashboard__back" icon="mdi-arrow-left" label="Toutes les salles" @click="returnToOverview" />
+          <p class="section-eyebrow">IoT Room</p>
+          <h1>{{ currentRoom?.name ?? 'Dashboard temps réel' }}</h1>
+          <p class="room-dashboard__subtitle">
+            {{ currentRoom ? `Surveillance de la salle ${currentRoom.name}` : 'Salle introuvable' }}
+          </p>
+        </div>
+        <div class="room-dashboard__header-actions">
+          <q-btn
+            v-if="route.name === 'rooms-dashboard'"
+            color="primary"
+            icon="mdi-door-plus"
+            label="Nouvelle salle"
+            no-caps
+            class="room-dashboard__action-btn"
+            @click="roomDialogOpen = true"
+          />
+          <q-btn
+            v-if="route.name === 'sensors-dashboard'"
+            color="primary"
+            icon="mdi-thermometer-plus"
+            label="Nouveau capteur"
+            no-caps
+            class="room-dashboard__action-btn"
+            @click="sensorDialogOpen = true"
+          />
+          <q-chip v-if="currentRoom" square class="room-dashboard__room-chip">
+            {{ currentRoom.type }}
+          </q-chip>
+        </div>
+      </header>
+
+      <div v-if="roomTabs.length > 1" class="room-dashboard__switcher">
       <q-btn
         v-for="room in roomTabs"
         :key="room.id"
@@ -50,22 +60,22 @@
         <span>{{ room.name }}</span>
         <small>{{ room.type }}</small>
       </q-btn>
-    </div>
+      </div>
 
-    <room-overview-metrics
+      <room-overview-metrics
       :room="currentRoom"
       :active-plants="roomPlants"
       :sensors="currentRoomSensors"
       :live-reading="readLiveSensor"
       :loading-plants="roomPlantsLoading"
       :plants-error="roomPlantsError"
-    />
+      />
 
-    <div v-if="loading" class="room-skeleton">
+      <div v-if="loading" class="room-skeleton">
       <q-skeleton v-for="index in 4" :key="index" height="220px" class="room-skeleton__item" />
-    </div>
+      </div>
 
-    <template v-else>
+      <template v-else>
       <c-card v-if="vpdCard" class="vpd-card" :class="`vpd-card--${vpdTone}`">
         <div class="vpd-card__header">
           <div>
@@ -103,6 +113,7 @@
         <p class="section-eyebrow">Mercure</p>
         <p>{{ subscriptionWarning }}</p>
       </c-card>
+      </template>
     </template>
 
 
@@ -120,17 +131,18 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import RoomForm from '@/components/rooms/RoomForm.vue'
+import RoomCultivationOverview from '@/components/rooms/RoomCultivationOverview.vue'
 import RoomOverviewMetrics from '@/components/rooms/RoomOverviewMetrics.vue'
 import SensorCard from '@/components/sensors/SensorCard.vue'
 import SensorForm from '@/components/sensors/SensorForm.vue'
 import SensorThresholdsForm from '@/components/sensors/SensorThresholdsForm.vue'
 import CCard from '@/components/ui/CCard.vue'
 import { useMercure } from '@/composables/useMercure'
-import { plantsApi } from '@/services/api'
+import { dashboardApi, plantsApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { usePlantsStore } from '@/stores/plants'
 import { useSensorsStore } from '@/stores/sensors'
-import type { HydraCollection, Plant, Room, Sensor, SensorLiveReading, SensorVpdSnapshot } from '@/types/api'
+import type { DashboardOverviewResponse, HydraCollection, Plant, Room, Sensor, SensorLiveReading, SensorVpdSnapshot } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -145,15 +157,16 @@ const editingSensor = ref<Sensor | null>(null)
 const roomPlants = ref<Plant[]>([])
 const roomPlantsLoading = ref(false)
 const roomPlantsError = ref(false)
+const overview = ref<DashboardOverviewResponse | null>(null)
+const overviewLoading = ref(false)
+const overviewError = ref(false)
 let latestRoomPlantsRequest = 0
 
 const loading = computed(() => plantsStore.loading || sensorsStore.loading)
 
-const fallbackRoomId = computed(() => plantsStore.rooms[0]?.id ?? null)
-
 const currentRoomId = computed(() => {
   const routeRoomId = typeof route.query.roomId === 'string' ? route.query.roomId : null
-  return routeRoomId ?? fallbackRoomId.value
+  return routeRoomId ?? (route.name === 'sensors-dashboard' ? plantsStore.rooms[0]?.id ?? null : null)
 })
 
 const currentRoom = computed<Room | null>(() =>
@@ -270,6 +283,21 @@ async function fetchRoomPlants(roomId: string): Promise<void> {
     }
   } finally {
     if (requestId === latestRoomPlantsRequest) roomPlantsLoading.value = false
+  }
+}
+
+async function fetchRoomOverview(): Promise<void> {
+  overviewLoading.value = true
+  overviewError.value = false
+
+  try {
+    const { data } = await dashboardApi.overview()
+    overview.value = data
+  } catch {
+    overview.value = null
+    overviewError.value = true
+  } finally {
+    overviewLoading.value = false
   }
 }
 
@@ -397,6 +425,8 @@ async function ensureRoomContext(): Promise<void> {
       sensorsStore.fetchSensors(currentRoomId.value),
       fetchRoomPlants(currentRoomId.value),
     ])
+  } else {
+    await fetchRoomOverview()
   }
 }
 
@@ -411,6 +441,10 @@ function selectRoom(roomId: string): void {
       roomId,
     },
   })
+}
+
+function returnToOverview(): void {
+  void router.replace({ query: { ...route.query, roomId: undefined } })
 }
 
 async function syncSubscription(nextTopic: string | null, previousTopic: string | null): Promise<void> {
@@ -478,7 +512,12 @@ onMounted(async () => {
 })
 
 watch(currentRoomId, async (nextRoomId, previousRoomId) => {
-  if (!nextRoomId || nextRoomId === previousRoomId) {
+  if (nextRoomId === previousRoomId) {
+    return
+  }
+
+  if (!nextRoomId) {
+    await fetchRoomOverview()
     return
   }
 
@@ -526,6 +565,12 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
 
 .room-dashboard__action-btn {
   min-height: 48px;
+}
+
+.room-dashboard__back {
+  min-height: 32px;
+  margin: 0 0 8px -8px;
+  color: var(--ct-muted);
 }
 
 .room-dashboard__switcher {
@@ -684,6 +729,9 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
    Keep the existing room, sensor, Mercure and dialog workflows intact while
    applying the scoped executive tokens to this route. */
 .room-dashboard.ct-theme {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   gap: var(--ct-space-6);
   color: var(--ct-text);
   font-family: var(--ct-font-sans);
