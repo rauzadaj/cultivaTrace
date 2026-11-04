@@ -105,8 +105,8 @@ test('super admin reviews and approves a catalog mapping', async ({ page }) => {
   await page.goto('/dashboard/overview')
   await expect(page).toHaveURL(/\/auth/)
   await page.getByLabel('Email').fill(DEMO_EMAIL)
-  await page.getByLabel('Password').fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.locator('input[type="password"]').fill(DEMO_PASSWORD)
+  await page.getByRole('button', { name: /Se connecter|Sign in/i }).click()
   await expect(page).toHaveURL(/\/dashboard\/overview/)
 
   // Navigate within the SPA (in-app, so the auth store stays hydrated) via the

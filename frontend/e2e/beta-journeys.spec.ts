@@ -131,8 +131,8 @@ async function loginAs(
 
   await page.goto('/auth')
   await page.getByLabel('Email').fill(DEMO_EMAIL)
-  await page.getByLabel('Password').fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.locator('input[type="password"]').fill(DEMO_PASSWORD)
+  await page.getByRole('button', { name: /Se connecter|Sign in/i }).click()
 }
 
 /**
@@ -155,11 +155,11 @@ test('kyb pending — protected routes redirect to /kyb', async ({ page }) => {
 
   // Router guard should redirect to /kyb
   await expect(page).toHaveURL(/\/kyb/)
-  await expect(page.getByText('License verification')).toBeVisible()
+  await expect(page.getByText(/Vérification de licence|License verification/i)).toBeVisible()
 
   // Form fields present
-  await expect(page.getByLabel(/license type/i)).toBeVisible()
-  await expect(page.getByLabel(/license number/i)).toBeVisible()
+  await expect(page.getByLabel(/Type de licence|License type/i)).toBeVisible()
+  await expect(page.getByLabel(/Numéro de licence|License number/i)).toBeVisible()
 })
 
 test('kyb pending — submitting the form shows pending status', async ({ page }) => {
@@ -167,17 +167,17 @@ test('kyb pending — submitting the form shows pending status', async ({ page }
   await expect(page).toHaveURL(/\/kyb/)
 
   // Quasar q-select renders options in a portal — use .q-menu text, not getByRole('option')
-  await page.getByLabel(/license type/i).click()
+  await page.getByLabel(/Type de licence|License type/i).click()
   await page.locator('.q-menu').waitFor({ timeout: 3_000 })
   await page.locator('.q-menu').getByText('Health Canada (Canada)').click()
 
-  await page.getByLabel(/license number/i).fill('HC-LP-99999')
-  await page.getByRole('button', { name: /submit/i }).click()
+  await page.getByLabel(/Numéro de licence|License number/i).fill('HC-LP-99999')
+  await page.getByRole('button', { name: /Soumettre la licence|Submit license/i }).click()
 
   // After upload, KYB view shows pending status text from statusMessage computed.
   // Two elements can match the regex (status banner + toast notification) — .first()
   // avoids the strict-mode violation while still asserting the pending state is visible.
-  await expect(page.getByText(/verification in progress|in progress|pending/i).first()).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText(/Vérification en cours|verification in progress|in progress|pending/i).first()).toBeVisible({ timeout: 5_000 })
 })
 
 // ---------------------------------------------------------------------------
@@ -213,11 +213,11 @@ test('plan limit — 402 on plant creation shows inline upgrade banner and disab
     })
   })
 
-  await page.getByRole('button', { name: /new plant/i }).click()
-  await page.getByRole('button', { name: /create/i }).last().click()
+  await page.locator('.plant-list__actions button').first().click()
+  await page.locator('.plant-form').getByRole('button', { name: /Create/i }).click()
 
   await expect(page.getByText(/plan limit reached/i)).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByRole('button', { name: /create/i }).last()).toBeDisabled()
+  await expect(page.locator('.plant-form').getByRole('button', { name: /Create/i })).toBeDisabled()
 })
 
 // ---------------------------------------------------------------------------
@@ -252,10 +252,10 @@ test('billing cancel — navigating to /billing after cancel shows billing view'
   await expect(page).toHaveURL(/\/dashboard\/overview/)
 
   // SPA navigation preserves pinia auth state (isPlanActive stays true)
-  await page.getByRole('link', { name: /Billing/i }).click()
+  await page.getByRole('link', { name: /Facturation|Billing/i }).click()
   await expect(page).toHaveURL(/\/billing/)
 
   // 'Change plan' is unique to BillingView — avoids strict-mode violations from
   // getByText(/Starter/) matching multiple plan card elements.
-  await expect(page.getByText('Change plan')).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText(/Changer de plan|Change plan/i)).toBeVisible({ timeout: 5_000 })
 })

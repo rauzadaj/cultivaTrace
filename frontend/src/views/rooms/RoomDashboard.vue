@@ -1,5 +1,5 @@
 <template>
-  <div class="room-dashboard">
+  <main class="room-dashboard ct-theme">
     <header class="room-dashboard__header">
       <div>
         <p class="section-eyebrow">IoT Room</p>
@@ -51,6 +51,15 @@
         <small>{{ room.type }}</small>
       </q-btn>
     </div>
+
+    <room-overview-metrics
+      :room="currentRoom"
+      :active-plants="roomPlants"
+      :sensors="currentRoomSensors"
+      :live-reading="readLiveSensor"
+      :loading-plants="roomPlantsLoading"
+      :plants-error="roomPlantsError"
+    />
 
     <div v-if="loading" class="room-skeleton">
       <q-skeleton v-for="index in 4" :key="index" height="220px" class="room-skeleton__item" />
@@ -104,22 +113,24 @@
       :sensor="editingSensor"
       @saved="handleThresholdSaved"
     />
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import RoomForm from '@/components/rooms/RoomForm.vue'
+import RoomOverviewMetrics from '@/components/rooms/RoomOverviewMetrics.vue'
 import SensorCard from '@/components/sensors/SensorCard.vue'
 import SensorForm from '@/components/sensors/SensorForm.vue'
 import SensorThresholdsForm from '@/components/sensors/SensorThresholdsForm.vue'
 import CCard from '@/components/ui/CCard.vue'
 import { useMercure } from '@/composables/useMercure'
+import { plantsApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { usePlantsStore } from '@/stores/plants'
 import { useSensorsStore } from '@/stores/sensors'
-import type { Room, Sensor, SensorVpdSnapshot } from '@/types/api'
+import type { HydraCollection, Plant, Room, Sensor, SensorLiveReading, SensorVpdSnapshot } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,6 +142,10 @@ const roomDialogOpen = ref(false)
 const sensorDialogOpen = ref(false)
 const thresholdDialogOpen = ref(false)
 const editingSensor = ref<Sensor | null>(null)
+const roomPlants = ref<Plant[]>([])
+const roomPlantsLoading = ref(false)
+const roomPlantsError = ref(false)
+let latestRoomPlantsRequest = 0
 
 const loading = computed(() => plantsStore.loading || sensorsStore.loading)
 
@@ -212,6 +227,50 @@ function inferStageFromRoom(room: Room | null): 'germination' | 'vegetation' | '
   }
 
   return 'vegetation'
+}
+
+function readLiveSensor(sensorId: string): SensorLiveReading | null {
+  return sensorsStore.getLiveReading(sensorId)
+}
+
+function collectionMembers<T>(collection: HydraCollection<T>): T[] {
+  return collection['hydra:member'] ?? collection.member ?? []
+}
+
+async function fetchRoomPlants(roomId: string): Promise<void> {
+  const requestId = ++latestRoomPlantsRequest
+  roomPlantsLoading.value = true
+  roomPlantsError.value = false
+  const collected: Plant[] = []
+  let page = 1
+  let total = 0
+
+  try {
+    let hasNext = true
+    while (hasNext) {
+      const { data } = await plantsApi.list({
+        'room.id': roomId,
+        status: 'active',
+        itemsPerPage: 100,
+        page,
+      })
+      const members = collectionMembers(data)
+      collected.push(...members)
+      total = data['hydra:totalItems'] ?? data.totalItems ?? collected.length
+      const next = data['hydra:view']?.['hydra:next'] ?? data.view?.next
+      hasNext = Boolean(next) || collected.length < total
+      if (!members.length) hasNext = false
+      page += 1
+    }
+    if (requestId === latestRoomPlantsRequest) roomPlants.value = collected
+  } catch {
+    if (requestId === latestRoomPlantsRequest) {
+      roomPlants.value = []
+      roomPlantsError.value = true
+    }
+  } finally {
+    if (requestId === latestRoomPlantsRequest) roomPlantsLoading.value = false
+  }
 }
 
 const derivedVpdReading = computed<SensorVpdSnapshot | null>(() => {
@@ -334,7 +393,10 @@ async function ensureRoomContext(): Promise<void> {
   }
 
   if (currentRoomId.value) {
-    await sensorsStore.fetchSensors(currentRoomId.value)
+    await Promise.all([
+      sensorsStore.fetchSensors(currentRoomId.value),
+      fetchRoomPlants(currentRoomId.value),
+    ])
   }
 }
 
@@ -421,7 +483,10 @@ watch(currentRoomId, async (nextRoomId, previousRoomId) => {
   }
 
   try {
-    await sensorsStore.fetchSensors(nextRoomId)
+    await Promise.all([
+      sensorsStore.fetchSensors(nextRoomId),
+      fetchRoomPlants(nextRoomId),
+    ])
   } catch (error) {
     console.error('Sensor fetch failed', error)
   }
@@ -613,6 +678,115 @@ watch(mercureTopic, async (nextTopic, previousTopic) => {
 .warning-card {
   border: 2px solid #f6ad55;
   background: #fffaf0;
+}
+
+/* Figma's "Salles de Culture" screen shares the executive dashboard shell.
+   Keep the existing room, sensor, Mercure and dialog workflows intact while
+   applying the scoped executive tokens to this route. */
+.room-dashboard.ct-theme {
+  gap: var(--ct-space-6);
+  color: var(--ct-text);
+  font-family: var(--ct-font-sans);
+}
+
+.room-dashboard.ct-theme .room-dashboard__header {
+  min-height: 113px;
+  padding-bottom: var(--ct-space-4);
+  border-bottom: 1px solid var(--ct-border);
+}
+
+.room-dashboard.ct-theme .room-dashboard__header h1 {
+  color: var(--ct-text);
+  font-size: clamp(24px, 2.5vw, 32px);
+  font-weight: var(--ct-weight-semibold);
+  line-height: var(--ct-line-heading);
+  letter-spacing: var(--ct-tracking-heading);
+}
+
+.room-dashboard.ct-theme .room-dashboard__subtitle,
+.room-dashboard.ct-theme .section-eyebrow {
+  color: var(--ct-muted);
+  font: var(--ct-text-md)/var(--ct-line-sm) var(--ct-font-serif);
+}
+
+.room-dashboard.ct-theme .room-dashboard__room-chip {
+  min-height: var(--ct-control-height);
+  border: 1px solid var(--ct-border-strong);
+  border-radius: var(--ct-radius-md);
+  background: var(--ct-inset);
+  color: var(--ct-secondary);
+}
+
+.room-dashboard.ct-theme .room-dashboard__switch-btn {
+  min-height: 64px;
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-md);
+  background: var(--ct-surface);
+  color: var(--ct-secondary);
+}
+
+.room-dashboard.ct-theme .room-dashboard__switch-btn--active {
+  border-color: var(--ct-mint);
+  background: var(--ct-mint-soft);
+  color: var(--ct-mint);
+}
+
+.room-dashboard.ct-theme .room-dashboard__switch-btn small {
+  color: var(--ct-muted);
+}
+
+.room-dashboard.ct-theme :deep(.c-card) {
+  border: 1px solid var(--ct-border-strong);
+  border-radius: var(--ct-radius-md);
+  background: var(--ct-surface);
+  color: var(--ct-text);
+  box-shadow: var(--ct-shadow-card);
+}
+
+.room-dashboard.ct-theme .vpd-card {
+  border-width: 1px;
+}
+
+.room-dashboard.ct-theme .vpd-card--optimal {
+  border-color: var(--ct-mint);
+  background: linear-gradient(135deg, var(--ct-mint-soft), var(--ct-surface));
+}
+
+.room-dashboard.ct-theme .vpd-card--too_low {
+  border-color: var(--ct-info);
+  background: linear-gradient(135deg, var(--ct-info-soft), var(--ct-surface));
+}
+
+.room-dashboard.ct-theme .vpd-card--too_high {
+  border-color: var(--ct-warning);
+  background: linear-gradient(135deg, var(--ct-warning-soft), var(--ct-surface));
+}
+
+.room-dashboard.ct-theme .vpd-card__message,
+.room-dashboard.ct-theme .vpd-card__meta,
+.room-dashboard.ct-theme .empty-state p,
+.room-dashboard.ct-theme .warning-card p {
+  color: var(--ct-secondary);
+}
+
+.room-dashboard.ct-theme :deep(.sensor-card--normal) { border-color: var(--ct-mint); }
+.room-dashboard.ct-theme :deep(.sensor-card--warning) { border-color: var(--ct-warning); }
+.room-dashboard.ct-theme :deep(.sensor-card--critical),
+.room-dashboard.ct-theme :deep(.sensor-card--offline) { border-color: var(--ct-danger); }
+.room-dashboard.ct-theme :deep(.sensor-card__title),
+.room-dashboard.ct-theme :deep(.sensor-card__value) { color: var(--ct-text); }
+.room-dashboard.ct-theme :deep(.sensor-card__eyebrow),
+.room-dashboard.ct-theme :deep(.sensor-card__unit),
+.room-dashboard.ct-theme :deep(.sensor-card__meta),
+.room-dashboard.ct-theme :deep(.sensor-card__chart-labels) { color: var(--ct-muted); }
+.room-dashboard.ct-theme :deep(.sensor-card__chip--normal) { background: var(--ct-mint-soft); color: var(--ct-mint); }
+.room-dashboard.ct-theme :deep(.sensor-card__chip--warning) { background: var(--ct-warning-soft); color: var(--ct-warning); }
+.room-dashboard.ct-theme :deep(.sensor-card__chip--critical) { background: var(--ct-danger-soft); color: var(--ct-danger); }
+.room-dashboard.ct-theme :deep(.sensor-card__value--muted) { color: var(--ct-muted); }
+
+.room-dashboard.ct-theme .warning-card {
+  border-color: var(--ct-warning);
+  background: var(--ct-warning-soft);
 }
 
 @include bp.mobile {
