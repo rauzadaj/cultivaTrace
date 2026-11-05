@@ -416,8 +416,8 @@ async function ensureRoomContext(): Promise<void> {
     }
   }
 
-  if (!plantsStore.roomsLoaded || plantsStore.roomsError) {
-    await plantsStore.fetchRooms()
+  if (plantsStore.roomsOrganizationId !== orgId.value || !plantsStore.roomsLoaded || plantsStore.roomsError) {
+    await plantsStore.fetchRooms(orgId.value)
   }
 
   if (currentRoomId.value) {

@@ -97,7 +97,7 @@ describe('RoomDashboard room loading', () => {
 
   it('keeps cached rooms and indicators accessible during unrelated plant errors or loading', async () => {
     const store = usePlantsStore()
-    await store.fetchRooms()
+    await store.fetchRooms('org-1')
     roomsList.mockClear()
     store.error = 'Impossible de charger les evenements.'
     store.loading = true
@@ -159,10 +159,23 @@ describe('RoomDashboard room loading', () => {
     expect(retried.get('.cultivation-overview__room-card h3').text()).toBe('Salle A')
   })
 
+  it('refreshes room occupancy after a plant creation invalidates the room cache', async () => {
+    const store = usePlantsStore()
+    await store.fetchRooms('org-1')
+    store.invalidateRoomOccupancy()
+    roomsList.mockResolvedValueOnce({ data: collection([room('A', 10, 4)]) })
+
+    const wrapper = mountDashboard()
+    await flushPromises()
+
+    expect(roomsList).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('.cultivation-overview__metric-value strong').text()).toBe('4')
+  })
+
   it('preserves the sensors route fallback and room-filtered requests without global plant loading', async () => {
     route.name = 'sensors-dashboard'
     const store = usePlantsStore()
-    await store.fetchRooms()
+    await store.fetchRooms('org-1')
     store.loading = true
     store.error = 'Unrelated plant failure'
 
