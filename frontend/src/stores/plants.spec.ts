@@ -178,6 +178,28 @@ describe('plants store room loading', () => {
     expect(listRoomsMock).toHaveBeenCalledTimes(2)
   })
 
+  it('does not publish an old organization response when the active tenant changes mid-request', async () => {
+    let resolveTenantA!: (value: { data: { member: Room[] } }) => void
+    listRoomsMock.mockImplementationOnce(() => new Promise(resolve => { resolveTenantA = resolve }))
+      .mockResolvedValueOnce({ data: { member: [room('tenant-b')] } })
+    const store = usePlantsStore()
+
+    const tenantARequest = store.fetchRooms('tenant-a')
+    const tenantBRequest = store.fetchRooms('tenant-b')
+    await tenantBRequest
+    expect(store.rooms).toEqual([room('tenant-b')])
+    expect(store.roomsOrganizationId).toBe('tenant-b')
+
+    resolveTenantA({ data: { member: [room('tenant-a')] } })
+    await tenantARequest
+
+    expect(store.rooms).toEqual([room('tenant-b')])
+    expect(store.roomsOrganizationId).toBe('tenant-b')
+    expect(store.roomsLoaded).toBe(true)
+    expect(store.roomsLoading).toBe(false)
+    expect(listRoomsMock).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps room loading and errors independent of failed plant requests', async () => {
     const plantFailure = new Error('Plants unavailable')
     listPlantsMock.mockRejectedValueOnce(plantFailure)
