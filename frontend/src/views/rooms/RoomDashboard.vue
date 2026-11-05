@@ -4,8 +4,8 @@
       v-if="!currentRoomId"
       :rooms="plantsStore.rooms"
       :overview="overview"
-      :rooms-loading="plantsStore.loading"
-      :rooms-error="Boolean(plantsStore.error)"
+      :rooms-loading="plantsStore.roomsLoading"
+      :rooms-error="Boolean(plantsStore.roomsError)"
       :overview-loading="overviewLoading"
       :overview-error="overviewError"
       @create-room="roomDialogOpen = true"
@@ -162,7 +162,7 @@ const overviewLoading = ref(false)
 const overviewError = ref(false)
 let latestRoomPlantsRequest = 0
 
-const loading = computed(() => plantsStore.loading || sensorsStore.loading)
+const loading = computed(() => plantsStore.roomsLoading || sensorsStore.loading)
 
 const currentRoomId = computed(() => {
   const routeRoomId = typeof route.query.roomId === 'string' ? route.query.roomId : null
@@ -416,8 +416,8 @@ async function ensureRoomContext(): Promise<void> {
     }
   }
 
-  if (!plantsStore.rooms.length || !plantsStore.plants.length) {
-    await Promise.all([plantsStore.fetchRooms(), plantsStore.fetchPlants()])
+  if (!plantsStore.roomsLoaded || plantsStore.roomsError) {
+    await plantsStore.fetchRooms()
   }
 
   if (currentRoomId.value) {

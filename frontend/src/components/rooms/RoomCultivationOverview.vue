@@ -28,6 +28,7 @@
             <p class="cultivation-overview__metric-caption">Capacité cumulée des salles</p>
           </div>
           <div
+            v-if="!roomsLoading && !roomsError"
             class="cultivation-overview__gauge"
             role="progressbar"
             aria-label="Occupation des salles"
@@ -39,16 +40,24 @@
             <strong>{{ occupancyPercent === null ? '—' : `${occupancyPercent}%` }}</strong>
           </div>
         </div>
-        <div class="cultivation-overview__metric-value">
-          <strong>{{ occupiedPlants === null ? '—' : occupiedPlants }}</strong>
-          <span>/ {{ totalCapacity }} places</span>
+        <div v-if="roomsLoading" class="cultivation-overview__loading" role="status">
+          <q-spinner color="primary" size="18px" /> Chargement de la capacité…
         </div>
-        <div v-if="occupancyPercent !== null" class="cultivation-overview__progress" aria-hidden="true">
-          <span :style="{ width: `${occupancyPercent}%` }" />
-        </div>
-        <p class="cultivation-overview__metric-footnote">
-          {{ occupancyUnavailable ? 'Le nombre de plants actifs est indisponible pour une ou plusieurs salles.' : `${rooms.length} ${rooms.length === 1 ? 'salle configurée' : 'salles configurées'}` }}
+        <p v-else-if="roomsError" class="cultivation-overview__metric-footnote" role="status">
+          Capacité indisponible.
         </p>
+        <template v-else>
+          <div class="cultivation-overview__metric-value">
+            <strong>{{ occupiedPlants === null ? '—' : occupiedPlants }}</strong>
+            <span>/ {{ totalCapacity }} places</span>
+          </div>
+          <div v-if="occupancyPercent !== null" class="cultivation-overview__progress" aria-hidden="true">
+            <span :style="{ width: `${occupancyPercent}%` }" />
+          </div>
+          <p class="cultivation-overview__metric-footnote">
+            {{ occupancyUnavailable ? 'Le nombre de plants actifs est indisponible pour une ou plusieurs salles.' : `${rooms.length} ${rooms.length === 1 ? 'salle configurée' : 'salles configurées'}` }}
+          </p>
+        </template>
       </q-card>
 
       <q-card flat class="cultivation-overview__metric">

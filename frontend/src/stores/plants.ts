@@ -66,6 +66,10 @@ export const usePlantsStore = defineStore('plants', () => {
   const totalItems = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const roomsLoading = ref(false)
+  const roomsError = ref<string | null>(null)
+  const roomsLoaded = ref(false)
+  let roomsRequest: Promise<void> | null = null
 
   const filters = ref({
     'room.id': undefined as string | undefined,
@@ -101,9 +105,42 @@ export const usePlantsStore = defineStore('plants', () => {
   const activePlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'active'))
   const harvestedPlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'harvested'))
 
-  async function fetchRooms(): Promise<void> {
-    const { data } = await roomsApi.list({ itemsPerPage: 100 })
-    rooms.value = collectionMembers(data)
+  function fetchRooms(): Promise<void> {
+    if (!roomsRequest) {
+      roomsRequest = loadRooms().finally(() => {
+        roomsRequest = null
+      })
+    }
+
+    return roomsRequest
+  }
+
+  async function loadRooms(): Promise<void> {
+    roomsLoading.value = true
+    roomsError.value = null
+    roomsLoaded.value = false
+    const collected: Room[] = []
+    let page = 1
+
+    try {
+      let hasNext = true
+      while (hasNext) {
+        const { data } = await roomsApi.list({ itemsPerPage: 100, page })
+        const members = collectionMembers(data)
+        collected.push(...members)
+        const total = data['hydra:totalItems'] ?? data.totalItems ?? collected.length
+        const next = data['hydra:view']?.['hydra:next'] ?? data.view?.next
+        hasNext = members.length > 0 && (Boolean(next) || collected.length < total)
+        page += 1
+      }
+      rooms.value = collected
+      roomsLoaded.value = true
+    } catch (caughtError) {
+      roomsError.value = caughtError instanceof Error ? caughtError.message : 'Impossible de charger les salles.'
+      throw caughtError
+    } finally {
+      roomsLoading.value = false
+    }
   }
 
   async function fetchStrains(): Promise<void> {
@@ -299,6 +336,9 @@ export const usePlantsStore = defineStore('plants', () => {
     totalItems,
     loading,
     error,
+    roomsLoading,
+    roomsError,
+    roomsLoaded,
     filters,
     plantCards,
     activePlants,
