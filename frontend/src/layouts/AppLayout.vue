@@ -78,7 +78,7 @@
 
     <q-page-container class="app-page-container">
       <q-page class="app-page">
-        <div class="app-page__inner" :class="{ 'app-page__inner--journal': route.name === 'culture-journal' }">
+        <div class="app-page__inner" :class="{ 'app-page__inner--journal': route.name === 'culture-journal', 'app-page__inner--rooms': route.name === 'rooms-dashboard' || route.name === 'sensors-dashboard' }">
           <RouterView />
         </div>
       </q-page>
@@ -687,6 +687,10 @@ async function runConfirmedAction() {
 .app-shell--executive .app-page__inner {
   width: 100%;
   padding: var(--ct-space-6) var(--ct-space-6) var(--ct-space-8);
+}
+
+.app-shell--executive .app-page__inner--rooms {
+  box-sizing: border-box;
 }
 
 .app-shell--executive .app-page__inner--journal {
