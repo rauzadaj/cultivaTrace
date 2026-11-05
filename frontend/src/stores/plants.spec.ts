@@ -164,6 +164,20 @@ describe('plants store room loading', () => {
     expect(store.roomsLoading).toBe(false)
   })
 
+  it('scopes cached rooms to an organization and reloads on tenant change', async () => {
+    listRoomsMock.mockResolvedValueOnce({ data: { member: [room('tenant-a')] } })
+      .mockResolvedValueOnce({ data: { member: [room('tenant-b')] } })
+    const store = usePlantsStore()
+
+    await store.fetchRooms('tenant-a')
+    expect(store.rooms[0].id).toBe('tenant-a')
+
+    await store.fetchRooms('tenant-b')
+    expect(store.rooms[0].id).toBe('tenant-b')
+    expect(store.roomsOrganizationId).toBe('tenant-b')
+    expect(listRoomsMock).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps room loading and errors independent of failed plant requests', async () => {
     const plantFailure = new Error('Plants unavailable')
     listPlantsMock.mockRejectedValueOnce(plantFailure)

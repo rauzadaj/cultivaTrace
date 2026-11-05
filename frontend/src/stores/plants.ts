@@ -69,6 +69,7 @@ export const usePlantsStore = defineStore('plants', () => {
   const roomsLoading = ref(false)
   const roomsError = ref<string | null>(null)
   const roomsLoaded = ref(false)
+  const roomsOrganizationId = ref<string | null>(null)
   let roomsRequest: Promise<void> | null = null
 
   const filters = ref({
@@ -105,7 +106,12 @@ export const usePlantsStore = defineStore('plants', () => {
   const activePlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'active'))
   const harvestedPlants = computed(() => plantCards.value.filter((plant: PlantCardSummary) => plant.status === 'harvested'))
 
-  function fetchRooms(): Promise<void> {
+  function fetchRooms(organizationId: string | null = null): Promise<void> {
+    if (roomsOrganizationId.value !== organizationId) {
+      rooms.value = []
+      roomsLoaded.value = false
+      roomsOrganizationId.value = organizationId
+    }
     if (!roomsRequest) {
       roomsRequest = loadRooms().finally(() => {
         roomsRequest = null
@@ -158,6 +164,10 @@ export const usePlantsStore = defineStore('plants', () => {
     }
 
     await fetchSupportData()
+  }
+
+  function invalidateRoomOccupancy(): void {
+    roomsLoaded.value = false
   }
 
   async function fetchPlants(): Promise<void> {
@@ -248,6 +258,7 @@ export const usePlantsStore = defineStore('plants', () => {
     plants.value.unshift(data)
     totalItems.value += 1
     currentPlant.value = data
+    invalidateRoomOccupancy()
 
     return data
   }
@@ -339,6 +350,8 @@ export const usePlantsStore = defineStore('plants', () => {
     roomsLoading,
     roomsError,
     roomsLoaded,
+    roomsOrganizationId,
+    invalidateRoomOccupancy,
     filters,
     plantCards,
     activePlants,
