@@ -9,6 +9,8 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
     name: 'Salle Veg A',
     type: 'veg',
     capacityMax: 24,
+    activePlantCount: 1,
+    occupancyRate: 4.2,
     farm: '/api/farms/farm-1',
   }]
   const plants = [{
@@ -111,17 +113,44 @@ test('Figma review captures dashboard and existing plants navigation', async ({ 
   await page.getByRole('link', { name: /Salles/i }).click()
   await expect(page).toHaveURL(/\/rooms/)
   await expect(page.locator('.room-dashboard.ct-theme')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Salles de culture' })).toBeVisible()
+  await expect(page.locator('.cultivation-overview__metric-value')).toContainText('1')
+  await expect(page.getByText('/ 24 places')).toBeVisible()
+  await expect(page.locator('.cultivation-overview__metric')).toHaveCount(2)
+  await expect(page.getByRole('heading', { name: 'Salle Veg A' })).toBeVisible()
+  await page.screenshot({ path: join(viewportPath, 'desktop-1280-rooms-overview.png'), fullPage: true })
+  await page.getByRole('button', { name: 'Liste' }).click()
+  await expect(page.locator('.cultivation-overview__room-grid--list')).toBeVisible()
+  await page.getByRole('button', { name: 'Cartes' }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.waitForTimeout(150)
+  const mobileRoomBounds = await page.locator('.cultivation-overview').evaluate((el) => {
+    const intro = el.querySelector('.cultivation-overview__header p:not(.cultivation-overview__eyebrow)')!
+    const metric = el.querySelector('.cultivation-overview__metric')!
+    return {
+      root: el.getBoundingClientRect(),
+      intro: intro.getBoundingClientRect(),
+      metric: metric.getBoundingClientRect(),
+    }
+  })
+  expect(mobileRoomBounds.intro.right).toBeLessThanOrEqual(390)
+  expect(mobileRoomBounds.metric.right).toBeLessThanOrEqual(390)
+  await expect(page.locator('.app-footer')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: join(viewportPath, 'mobile-390-rooms-overview.png'), fullPage: true })
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.getByRole('button', { name: 'Ouvrir la salle Salle Veg A' }).click()
+  await expect(page).toHaveURL(/\/rooms\?roomId=room-1/)
   await expect(page.getByRole('heading', { name: 'Salle Veg A' })).toBeVisible()
   await expect(page.getByText('1 plant actif chargé pour cette salle')).toBeVisible()
   await expect(page.locator('.room-metric')).toHaveCount(3)
-  await page.screenshot({ path: join(viewportPath, 'desktop-1280-rooms.png'), fullPage: true })
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.waitForTimeout(150)
-  await expect(page.locator('.app-footer')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  await page.screenshot({ path: join(viewportPath, 'mobile-390-rooms.png'), fullPage: true })
+  await page.getByRole('button', { name: 'Toutes les salles' }).click()
+  await expect(page.getByRole('heading', { name: 'Salles de culture' })).toBeVisible()
 
   await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.getByRole('link', { name: /Capteurs/i }).click()
+  await expect(page).toHaveURL(/\/sensors/)
+  await expect(page.getByRole('heading', { name: 'Salle Veg A' })).toBeVisible()
   await page.getByRole('link', { name: /Plants/i }).click()
   await expect(page).toHaveURL(/\/plants/)
   await expect(page.getByText('RFID-001')).toBeVisible()
