@@ -70,7 +70,7 @@ export const usePlantsStore = defineStore('plants', () => {
   const roomsError = ref<string | null>(null)
   const roomsLoaded = ref(false)
   const roomsOrganizationId = ref<string | null>(null)
-  let roomsRequest: Promise<void> | null = null
+  const roomsRequests = new Map<string | null, Promise<void>>()
 
   const filters = ref({
     'room.id': undefined as string | undefined,
@@ -112,16 +112,17 @@ export const usePlantsStore = defineStore('plants', () => {
       roomsLoaded.value = false
       roomsOrganizationId.value = organizationId
     }
-    if (!roomsRequest) {
-      roomsRequest = loadRooms().finally(() => {
-        roomsRequest = null
-      })
-    }
+    const pending = roomsRequests.get(organizationId)
+    if (pending) return pending
 
-    return roomsRequest
+    const request = loadRooms(organizationId).finally(() => {
+      if (roomsRequests.get(organizationId) === request) roomsRequests.delete(organizationId)
+    })
+    roomsRequests.set(organizationId, request)
+    return request
   }
 
-  async function loadRooms(): Promise<void> {
+  async function loadRooms(organizationId: string | null): Promise<void> {
     roomsLoading.value = true
     roomsError.value = null
     roomsLoaded.value = false
@@ -139,13 +140,17 @@ export const usePlantsStore = defineStore('plants', () => {
         hasNext = members.length > 0 && (Boolean(next) || collected.length < total)
         page += 1
       }
-      rooms.value = collected
-      roomsLoaded.value = true
+      if (roomsOrganizationId.value === organizationId) {
+        rooms.value = collected
+        roomsLoaded.value = true
+      }
     } catch (caughtError) {
-      roomsError.value = caughtError instanceof Error ? caughtError.message : 'Impossible de charger les salles.'
+      if (roomsOrganizationId.value === organizationId) {
+        roomsError.value = caughtError instanceof Error ? caughtError.message : 'Impossible de charger les salles.'
+      }
       throw caughtError
     } finally {
-      roomsLoading.value = false
+      if (roomsOrganizationId.value === organizationId) roomsLoading.value = false
     }
   }
 
