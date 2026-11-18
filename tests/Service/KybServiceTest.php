@@ -8,10 +8,10 @@ use App\Entity\LicenseDocument;
 use App\Entity\Organization;
 use App\Enum\LicenseStatus;
 use App\Service\KybService;
+use App\Service\TransactionalOutbox;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class KybServiceTest extends TestCase
@@ -84,7 +84,7 @@ final class KybServiceTest extends TestCase
 
         return new KybService(
             $entityManager,
-            $this->createMock(MailerInterface::class),
+            $this->createMock(TransactionalOutbox::class),
             $this->createMock(HttpClientInterface::class),
             $this->createMock(LoggerInterface::class),
         );

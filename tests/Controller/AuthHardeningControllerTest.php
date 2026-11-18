@@ -8,6 +8,7 @@ use App\Entity\Organization;
 use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Enum\UserAccountStatus;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AuthHardeningControllerTest extends ApiTestCase
@@ -99,6 +100,27 @@ final class AuthHardeningControllerTest extends ApiTestCase
         ]);
 
         self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testFailedReplacementDoesNotRevokeTheOriginalRefreshToken(): void
+    {
+        if (!$this->entityManager->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('The injected insert failure uses a SQLite trigger.');
+        }
+
+        $email = $this->uniqueEmail('rotation-rollback');
+        $this->createActiveUser($email);
+        $this->entityManager->flush();
+        [, $refreshToken] = $this->login($email, 'StrongPass!123');
+        $connection = $this->entityManager->getConnection();
+        $connection->executeStatement("CREATE TRIGGER fail_refresh_insert BEFORE INSERT ON refresh_token
+            BEGIN SELECT RAISE(FAIL, 'injected replacement failure'); END");
+
+        $this->client->jsonRequest('POST', '/api/auth/token/refresh', ['refreshToken' => $refreshToken]);
+
+        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $this->client->getResponse()->getStatusCode());
+        self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM refresh_token WHERE revoked_at IS NULL'));
+        self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM refresh_token'));
     }
 
     public function testChangingPasswordRevokesRefreshTokensAndActiveAccessToken(): void

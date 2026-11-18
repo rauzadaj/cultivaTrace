@@ -6,10 +6,10 @@ namespace App\Tests\Service;
 
 use App\Enum\SubscriptionPlan;
 use App\Service\StripeService;
+use App\Service\TransactionalOutbox;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Mailer\MailerInterface;
 
 final class StripeServiceTest extends TestCase
 {
@@ -17,7 +17,7 @@ final class StripeServiceTest extends TestCase
     {
         $service = new StripeService(
             $this->createMock(EntityManagerInterface::class),
-            $this->createMock(MailerInterface::class),
+            $this->createMock(TransactionalOutbox::class),
             $this->createMock(LoggerInterface::class),
             'sk_test_123',
             'whsec_123',
@@ -40,7 +40,7 @@ final class StripeServiceTest extends TestCase
     {
         $service = new StripeService(
             $this->createMock(EntityManagerInterface::class),
-            $this->createMock(MailerInterface::class),
+            $this->createMock(TransactionalOutbox::class),
             $this->createMock(LoggerInterface::class),
             'sk_test_123',
             'whsec_123',
@@ -64,7 +64,7 @@ final class StripeServiceTest extends TestCase
     {
         $service = new StripeService(
             $this->createMock(EntityManagerInterface::class),
-            $this->createMock(MailerInterface::class),
+            $this->createMock(TransactionalOutbox::class),
             $this->createMock(LoggerInterface::class),
             'sk_test_123',
             'whsec_123',

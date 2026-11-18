@@ -122,6 +122,10 @@ fi
 echo "Warming up cache..."
 php bin/console cache:warmup --env="$APP_ENV"
 
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
+
 echo "Starting php-fpm..."
 php-fpm -D
 

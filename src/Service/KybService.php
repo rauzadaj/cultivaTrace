@@ -10,7 +10,6 @@ use App\Entity\Organization;
 use App\Entity\User;
 use App\Enum\LicenseStatus;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Psr\Log\LoggerInterface;
@@ -31,7 +30,7 @@ class KybService
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly MailerInterface $mailer,
+        private readonly TransactionalOutbox $outbox,
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
         private readonly string $metrcApiKey = '',
@@ -255,8 +254,6 @@ class KybService
             'reason'  => $reason,
         ]);
 
-        $this->notifyAdminForManualReview($license, $reason);
-
         return [
             'verified' => false,
             'method'   => 'manual',
@@ -275,6 +272,20 @@ class KybService
         LicenseDocument $license,
         array $result,
     ): void {
+        $this->em->beginTransaction();
+        try {
+            $this->applyResultInTransaction($license, $result);
+            $this->em->flush();
+            $this->em->commit();
+        } catch (\Throwable $exception) {
+            $this->em->rollback();
+            throw $exception;
+        }
+    }
+
+    /** @param array<string, mixed> $result */
+    private function applyResultInTransaction(LicenseDocument $license, array $result): void
+    {
         $org = $license->getOrganization();
         $reviewed = (bool) ($result['reviewed'] ?? false);
 
@@ -301,6 +312,7 @@ class KybService
             if ($isPendingManualReview) {
                 $license->setStatus('pending');
                 $org->setLicenseStatus(LicenseStatus::PENDING);
+                $this->notifyAdminForManualReview($license, (string) ($result['reason'] ?? 'Manual review required.'));
             } else {
                 $license->setStatus('rejected');
                 $license->setVerificationMethod($result['method']);
@@ -309,8 +321,6 @@ class KybService
                 $this->notifyUserRejected($license);
             }
         }
-
-        $this->em->flush();
     }
 
     private function notifyAdminForManualReview(LicenseDocument $license, string $reason): void
@@ -323,34 +333,30 @@ class KybService
             return;
         }
 
-        try {
-            $reviewInstruction = $this->adminReviewUrl !== ''
-                ? sprintf("Process this request: %s", $this->adminReviewUrl)
-                : 'Process this request via the KYB backoffice configured for this environment.';
+        $reviewInstruction = $this->adminReviewUrl !== ''
+            ? sprintf("Process this request: %s", $this->adminReviewUrl)
+            : 'Process this request via the KYB backoffice configured for this environment.';
 
-            $email = (new Email())
-                ->from($this->alertFromEmail)
-                ->to($this->adminReviewEmail)
-                ->subject('[KYB] Manual review required — ' . $license->getLicenseNumber())
-                ->text(sprintf(
-                    "Manual review is required.\n\n" .
-                    "Organization: %s\n" .
-                    "License number: %s\n" .
-                    "Type: %s\n" .
-                    "Reason: %s\n" .
-                    "Submitted on: %s\n\n" .
-                    "%s",
-                    $license->getOrganization()->getName(),
-                    $license->getLicenseNumber(),
-                    $license->getLicenseType(),
-                    $reason,
-                    $license->getSubmittedAt()->format('Y-m-d H:i'),
-                    $reviewInstruction,
-                ));
-            $this->mailer->send($email);
-        } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Admin email send error', ['error' => $e->getMessage()]);
-        }
+        $email = (new Email())
+            ->from($this->alertFromEmail)
+            ->to($this->adminReviewEmail)
+            ->subject('[KYB] Manual review required — ' . $license->getLicenseNumber())
+            ->text(sprintf(
+                "Manual review is required.\n\n" .
+                "Organization: %s\n" .
+                "License number: %s\n" .
+                "Type: %s\n" .
+                "Reason: %s\n" .
+                "Submitted on: %s\n\n" .
+                "%s",
+                $license->getOrganization()->getName(),
+                $license->getLicenseNumber(),
+                $license->getLicenseType(),
+                $reason,
+                $license->getSubmittedAt()->format('Y-m-d H:i'),
+                $reviewInstruction,
+            ));
+        $this->outbox->queueEmail((string) $license->getTenantId(), 'kyb-review-' . $license->getId(), $email);
     }
 
     private function notifyUserActivated(LicenseDocument $license): void
@@ -363,27 +369,23 @@ class KybService
             return;
         }
 
-        try {
-            $firstUser = $license->getOrganization()->getUsers()->first();
-            $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
-            if (!$userEmail) return;
+        $firstUser = $license->getOrganization()->getUsers()->first();
+        $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
+        if (!$userEmail) return;
 
-            $email = (new Email())
-                ->from($this->alertFromEmail)
-                ->to($userEmail)
-                ->subject('✅ Your CultivaTrace license has been validated')
-                ->text(sprintf(
-                    "Great news!\n\n" .
-                    "Your license %s has been verified and validated.\n" .
-                    "You now have access to all CultivaTrace features.\n\n" .
-                    "Sign in at %s",
-                    $license->getLicenseNumber(),
-                    rtrim($this->appUrl, '/')
-                ));
-            $this->mailer->send($email);
-        } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Activation email error', ['error' => $e->getMessage()]);
-        }
+        $email = (new Email())
+            ->from($this->alertFromEmail)
+            ->to($userEmail)
+            ->subject('✅ Your CultivaTrace license has been validated')
+            ->text(sprintf(
+                "Great news!\n\n" .
+                "Your license %s has been verified and validated.\n" .
+                "You now have access to all CultivaTrace features.\n\n" .
+                "Sign in at %s",
+                $license->getLicenseNumber(),
+                rtrim($this->appUrl, '/')
+            ));
+        $this->outbox->queueEmail((string) $license->getTenantId(), 'kyb-active-' . $license->getId(), $email);
     }
 
     private function notifyUserRejected(LicenseDocument $license): void
@@ -396,29 +398,25 @@ class KybService
             return;
         }
 
-        try {
-            $firstUser = $license->getOrganization()->getUsers()->first();
-            $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
-            if (!$userEmail) return;
+        $firstUser = $license->getOrganization()->getUsers()->first();
+        $userEmail = $firstUser instanceof User ? $firstUser->getEmail() : null;
+        if (!$userEmail) return;
 
-            $email = (new Email())
-                ->from($this->alertFromEmail)
-                ->to($userEmail)
-                ->subject('❌ CultivaTrace license verification — Action required')
-                ->text(sprintf(
-                    "Your license verification request could not be validated.\n\n" .
-                    "Submitted license: %s\n" .
-                    "Reason: %s\n\n" .
-                    "Please check your license number and resubmit.\n" .
-                    "If the problem persists, contact %s",
-                    $license->getLicenseNumber(),
-                    $license->getRejectionReason() ?? 'License not recognized',
-                    $this->supportEmail,
-                ));
-            $this->mailer->send($email);
-        } catch (\Throwable $e) {
-            $this->logger->error('[KYB] Rejection email error', ['error' => $e->getMessage()]);
-        }
+        $email = (new Email())
+            ->from($this->alertFromEmail)
+            ->to($userEmail)
+            ->subject('❌ CultivaTrace license verification — Action required')
+            ->text(sprintf(
+                "Your license verification request could not be validated.\n\n" .
+                "Submitted license: %s\n" .
+                "Reason: %s\n\n" .
+                "Please check your license number and resubmit.\n" .
+                "If the problem persists, contact %s",
+                $license->getLicenseNumber(),
+                $license->getRejectionReason() ?? 'License not recognized',
+                $this->supportEmail,
+            ));
+        $this->outbox->queueEmail((string) $license->getTenantId(), 'kyb-rejected-' . $license->getId(), $email);
     }
 
     private function maskLicense(string $licenseNumber): string

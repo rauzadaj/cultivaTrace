@@ -56,6 +56,16 @@ final readonly class ArtifactStorage
         ];
     }
 
+    public function deleteKybUpload(string $storagePath): void
+    {
+        $this->filesystem->remove($this->resolvePath($storagePath, self::KYB_PREFIX, $this->kybStorageRoot));
+    }
+
+    public function deleteReport(string $storagePath): void
+    {
+        $this->filesystem->remove($this->resolveReportPath($storagePath));
+    }
+
     public function resolveReportPath(string $storagePath): string
     {
         return $this->resolvePath($storagePath, self::REPORT_PREFIX, $this->reportStorageRoot);

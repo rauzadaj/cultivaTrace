@@ -15,6 +15,7 @@ use Sensiolabs\GotenbergBundle\GotenbergPdfInterface;
 use Sensiolabs\GotenbergBundle\Processor\FileProcessor;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Component\Uid\Uuid;
 
 final class ReportingExportService
 {
@@ -79,25 +80,30 @@ final class ReportingExportService
             'netWeightG' => round(array_sum(array_map(static fn (array $row): float => (float) $row['netWeightG'], $rows)), 2),
         ];
 
-        $fileName = sprintf('harvest-summary-%s-%s.pdf', $organization->getId(), (new \DateTimeImmutable())->format('YmdHis'));
+        $fileName = sprintf('harvest-summary-%s-%s.pdf', $organization->getId(), Uuid::v4());
         $paths = $this->artifactStorage->createReportPath($organization, $fileName);
         $storagePath = $paths['storagePath'];
         $absolutePath = $paths['absolutePath'];
 
-        $this->renderPdfToPath(
-            'pdf/harvest_summary.html.twig',
-            [
-                'organization' => $organization,
-                'filters' => $filters,
-                'summary' => $summary,
-                'rows' => $rows,
-                'generatedAt' => new \DateTimeImmutable(),
-            ],
-            $absolutePath,
-            $this->buildHarvestSummaryFallbackLines($organization, $filters, $summary, $rows),
-        );
+        try {
+            $this->renderPdfToPath(
+                'pdf/harvest_summary.html.twig',
+                [
+                    'organization' => $organization,
+                    'filters' => $filters,
+                    'summary' => $summary,
+                    'rows' => $rows,
+                    'generatedAt' => new \DateTimeImmutable(),
+                ],
+                $absolutePath,
+                $this->buildHarvestSummaryFallbackLines($organization, $filters, $summary, $rows),
+            );
 
-        return $this->persistExport($organization, $user, 'harvest_summary', 'pdf', $fileName, $storagePath, $filters, $summary);
+            return $this->persistExport($organization, $user, 'harvest_summary', 'pdf', $fileName, $storagePath, $filters, $summary);
+        } catch (\Throwable $exception) {
+            $this->artifactStorage->deleteReport($storagePath);
+            throw $exception;
+        }
     }
 
     /**
@@ -132,29 +138,34 @@ final class ReportingExportService
         ];
 
         $extension = $format === 'pdf' ? 'pdf' : 'csv';
-        $fileName = sprintf('audit-export-%s-%s.%s', $organization->getId(), (new \DateTimeImmutable())->format('YmdHis'), $extension);
+        $fileName = sprintf('audit-export-%s-%s.%s', $organization->getId(), Uuid::v4(), $extension);
         $paths = $this->artifactStorage->createReportPath($organization, $fileName);
         $storagePath = $paths['storagePath'];
         $absolutePath = $paths['absolutePath'];
 
-        if ($format === 'pdf') {
-            $this->renderPdfToPath(
-                'pdf/audit_export.html.twig',
-                [
-                    'organization' => $organization,
-                    'filters' => $filters,
-                    'summary' => $summary,
-                    'rows' => $rows,
-                    'generatedAt' => new \DateTimeImmutable(),
-                ],
-                $absolutePath,
-                $this->buildAuditExportFallbackLines($organization, $filters, $summary, $rows),
-            );
-        } else {
-            $this->writeCsv($absolutePath, $rows);
-        }
+        try {
+            if ($format === 'pdf') {
+                $this->renderPdfToPath(
+                    'pdf/audit_export.html.twig',
+                    [
+                        'organization' => $organization,
+                        'filters' => $filters,
+                        'summary' => $summary,
+                        'rows' => $rows,
+                        'generatedAt' => new \DateTimeImmutable(),
+                    ],
+                    $absolutePath,
+                    $this->buildAuditExportFallbackLines($organization, $filters, $summary, $rows),
+                );
+            } else {
+                $this->writeCsv($absolutePath, $rows);
+            }
 
-        return $this->persistExport($organization, $user, 'audit_export', $format, $fileName, $storagePath, $filters, $summary);
+            return $this->persistExport($organization, $user, 'audit_export', $format, $fileName, $storagePath, $filters, $summary);
+        } catch (\Throwable $exception) {
+            $this->artifactStorage->deleteReport($storagePath);
+            throw $exception;
+        }
     }
 
     private function validateDateRange(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate, int $maxDays = 366): void

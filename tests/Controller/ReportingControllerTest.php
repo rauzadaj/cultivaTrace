@@ -111,6 +111,23 @@ final class ReportingControllerTest extends ApiTestCase
         self::assertStringContainsString('attachment;', $this->client->getResponse()->headers->get('content-disposition', ''));
     }
 
+    public function testFailedHistoryWriteRemovesGeneratedCsv(): void
+    {
+        [$admin] = $this->createReportingFixture('audit-rollback@test.local');
+        $organizationId = (string) $admin->getOrganization()->getId();
+        $this->entityManager->getConnection()->executeStatement('DROP TABLE report_export');
+
+        $this->authorizeClient($admin);
+        $this->apiJsonRequest('POST', '/api/reporting/audit-export', [
+            'dateFrom' => '2026-04-01',
+            'dateTo' => '2026-04-30',
+            'format' => 'csv',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+        self::assertSame([], glob(sprintf('%s/var/storage/report_exports/%s/*', dirname(__DIR__, 2), $organizationId)) ?: []);
+    }
+
     public function testAuditCsvEscapesFormulasAndCannotBeDownloadedByAnotherTenant(): void
     {
         [$admin, , $room, $plant] = $this->createReportingFixture('csv-a@test.local');

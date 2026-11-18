@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\RefreshToken;
 use App\Entity\User;
+use Doctrine\DBAL\LockMode;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -21,17 +22,22 @@ final class RefreshTokenRepository extends ServiceEntityRepository
         parent::__construct($registry, RefreshToken::class);
     }
 
-    public function findActiveByTokenHash(string $tokenHash, \DateTimeImmutable $now): ?RefreshToken
+    public function findActiveByTokenHash(string $tokenHash, \DateTimeImmutable $now, bool $lock = false): ?RefreshToken
     {
-        return $this->createQueryBuilder('rt')
+        $query = $this->createQueryBuilder('rt')
             ->andWhere('rt.tokenHash = :tokenHash')
             ->andWhere('rt.revokedAt IS NULL')
             ->andWhere('rt.expiresAt > :now')
             ->setParameter('tokenHash', $tokenHash)
             ->setParameter('now', $now)
             ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+            ->getQuery();
+
+        if ($lock) {
+            $query->setLockMode(LockMode::PESSIMISTIC_WRITE);
+        }
+
+        return $query->getOneOrNullResult();
     }
 
     public function findActiveById(int $id, \DateTimeImmutable $now): ?RefreshToken

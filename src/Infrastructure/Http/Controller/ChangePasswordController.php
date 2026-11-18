@@ -46,9 +46,16 @@ final readonly class ChangePasswordController
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $user->setPassword($this->passwordHasher->hashPassword($user, $newPassword));
-        $this->refreshTokenService->revokeAllForUser($user);
-        $this->entityManager->flush();
+        $this->entityManager->beginTransaction();
+        try {
+            $user->setPassword($this->passwordHasher->hashPassword($user, $newPassword));
+            $this->refreshTokenService->revokeAllForUser($user);
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+        } catch (\Throwable $exception) {
+            $this->entityManager->rollback();
+            throw $exception;
+        }
 
         return new JsonResponse(['message' => 'Password updated successfully.'], Response::HTTP_OK);
     }

@@ -46,19 +46,16 @@ final readonly class KybSubmissionService
         $license->setFilePath($filePath);
         $license->setStatus('pending');
 
-        $previousStatus = $organization->getLicenseStatus();
-
-        $this->entityManager->persist($license);
-        $organization->setLicenseStatus(LicenseStatus::PENDING);
-        $this->entityManager->flush();
-
         try {
+            // Verification may call METRC; complete it before opening a DB transaction.
             $result = $this->kybService->verify($license);
+            $this->entityManager->persist($license);
+            $organization->setLicenseStatus(LicenseStatus::PENDING);
             $this->kybService->applyVerificationResult($license, $result);
         } catch (\Throwable $e) {
-            // Restore previous license status to avoid locking out active organizations
-            $organization->setLicenseStatus($previousStatus);
-            $this->entityManager->flush();
+            if ($filePath !== null) {
+                $this->artifactStorage->deleteKybUpload($filePath);
+            }
             throw $e;
         }
 

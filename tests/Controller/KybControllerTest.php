@@ -8,6 +8,7 @@ use App\Entity\HealthCanadaLicensedProducer;
 use App\Entity\LicenseDocument;
 use App\Entity\Organization;
 use App\Entity\User;
+use App\Enum\LicenseStatus;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -235,6 +236,32 @@ final class KybControllerTest extends ApiTestCase
         self::assertNotNull($license);
         self::assertNotNull($license->getFilePath());
         self::assertStringEndsWith('.pdf', $license->getFilePath());
+    }
+
+    public function testOutboxFailureRollsBackLicenseAndRemovesUploadedFile(): void
+    {
+        [$organization, $user] = $this->createKybFixture('kyb-rollback@test.local');
+        $organization->setLicenseStatus(LicenseStatus::ACTIVE);
+        $this->entityManager->flush();
+        $connection = $this->entityManager->getConnection();
+        $connection->executeStatement('DROP TABLE effect_outbox');
+
+        $filePath = tempnam(sys_get_temp_dir(), 'kyb_rollback_');
+        self::assertNotFalse($filePath);
+        file_put_contents($filePath, "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF");
+
+        $this->authorizeClient($user);
+        $this->client->request('POST', '/api/kyb/upload', [
+            'licenseNumber' => 'HC-LP-ROLLBACK-001',
+            'licenseType' => 'health_canada',
+        ], ['file' => new UploadedFile($filePath, 'license.pdf', 'application/pdf', null, true)], [
+            'HTTP_ACCEPT' => 'application/json',
+        ]);
+
+        $this->assertStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+        self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM license_document'));
+        self::assertSame('active', $connection->fetchOne('SELECT license_status FROM organization LIMIT 1'));
+        self::assertSame([], glob(sprintf('%s/var/storage/licenses/%s/*', dirname(__DIR__, 2), $organization->getId())) ?: []);
     }
 
     public function testUploadRejectsFileWithInvalidDetectedMimeType(): void

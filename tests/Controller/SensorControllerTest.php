@@ -59,6 +59,7 @@ final class SensorControllerTest extends ApiTestCase
         $connection->executeStatement(
             'CREATE INDEX IF NOT EXISTS idx_sensor_reading ON sensor_reading (sensor_id, recorded_at DESC)'
         );
+        $connection->executeStatement('DELETE FROM sensor_reading');
 
     }
 
@@ -99,6 +100,23 @@ final class SensorControllerTest extends ApiTestCase
         self::assertCount(1, $alerts);
         self::assertSame('sensor_threshold', $alerts[0]->getType());
         self::assertSame((string) $sensor->getTenantId(), (string) $alerts[0]->getTenantId());
+    }
+
+    public function testOutboxFailureRollsBackReadingSensorAndAlert(): void
+    {
+        [$user, $sensor] = $this->createSensorFixture('sensor-rollback@test.local', 'temperature');
+        $connection = $this->entityManager->getConnection();
+        $sensorId = (string) $sensor->getId();
+        $lastSeen = $connection->fetchOne('SELECT last_seen FROM sensor LIMIT 1');
+        $connection->executeStatement('DROP TABLE effect_outbox');
+
+        $this->authorizeClient($user);
+        $this->apiJsonRequest('POST', sprintf('/api/sensors/%s/reading', $sensorId), ['value' => 40.0]);
+
+        $this->assertStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+        self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM sensor_reading'));
+        self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM alert'));
+        self::assertSame($lastSeen, $connection->fetchOne('SELECT last_seen FROM sensor LIMIT 1'));
     }
 
     public function testPostReadingWithoutValueReturns422(): void

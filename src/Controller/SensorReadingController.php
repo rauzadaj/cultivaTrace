@@ -14,9 +14,11 @@ use App\Security\Voter\TenantAwareVoter;
 use App\Service\AlertService;
 use App\Service\License\LicenseGuard;
 use App\Service\MercureService;
+use App\Service\TransactionalOutbox;
 use App\Service\VpdService;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
+use Doctrine\DBAL\LockMode;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * POST /api/sensors/{id}/reading
@@ -41,8 +44,8 @@ class SensorReadingController extends AbstractController
         private readonly AlertService $alerts,
         private readonly VpdService $vpd,
         private readonly MercureService $mercure,
+        private readonly TransactionalOutbox $outbox,
         private readonly EntityManagerInterface $em,
-        private readonly LoggerInterface $logger,
         private readonly LicenseGuard $licenseGuard,
     ) {
     }
@@ -70,47 +73,45 @@ class SensorReadingController extends AbstractController
             );
         }
 
-        $this->readings->insert(
-            (string) $sensor->getId(),
-            (string) $sensor->getTenantId(),
-            $value
-        );
-
-        $sensor->setLastSeen(new \DateTimeImmutable());
-        $sensor->setStatus('online');
-        $this->em->flush();
-
-        $vpdData = null;
-        if (in_array($sensor->getType(), ['temperature', 'humidity'], true)) {
-            $vpdData = $this->computeVpdForRoom($sensor, $value);
-        }
-
-        $payload = [
-            'sensorId'  => (string) $sensor->getId(),
-            'roomId'    => (string) $sensor->getRoom()->getId(),
-            'type'      => $sensor->getType(),
-            'value'     => $value,
-            'unit'      => $this->getUnit($sensor->getType()),
-            'recordedAt'=> (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
-            'vpd'       => $vpdData,
-        ];
-
-        $tenantId = (string) $sensor->getTenantId();
-
+        $this->em->beginTransaction();
         try {
-            $this->mercure->publishPrivateUpdate([
+            if (!$this->em->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+                $this->em->lock($sensor, LockMode::PESSIMISTIC_WRITE);
+            }
+
+            $this->readings->insert((string) $sensor->getId(), (string) $sensor->getTenantId(), $value);
+            $sensor->setLastSeen(new \DateTimeImmutable());
+            $sensor->setStatus('online');
+            $this->em->flush();
+
+            $vpdData = null;
+            if (in_array($sensor->getType(), ['temperature', 'humidity'], true)) {
+                $vpdData = $this->computeVpdForRoom($sensor, $value);
+            }
+
+            $payload = [
+                'sensorId' => (string) $sensor->getId(),
+                'roomId' => (string) $sensor->getRoom()->getId(),
+                'type' => $sensor->getType(),
+                'value' => $value,
+                'unit' => $this->getUnit($sensor->getType()),
+                'recordedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
+                'vpd' => $vpdData,
+            ];
+
+            $tenantId = (string) $sensor->getTenantId();
+
+            $this->outbox->queueMercure($tenantId, 'sensor-reading-' . Uuid::v4(), [
                 $this->mercure->buildSensorTopic($tenantId, (string) $sensor->getId()),
                 $this->mercure->buildRoomTopic($tenantId, (string) $sensor->getRoom()->getId()),
             ], $payload);
+            $alerted = $this->alerts->checkAndAlert($sensor, $value);
+            $this->em->flush();
+            $this->em->commit();
         } catch (\Throwable $exception) {
-            $this->logger->warning('Mercure publish failed for sensor reading.', [
-                'sensorId' => (string) $sensor->getId(),
-                'tenantId' => $tenantId,
-                'exception' => $exception,
-            ]);
+            $this->em->rollback();
+            throw $exception;
         }
-
-        $alerted = $this->alerts->checkAndAlert($sensor, $value);
 
         return $this->json([
             'stored'  => true,

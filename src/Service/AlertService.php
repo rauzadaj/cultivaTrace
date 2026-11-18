@@ -7,22 +7,18 @@ namespace App\Service;
 use App\Entity\Alert;
 use App\Entity\Sensor;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * AlertService — detects IoT threshold breaches and sends alerts.
  *
- * Deduplication: max 1 alert per sensor per hour (via Redis/Cache).
- * Target latency: email sent < 60s after threshold breach.
+ * The caller locks the sensor and wraps alert creation in its reading transaction.
+ * A persisted alert controls cooldown, so rollback never suppresses a retry.
  */
 class AlertService
 {
     public function __construct(
-        private readonly MailerInterface $mailer,
-        private readonly CacheInterface $cache,
+        private readonly TransactionalOutbox $outbox,
         private readonly EntityManagerInterface $entityManager,
         private readonly string $alertFromEmail = 'alerts@cannas.app',
     ) {}
@@ -37,27 +33,21 @@ class AlertService
             return false;
         }
 
-        // Deduplication — max 1 alert per sensor per cooldown period (default 60 min)
-        $cooldown  = $sensor->getThresholds()['alertCooldownMinutes'] ?? 60;
-        $cacheKey  = 'sensor_alert_' . $sensor->getId();
-
-        $cacheMiss = false;
-        $this->cache->get($cacheKey, function (ItemInterface $item) use ($cooldown, &$cacheMiss) {
-            $item->expiresAfter($cooldown * 60);
-            $cacheMiss = true;
-            return true;
-        });
-
-        if (!$cacheMiss) {
+        $cooldown = max(1, (int) ($sensor->getThresholds()['alertCooldownMinutes'] ?? 60));
+        $latest = $this->entityManager->getRepository(Alert::class)->findOneBy(
+            ['sensor' => $sensor, 'type' => 'sensor_threshold'],
+            ['createdAt' => 'DESC'],
+        );
+        if ($latest instanceof Alert && $latest->getCreatedAt() > new \DateTimeImmutable(sprintf('-%d minutes', $cooldown))) {
             return false;
         }
 
-        $this->persistAlert($sensor, $value);
-        $this->sendAlert($sensor, $value);
+        $alert = $this->persistAlert($sensor, $value);
+        $this->queueAlertEmail($sensor, $value, $alert);
         return true;
     }
 
-    private function persistAlert(Sensor $sensor, float $value): void
+    private function persistAlert(Sensor $sensor, float $value): Alert
     {
         $thresholds = $sensor->getThresholds() ?? [];
         $unit = (string) ($thresholds['unit'] ?? '');
@@ -84,7 +74,7 @@ class AlertService
             ]);
 
         $this->entityManager->persist($alert);
-        $this->entityManager->flush();
+        return $alert;
     }
 
     /** @param array<string, mixed> $thresholds */
@@ -104,7 +94,7 @@ class AlertService
         return 'warning';
     }
 
-    private function sendAlert(Sensor $sensor, float $value): void
+    private function queueAlertEmail(Sensor $sensor, float $value, Alert $alert): void
     {
         $thresholds = $sensor->getThresholds();
         $unit       = $thresholds['unit'] ?? '';
@@ -155,7 +145,7 @@ class AlertService
             ->subject($subject)
             ->text($body);
 
-        $this->mailer->send($email);
+        $this->outbox->queueEmail((string) $sensor->getTenantId(), 'sensor-alert-' . $alert->getId(), $email);
     }
 
     private function getAdminEmail(Sensor $sensor): ?string
