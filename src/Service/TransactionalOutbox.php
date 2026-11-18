@@ -25,7 +25,10 @@ class TransactionalOutbox
         ]);
     }
 
-    /** @param list<string> $topics @param array<string, mixed> $data */
+    /**
+     * @param list<string> $topics
+     * @param array<string, mixed> $data
+     */
     public function queueMercure(string $tenantId, string $eventKey, array $topics, array $data): void
     {
         $this->enqueue($tenantId, $eventKey, 'mercure', ['topics' => $topics, 'data' => $data]);
