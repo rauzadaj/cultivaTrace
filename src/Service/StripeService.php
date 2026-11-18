@@ -399,6 +399,11 @@ class StripeService
         ]);
     }
 
+    public function isEntityManagerOpen(): bool
+    {
+        return $this->em->isOpen();
+    }
+
     private function getPriceId(SubscriptionPlan $plan): string
     {
         $priceId = match ($plan) {

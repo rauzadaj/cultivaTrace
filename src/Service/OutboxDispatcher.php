@@ -57,6 +57,11 @@ final readonly class OutboxDispatcher
                     'exception' => $exception,
                 ]);
                 ++$failed;
+
+                if ($message['kind'] === 'stripe_sync' && !$this->stripe->isEntityManagerOpen()) {
+                    // The worker must exit so its supervisor can recreate Doctrine's closed manager.
+                    throw new \RuntimeException('Stripe reconciliation closed the EntityManager; restarting the outbox worker.', 0, $exception);
+                }
             }
         }
 
