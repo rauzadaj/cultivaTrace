@@ -371,6 +371,10 @@ class StripeService
             return;
         }
 
+        // The long-running outbox worker reuses its EntityManager between messages.
+        // Reload this managed entity so reconciliation sees changes committed by HTTP workers.
+        $this->em->refresh($org);
+
         // Stripe is queried before the DB transaction begins.
         $plan = $this->findOrganizationSubscriptionPlan($org);
         $this->em->beginTransaction();
