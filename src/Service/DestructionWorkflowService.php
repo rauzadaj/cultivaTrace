@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Enum\DestructionStatus;
 use App\Enum\PlantStatus;
 use App\Repository\PlantEventRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DestructionWorkflowService
@@ -104,6 +105,15 @@ final readonly class DestructionWorkflowService
         $this->entityManager->beginTransaction();
 
         try {
+            $plant = $intent->getPlant();
+            $this->entityManager->lock($plant, LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->lock($intent, LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->refresh($plant);
+            $this->entityManager->refresh($intent);
+            if (!$intent->canBeConfirmed() || !$plant->isActive()) {
+                throw new \InvalidArgumentException('Destruction intent has already been confirmed or the plant is no longer active.');
+            }
+
             $intent->setStatus(DestructionStatus::Confirmed);
             $intent->setTotalWeightG((string) $totalWeight);
             $intent->setNonCannabisRatio((string) $ratio);
@@ -111,7 +121,6 @@ final readonly class DestructionWorkflowService
             $intent->setConfirmedAt(new \DateTimeImmutable());
             $intent->setConfirmedBy($user);
 
-            $plant = $intent->getPlant();
             $plant->setStatus(PlantStatus::DESTROYED);
 
             $this->eventRepository->appendEvent(

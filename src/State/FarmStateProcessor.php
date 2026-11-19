@@ -10,6 +10,7 @@ use ApiPlatform\State\ProcessorInterface;
 use ApiPlatform\Metadata\Post;
 use App\Entity\Farm;
 use App\Entity\User;
+use Doctrine\DBAL\LockMode;
 use App\Service\License\LicenseGuard;
 use App\Service\PlanLimitExceededException;
 use App\Service\PlanLimitsService;
@@ -62,9 +63,20 @@ final class FarmStateProcessor implements ProcessorInterface
             if ($data->getTenantId() != $organization->getId()) {
                 throw new AccessDeniedException('Cross-tenant farm access is forbidden.');
             }
-            $data->setArchivedAt(new \DateTimeImmutable());
-            $this->em->flush();
-            return null;
+            $this->em->beginTransaction();
+            try {
+                $this->em->lock($data, LockMode::PESSIMISTIC_WRITE);
+                $this->em->refresh($data);
+                if (!$data->isArchived()) {
+                    $data->setArchivedAt(new \DateTimeImmutable());
+                    $this->em->flush();
+                }
+                $this->em->commit();
+                return null;
+            } catch (\Throwable $exception) {
+                $this->em->rollback();
+                throw $exception;
+            }
         }
 
         if ($this->requiresLicenseApproval($operation)) {
@@ -72,14 +84,21 @@ final class FarmStateProcessor implements ProcessorInterface
         }
 
         if ($operation instanceof Post) {
+            $this->em->beginTransaction();
             try {
+                $this->em->lock($organization, LockMode::PESSIMISTIC_WRITE);
+                $this->em->refresh($organization);
                 $this->planLimits->checkFarmLimit($organization);
             } catch (PlanLimitExceededException $exception) {
+                $this->em->rollback();
                 throw new HttpException(
                     402,
                     json_encode($exception->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $exception->getMessage(),
                     $exception,
                 );
+            } catch (\Throwable $exception) {
+                $this->em->rollback();
+                throw $exception;
             }
         }
 
@@ -91,6 +110,19 @@ final class FarmStateProcessor implements ProcessorInterface
 
         $data->setOrganization($organization);
         $data->setTenantId($organization->getId());
+
+        if ($operation instanceof Post) {
+            try {
+                $data->setOrganization($organization);
+                $data->setTenantId($organization->getId());
+                $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+                $this->em->commit();
+                return $result;
+            } catch (\Throwable $exception) {
+                $this->em->rollback();
+                throw $exception;
+            }
+        }
 
         return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }

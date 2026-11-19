@@ -8,6 +8,8 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Room;
 use App\Entity\User;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Service\License\LicenseGuard;
 use App\Service\PlanLimitExceededException;
 use App\Service\PlanLimitsService;
@@ -30,12 +32,12 @@ final class RoomStateProcessor implements ProcessorInterface
         private readonly TokenStorageInterface $tokenStorage,
         private readonly LicenseGuard $licenseGuard,
         private readonly PlanLimitsService $planLimits,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if ($data instanceof Room) {
             $token = $this->tokenStorage->getToken();
             $user = $token?->getUser();
 
@@ -51,25 +53,40 @@ final class RoomStateProcessor implements ProcessorInterface
 
             $this->licenseGuard->assertLicenseApproved($organization);
 
-            if (!isset($context['previous_data'])) {
-                try {
-                    $this->planLimits->checkRoomLimit($organization);
-                } catch (PlanLimitExceededException $exception) {
-                    throw new HttpException(
-                        402,
-                        json_encode($exception->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $exception->getMessage(),
-                        $exception,
-                    );
+            $farm = $data->getFarm();
+            $this->entityManager->beginTransaction();
+            try {
+                $this->entityManager->lock($organization, LockMode::PESSIMISTIC_WRITE);
+                $this->entityManager->refresh($organization);
+                $this->entityManager->lock($farm, LockMode::PESSIMISTIC_WRITE);
+                $this->entityManager->refresh($farm);
+                if ($farm->isArchived()) {
+                    throw new InvalidArgumentException('Cannot create or update a room in an archived farm.');
                 }
+
+                if (!isset($context['previous_data'])) {
+                    try {
+                        $this->planLimits->checkRoomLimit($organization);
+                    } catch (PlanLimitExceededException $exception) {
+                        throw new HttpException(
+                            402,
+                            json_encode($exception->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $exception->getMessage(),
+                            $exception,
+                        );
+                    }
+                }
+
+                if ($farm->getOrganization()->getId() != $organization->getId()) {
+                    throw new InvalidArgumentException('The selected farm does not belong to the authenticated organization.');
+                }
+
+                $data->setTenantId($organization->getId());
+                $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+                $this->entityManager->commit();
+                return $result;
+            } catch (\Throwable $exception) {
+                $this->entityManager->rollback();
+                throw $exception;
             }
-
-            if ($data->getFarm()->getOrganization()->getId() != $organization->getId()) {
-                throw new InvalidArgumentException('The selected farm does not belong to the authenticated organization.');
-            }
-
-            $data->setTenantId($organization->getId());
-        }
-
-        return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }
