@@ -57,7 +57,7 @@ php bin/console doctrine:schema:validate
 
 ## 5. Déploiement des migrations
 
-1. Vérifier que le commit a passé `composer test:postgresql` dans la CI. Cette commande migre une base PostgreSQL 16 vide jusqu'au dernier schéma, puis migre une seconde base depuis la version précédente avec des données représentatives.
+1. Vérifier que le commit a passé `composer test:postgresql` dans la CI. Cette commande migre une base PostgreSQL 16 vide jusqu'au dernier schéma, puis recrée cette base au schéma précédent et la migre avec des données représentatives.
 2. Vérifier la sauvegarde récente et la disponibilité d'une fenêtre de maintenance. Les migrations sont exécutées via `DATABASE_URL_DIRECT`.
 3. Lancer `php bin/console doctrine:migrations:migrate --no-interaction` une seule fois depuis le processus de déploiement.
 4. Vérifier `php bin/console doctrine:migrations:status`, `php bin/console doctrine:schema:validate` et les contrôles fonctionnels de santé avant de remettre le trafic.
