@@ -38,7 +38,6 @@ final class RoomStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if ($data instanceof Room) {
             $token = $this->tokenStorage->getToken();
             $user = $token?->getUser();
 
@@ -89,8 +88,5 @@ final class RoomStateProcessor implements ProcessorInterface
                 $this->entityManager->rollback();
                 throw $exception;
             }
-        }
-
-        return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }

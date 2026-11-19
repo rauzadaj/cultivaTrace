@@ -103,7 +103,7 @@ final class PlantStateProcessor implements ProcessorInterface
 
         $this->entityManager->beginTransaction();
         try {
-            if ($isCreate && $user instanceof User) {
+            if ($isCreate) {
                 $organization = $user->getOrganization();
                 $this->entityManager->lock($organization, LockMode::PESSIMISTIC_WRITE);
                 $this->entityManager->refresh($organization);
