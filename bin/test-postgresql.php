@@ -34,6 +34,8 @@ $env = [
     'APP_ENV' => 'test', 'APP_DEBUG' => '1', 'DATABASE_URL' => $testUrl,
     'PLANT_EVENT_TEST_DATABASE' => $databaseName,
 ];
+$connectionParams = (new DsnParser(['postgresql' => 'pdo_pgsql', 'postgres' => 'pdo_pgsql']))->parse($testUrl);
+$connectionParams['dbname'] = $databaseName; // Direct DBAL connections do not apply Doctrine's test suffix.
 $testConnection = null;
 $status = 1;
 $created = false;
@@ -44,7 +46,7 @@ try {
 
     // Keep the fresh-install path covered independently from the upgrade path below.
     runMigration($env, null);
-    verifyFreshSchema(DriverManager::getConnection((new DsnParser(['postgresql' => 'pdo_pgsql', 'postgres' => 'pdo_pgsql']))->parse($testUrl)));
+    verifyFreshSchema(DriverManager::getConnection($connectionParams));
 
     // Recreate the disposable database so the second scenario starts at a real prior release.
     $admin->executeStatement('DROP DATABASE '.$admin->quoteIdentifier($databaseName).' WITH (FORCE)');
@@ -53,7 +55,7 @@ try {
     // Exercise a realistic in-place upgrade from the last schema before effect_outbox.
     runMigration($env, 'DoctrineMigrations\\Version20260602000000');
 
-    $testConnection = DriverManager::getConnection((new DsnParser(['postgresql' => 'pdo_pgsql', 'postgres' => 'pdo_pgsql']))->parse($testUrl));
+    $testConnection = DriverManager::getConnection($connectionParams);
     seedUpgradeFixture($testConnection);
 
     runMigration($env, null);
