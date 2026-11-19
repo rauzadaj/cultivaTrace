@@ -53,8 +53,18 @@ php bin/console doctrine:schema:validate
 - backups automatiques Railway activés au minimum en quotidien
 - au moins un test de restauration sur staging avant tout go-live
 - conserver une fenêtre de restauration compatible avec le support client beta
+- déclencher et vérifier un backup récent avant chaque lot de migrations en production
 
-## 5. Procédure de restauration
+## 5. Déploiement des migrations
+
+1. Vérifier que le commit a passé `composer test:postgresql` dans la CI. Cette commande migre une base PostgreSQL 16 vide jusqu'au dernier schéma, puis recrée cette base au schéma précédent et la migre avec des données représentatives.
+2. Vérifier la sauvegarde récente et la disponibilité d'une fenêtre de maintenance. Les migrations sont exécutées via `DATABASE_URL_DIRECT`.
+3. Lancer `php bin/console doctrine:migrations:migrate --no-interaction` une seule fois depuis le processus de déploiement.
+4. Vérifier `php bin/console doctrine:migrations:status`, `php bin/console doctrine:schema:validate` et les contrôles fonctionnels de santé avant de remettre le trafic.
+
+Ne pas lancer `doctrine:migrations:execute --down` ni `doctrine:migrations:sync-metadata-storage` comme procédure de retour arrière en production. Les migrations de schéma ne sont pas nécessairement réversibles sans perte de données. En cas d'échec, garder le trafic applicatif en maintenance, conserver les logs et l'état de la base, puis corriger avec une nouvelle migration vers l'avant. Si la base est inutilisable, restaurer le backup vers une base distincte, valider le schéma et les données, puis basculer vers cette base après validation.
+
+## 6. Procédure de restauration
 
 1. Identifier l'instant de restauration cible dans Railway.
 2. Restaurer vers une base de staging, jamais directement sur la prod au premier essai.
@@ -67,7 +77,7 @@ php bin/console doctrine:schema:validate
    - lecture d'un tenant réel de test
 5. Seulement après validation fonctionnelle, planifier la restauration prod.
 
-## 6. Vérifications post-restauration
+## 7. Vérifications post-restauration
 
 - les triggers append-only existent toujours sur `plant_event` et `journal_entry`
 - le dernier lot de migrations est marqué comme exécuté
