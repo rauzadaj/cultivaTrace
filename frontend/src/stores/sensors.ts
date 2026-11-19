@@ -101,6 +101,11 @@ export const useSensorsStore = defineStore('sensors', () => {
     const sensor = sensors.value.find((s: Sensor) => s.id === sensorId)
     if (!sensor) return
 
+    const previous = liveReadings.value.get(sensorId)
+    const incomingTime = Date.parse(update.recordedAt)
+    const previousTime = previous ? Date.parse(previous.recordedAt) : Number.NaN
+    if (Number.isFinite(previousTime) && Number.isFinite(incomingTime) && incomingTime < previousTime) return
+
     const status = computeStatus(sensor, update.value)
 
     liveReadings.value.set(sensorId, {

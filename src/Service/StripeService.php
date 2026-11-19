@@ -17,7 +17,6 @@ use Stripe\Event;
 use Stripe\Stripe;
 use Stripe\Subscription;
 use Stripe\Webhook;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -39,7 +38,7 @@ class StripeService
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly MailerInterface $mailer,
+        private readonly TransactionalOutbox $outbox,
         private readonly LoggerInterface $logger,
         private readonly string $stripeSecretKey,
         private readonly string $stripeWebhookSecret,
@@ -168,9 +167,20 @@ class StripeService
 
     public function syncOrganizationSubscription(Organization $organization): SubscriptionPlan
     {
+        $plan = $this->findOrganizationSubscriptionPlan($organization);
+        if ($plan !== null) {
+            $organization->setPlan($plan);
+            $this->em->flush();
+        }
+
+        return $organization->getPlan();
+    }
+
+    private function findOrganizationSubscriptionPlan(Organization $organization): ?SubscriptionPlan
+    {
         $customerId = $organization->getStripeCustomerId();
         if ($customerId === null || trim($customerId) === '') {
-            return $organization->getPlan();
+            return null;
         }
 
         $subscriptions = Subscription::all([
@@ -190,14 +200,10 @@ class StripeService
                 continue;
             }
 
-            $plan = $this->resolvePlanFromPriceId($priceId);
-            $organization->setPlan($plan);
-            $this->em->flush();
-
-            return $plan;
+            return $this->resolvePlanFromPriceId($priceId);
         }
 
-        return $organization->getPlan();
+        return null;
     }
 
     /**
@@ -218,13 +224,28 @@ class StripeService
 
         $this->logger->info('[Stripe] Webhook received', ['event_type' => $event->type]);
 
-        match ($event->type) {
-            'checkout.session.completed'     => $this->onCheckoutCompleted($event),
-            'customer.subscription.deleted'  => $this->onSubscriptionDeleted($event),
-            'invoice.payment_failed'         => $this->onPaymentFailed($event),
-            'invoice.payment_succeeded'      => $this->onPaymentSucceeded($event),
-            default                          => null,
-        };
+        if ($event->type === 'invoice.payment_succeeded') {
+            // Queue reconciliation before acknowledging the webhook. The worker calls Stripe later.
+            $this->onPaymentSucceeded($event);
+            return;
+        }
+
+        if (!in_array($event->type, ['checkout.session.completed', 'customer.subscription.deleted', 'invoice.payment_failed'], true)) {
+            return;
+        }
+
+        $this->em->beginTransaction();
+        try {
+            match ($event->type) {
+                'checkout.session.completed' => $this->onCheckoutCompleted($event),
+                'customer.subscription.deleted' => $this->onSubscriptionDeleted($event),
+                'invoice.payment_failed' => $this->onPaymentFailed($event),
+            };
+            $this->em->commit();
+        } catch (\Throwable $exception) {
+            $this->em->rollback();
+            throw $exception;
+        }
     }
 
     private function onCheckoutCompleted(Event $event): void
@@ -268,7 +289,7 @@ class StripeService
                     "Thank you for trusting CultivaTrace!",
                     ucfirst($plan)
                 ));
-            $this->mailer->send($email);
+            $this->outbox->queueEmail((string) $org->getId(), 'stripe-checkout-' . $event->id, $email);
         }
     }
 
@@ -319,7 +340,7 @@ class StripeService
                     "Please update your payment method from your billing dashboard.\n" .
                     "Without action within 7 days, your access will be suspended."
                 );
-            $this->mailer->send($email);
+            $this->outbox->queueEmail((string) $org->getId(), 'stripe-payment-failed-' . $event->id, $email);
         }
     }
 
@@ -338,23 +359,49 @@ class StripeService
             return;
         }
 
-        try {
-            $this->syncOrganizationSubscription($org);
+        $organizationId = (string) $org->getId();
+        $this->outbox->queueStripeSync($organizationId, 'stripe-payment-succeeded-' . $event->id, $organizationId);
+    }
 
-            // If org was billing-suspended (onSubscriptionDeleted), restore access.
-            // PENDING / REJECTED / EXPIRED are intentionally left untouched.
-            if ($org->getLicenseStatus() === LicenseStatus::SUSPENDED) {
-                $org->setLicenseStatus(LicenseStatus::ACTIVE);
-                $this->em->flush();
-            }
-
-            $this->logger->info('[Stripe] Payment succeeded — subscription re-synced', [
-                'org_id'   => (string) $org->getId(),
-                'customer' => $this->maskCustomerId((string) $customerId),
-            ]);
-        } catch (\Throwable $e) {
-            $this->logger->error('[Stripe] Resync failed after successful payment', ['error' => $e->getMessage()]);
+    public function reconcilePaymentSuccess(string $organizationId): void
+    {
+        $org = $this->em->getRepository(Organization::class)->find($organizationId);
+        if (!$org) {
+            $this->logger->warning('[Stripe] Reconciliation skipped: organization no longer exists', ['org_id' => $organizationId]);
+            return;
         }
+
+        // The long-running outbox worker reuses its EntityManager between messages.
+        // Reload this managed entity so reconciliation sees changes committed by HTTP workers.
+        $this->em->refresh($org);
+
+        // Stripe is queried before the DB transaction begins.
+        $plan = $this->findOrganizationSubscriptionPlan($org);
+        $this->em->beginTransaction();
+        try {
+            if ($plan !== null) {
+                $org->setPlan($plan);
+            }
+            // PENDING / REJECTED / EXPIRED are intentionally left untouched.
+            if ($plan !== null && $org->getLicenseStatus() === LicenseStatus::SUSPENDED) {
+                $org->setLicenseStatus(LicenseStatus::ACTIVE);
+            }
+            $this->em->flush();
+            $this->em->commit();
+        } catch (\Throwable $exception) {
+            $this->em->rollback();
+            throw $exception;
+        }
+
+        $this->logger->info('[Stripe] Payment succeeded — subscription re-synced', [
+            'org_id' => $organizationId,
+            'customer' => $this->maskCustomerId((string) $org->getStripeCustomerId()),
+        ]);
+    }
+
+    public function isEntityManagerOpen(): bool
+    {
+        return $this->em->isOpen();
     }
 
     private function getPriceId(SubscriptionPlan $plan): string

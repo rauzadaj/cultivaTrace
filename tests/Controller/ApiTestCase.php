@@ -80,6 +80,24 @@ abstract class ApiTestCase extends KernelTestCase
         }
 
         $schemaTool->createSchema($metadata);
+
+        // Integration endpoints enqueue external effects on the same connection.
+        $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS effect_outbox');
+        $this->entityManager->getConnection()->executeStatement(
+            'CREATE TABLE effect_outbox (
+                id VARCHAR(36) NOT NULL PRIMARY KEY,
+                tenant_id VARCHAR(36) NOT NULL,
+                event_key VARCHAR(191) NOT NULL UNIQUE,
+                kind VARCHAR(20) NOT NULL,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                available_at TEXT NOT NULL,
+                claimed_at TEXT DEFAULT NULL,
+                delivered_at TEXT DEFAULT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT DEFAULT NULL
+            )'
+        );
     }
 
     protected function createOrganization(string $name, string $country = 'FR'): Organization

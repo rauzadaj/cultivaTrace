@@ -8,7 +8,6 @@ use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Repository\RefreshTokenRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Contracts\Cache\CacheInterface;
 
 final readonly class RefreshTokenService
 {
@@ -18,7 +17,6 @@ final readonly class RefreshTokenService
         private EntityManagerInterface $entityManager,
         private RefreshTokenRepository $refreshTokenRepository,
         private TokenHasher $tokenHasher,
-        private ?CacheInterface $cache = null,
     ) {
     }
 
@@ -60,16 +58,25 @@ final readonly class RefreshTokenService
     public function rotate(string $plainToken, ?\DateTimeImmutable $now = null): ?array
     {
         $now ??= new \DateTimeImmutable();
-        $currentToken = $this->findActive($plainToken, $now);
+        $this->entityManager->beginTransaction();
+        try {
+            $currentToken = $this->refreshTokenRepository->findActiveByTokenHash(
+                $this->tokenHasher->hash($plainToken),
+                $now,
+                lock: true,
+            );
+            if ($currentToken === null) {
+                $this->entityManager->commit();
+                return null;
+            }
 
-        if ($currentToken === null) {
-            return null;
+            $currentToken->revoke($now);
+            $replacement = $this->issue($currentToken->getUser(), $now);
+            $this->entityManager->commit();
+        } catch (\Throwable $exception) {
+            $this->entityManager->rollback();
+            throw $exception;
         }
-
-        $currentToken->revoke($now);
-        $replacement = $this->issue($currentToken->getUser(), $now);
-        $this->entityManager->flush();
-        $this->cache?->delete('rt_valid_' . $currentToken->getId());
 
         return $replacement;
     }
@@ -78,22 +85,11 @@ final readonly class RefreshTokenService
     {
         $refreshToken->revoke($revokedAt);
         $this->entityManager->flush();
-        $this->cache?->delete('rt_valid_' . $refreshToken->getId());
     }
 
     public function revokeAllForUser(User $user, ?\DateTimeImmutable $revokedAt = null): int
     {
-        $ids = $this->cache !== null
-            ? $this->refreshTokenRepository->findActiveIdsByUser($user, new \DateTimeImmutable())
-            : [];
-
-        $count = $this->refreshTokenRepository->revokeAllForUser($user, $revokedAt);
-
-        foreach ($ids as $id) {
-            $this->cache->delete('rt_valid_' . $id);
-        }
-
-        return $count;
+        return $this->refreshTokenRepository->revokeAllForUser($user, $revokedAt);
     }
 
     public function purgeExpired(?\DateTimeImmutable $now = null): int

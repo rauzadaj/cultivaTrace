@@ -9,11 +9,11 @@ use App\Entity\User;
 use App\Enum\LicenseStatus;
 use App\Enum\SubscriptionPlan;
 use App\Service\StripeService;
+use App\Service\TransactionalOutbox;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Mailer\MailerInterface;
 
 /**
  * Validates the SYNC-05 webhook flow end-to-end (unit level):
@@ -31,12 +31,12 @@ final class StripeWebhookFlowTest extends TestCase
 
     private function makeService(
         EntityManagerInterface $em,
-        ?MailerInterface $mailer = null,
+        ?TransactionalOutbox $outbox = null,
         ?LoggerInterface $logger = null,
     ): StripeService {
         return new StripeService(
             $em,
-            $mailer ?? $this->createMock(MailerInterface::class),
+            $outbox ?? $this->createMock(TransactionalOutbox::class),
             $logger ?? $this->createMock(LoggerInterface::class),
             'sk_test_dummy',
             self::WEBHOOK_SECRET,
@@ -172,7 +172,7 @@ final class StripeWebhookFlowTest extends TestCase
 
     // ── invoice.payment_failed ────────────────────────────────────────────
 
-    public function testPaymentFailedSendsAlertEmailToOrgOwner(): void
+    public function testPaymentFailedQueuesAlertEmailToOrgOwner(): void
     {
         $org = new Organization();
         $org->setName('Test Org');
@@ -193,8 +193,8 @@ final class StripeWebhookFlowTest extends TestCase
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getRepository')->willReturn($repo);
 
-        $mailer = $this->createMock(MailerInterface::class);
-        $mailer->expects(self::once())->method('send');
+        $outbox = $this->createMock(TransactionalOutbox::class);
+        $outbox->expects(self::once())->method('queueEmail');
 
         $invoice = [
             'id'       => 'in_test_failed',
@@ -210,7 +210,7 @@ final class StripeWebhookFlowTest extends TestCase
 
         [$json, $sig] = $this->signedRequest($payload);
 
-        $this->makeService($em, mailer: $mailer)->handleWebhook($json, $sig);
+        $this->makeService($em, outbox: $outbox)->handleWebhook($json, $sig);
     }
 
     // ── invoice.payment_succeeded ─────────────────────────────────────────
@@ -238,6 +238,31 @@ final class StripeWebhookFlowTest extends TestCase
         [$json, $sig] = $this->signedRequest($payload);
 
         $this->makeService($em, logger: $logger)->handleWebhook($json, $sig);
+    }
+
+    public function testPaymentSucceededQueuesAReplayableReconciliation(): void
+    {
+        $org = (new Organization())->setName('Billing Org')->setStripeCustomerId('cus_payment_succeeded');
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->with(['stripeCustomerId' => 'cus_payment_succeeded'])->willReturn($org);
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repo);
+        $em->expects(self::never())->method('flush');
+        $outbox = $this->createMock(TransactionalOutbox::class);
+        $outbox->expects(self::once())->method('queueStripeSync')->with(
+            (string) $org->getId(),
+            'stripe-payment-succeeded-evt_payment_succeeded',
+            (string) $org->getId(),
+        );
+
+        $payload = json_encode([
+            'id' => 'evt_payment_succeeded',
+            'type' => 'invoice.payment_succeeded',
+            'data' => ['object' => ['id' => 'in_payment', 'customer' => 'cus_payment_succeeded']],
+        ], JSON_THROW_ON_ERROR);
+        [$json, $sig] = $this->signedRequest($payload);
+
+        $this->makeService($em, outbox: $outbox)->handleWebhook($json, $sig);
     }
 
     // ── webhook redelivery idempotence ────────────────────────────────────

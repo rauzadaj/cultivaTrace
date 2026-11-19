@@ -33,27 +33,34 @@ final readonly class DestructionWorkflowService
             throw new \InvalidArgumentException('Reason is required');
         }
 
-        $intent = new DestructionIntent($this->legalDelayDays());
-        $intent->setPlant($plant);
-        $intent->setTenantId($plant->getTenantId());
-        $intent->setReason($reason);
-        $intent->setDeclaredBy($user);
-        $this->entityManager->persist($intent);
+        $this->entityManager->beginTransaction();
+        try {
+            $intent = new DestructionIntent($this->legalDelayDays());
+            $intent->setPlant($plant);
+            $intent->setTenantId($plant->getTenantId());
+            $intent->setReason($reason);
+            $intent->setDeclaredBy($user);
+            $this->entityManager->persist($intent);
 
-        $this->eventRepository->appendEvent(
-            plant: $plant,
-            eventType: 'destruction_intent',
-            user: $user,
-            payload: [
-                'intentId' => (string) $intent->getId(),
-                'reason' => $reason,
-                'legalDateMin' => $intent->getLegalDateMin()->format('Y-m-d'),
-            ],
-        );
+            $this->eventRepository->appendEvent(
+                plant: $plant,
+                eventType: 'destruction_intent',
+                user: $user,
+                payload: [
+                    'intentId' => (string) $intent->getId(),
+                    'reason' => $reason,
+                    'legalDateMin' => $intent->getLegalDateMin()->format('Y-m-d'),
+                ],
+            );
 
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+            $this->entityManager->commit();
 
-        return $intent;
+            return $intent;
+        } catch (\Throwable $exception) {
+            $this->entityManager->rollback();
+            throw $exception;
+        }
     }
 
     /** @param array<string, mixed> $payload */

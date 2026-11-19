@@ -122,6 +122,20 @@ fi
 echo "Warming up cache..."
 php bin/console cache:warmup --env="$APP_ENV"
 
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
+
+if [ "${OUTBOX_WORKER_ENABLED:-1}" = "1" ]; then
+  echo "Starting outbox worker..."
+  (
+    while :; do
+      php bin/console app:outbox:dispatch --watch --limit=100 --env="$APP_ENV" || echo "Outbox worker stopped; restarting..." >&2
+      sleep 2
+    done
+  ) &
+fi
+
 echo "Starting php-fpm..."
 php-fpm -D
 
