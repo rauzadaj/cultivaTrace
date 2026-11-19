@@ -66,6 +66,7 @@ final readonly class HarvestWorkflowService
         try {
             // Pessimistic write lock prevents double-harvest under concurrent requests
             $this->entityManager->lock($plant, LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->refresh($plant);
 
             // Re-check status inside the lock in case a concurrent request harvested first
             if (!$plant->isActive()) {

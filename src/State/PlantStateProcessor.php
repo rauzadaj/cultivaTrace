@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Plant;
 use App\Entity\User;
+use Doctrine\DBAL\LockMode;
 use App\Repository\PlantEventRepository;
 use App\Service\License\LicenseGuard;
 use App\Service\PlanLimitExceededException;
@@ -102,6 +103,20 @@ final class PlantStateProcessor implements ProcessorInterface
 
         $this->entityManager->beginTransaction();
         try {
+            if ($isCreate && $user instanceof User) {
+                $organization = $user->getOrganization();
+                $this->entityManager->lock($organization, LockMode::PESSIMISTIC_WRITE);
+                $this->entityManager->refresh($organization);
+                try {
+                    $this->planLimits->checkPlantLimit($organization);
+                } catch (PlanLimitExceededException $exception) {
+                    throw new HttpException(
+                        402,
+                        json_encode($exception->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $exception->getMessage(),
+                        $exception,
+                    );
+                }
+            }
             $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
             if ($result instanceof Plant && $user instanceof User) {
