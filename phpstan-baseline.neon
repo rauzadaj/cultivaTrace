@@ -325,12 +325,6 @@ parameters:
 			path: src/State/PlantStateProcessor.php
 
 		-
-			message: '#^Instanceof between App\\Entity\\Room and App\\Entity\\Room will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/State/RoomStateProcessor.php
-
-		-
 			message: '#^Instanceof between App\\Entity\\Sensor and App\\Entity\\Sensor will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 1
