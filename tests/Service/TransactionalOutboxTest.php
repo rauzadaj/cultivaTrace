@@ -93,6 +93,7 @@ final class TransactionalOutboxTest extends TestCase
     public function testStripeReconciliationCanBeRetriedAfterFailure(): void
     {
         $stripe = $this->createMock(StripeService::class);
+        $stripe->method('isEntityManagerOpen')->willReturn(true);
         $stripe->expects(self::exactly(2))->method('reconcilePaymentSuccess')
             ->with('organization-1')
             ->willReturnCallback(static function () use (&$attempt): void {
