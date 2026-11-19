@@ -56,7 +56,7 @@ final class InactiveLicenseMutationTest extends TestCase
 
         [$processor, $entity] = match ($kind) {
             'plant' => [new PlantStateProcessor($persist, $storage, $events, new LicenseGuard(), $limits, $this->createMock(\Doctrine\ORM\EntityManagerInterface::class)), new Plant()],
-            'room' => [new RoomStateProcessor($persist, $storage, new LicenseGuard(), $limits), new Room()],
+            'room' => [new RoomStateProcessor($persist, $storage, new LicenseGuard(), $limits, $this->createMock(\Doctrine\ORM\EntityManagerInterface::class)), new Room()],
             default => [new SensorStateProcessor($persist, $storage, new LicenseGuard(), $remove), new Sensor()],
         };
 
