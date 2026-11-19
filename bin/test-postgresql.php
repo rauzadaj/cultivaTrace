@@ -84,7 +84,7 @@ exit($status);
 function seedUpgradeFixture(\Doctrine\DBAL\Connection $connection): void
 {
     $connection->executeStatement("INSERT INTO organization (id, name, country, plan, license_status, created_at) VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Upgrade fixture', 'CA', 'growth', 'active', NOW())");
-    $connection->executeStatement("INSERT INTO \"user\" (id, email, roles, password, organization_id, account_status, role) VALUES (918273, 'migration-fixture@example.test', '[]', 'not-a-real-password', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'active', 'ROLE_ORG_ADMIN')");
+    $connection->executeStatement("INSERT INTO \"user\" (id, email, roles, password, organization_id, account_status) VALUES (918273, 'migration-fixture@example.test', '[\"ROLE_ORG_ADMIN\"]', 'not-a-real-password', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'active')");
     $connection->executeStatement("INSERT INTO farm (id, tenant_id, organization_id, name) VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Upgrade farm')");
     $connection->executeStatement("INSERT INTO room (id, tenant_id, farm_id, name, type, capacity_max) VALUES ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Upgrade room', 'veg', 20)");
     $connection->executeStatement("INSERT INTO plant (id, tenant_id, rfid_tag, stage, status, germinated_at, created_at, room_id, created_by_id) VALUES ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'UPGRADE-001', 'germination', 'active', CURRENT_DATE, NOW(), 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 918273)");
